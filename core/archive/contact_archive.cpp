@@ -7,16 +7,18 @@
 #include "archive_index.h"
 #include "history_message.h"
 #include "image_cache.h"
+#include "mentions_me.h"
 
 using namespace core;
 using namespace archive;
 
 contact_archive::contact_archive(const std::wstring& _archive_path, const std::string& _contact_id)
-    : index_(new archive_index(_archive_path + L"/" + index_filename()))
-    , data_(new messages_data(_archive_path + L"/" + db_filename()))
-    , state_(new archive_state(_archive_path + L"/" + dlg_state_filename(), _contact_id))
-    , images_(new image_cache(_archive_path + L"/" + image_cache_filename()))
-    , path_(_archive_path)
+    : path_(_archive_path)
+    , index_(std::make_unique<archive_index>(_archive_path + L'/' + index_filename(), _contact_id))
+    , data_(std::make_unique<messages_data>(_archive_path + L'/' + db_filename()))
+    , state_(std::make_unique<archive_state>(_archive_path + L'/' + dlg_state_filename(), _contact_id))
+    , images_(std::make_unique<image_cache>(_archive_path + L'/' + image_cache_filename()))
+    , mentions_(std::make_unique<mentions_me>(_archive_path + L'/' + mentions_filename()))
     , local_loaded_(false)
 {
 }
@@ -72,20 +74,20 @@ void contact_archive::get_messages_index(int64_t _from, int64_t _count_early, in
 }
 
 bool contact_archive::get_history_file(const std::wstring& _file_name, core::tools::binary_stream& _data
-    , std::shared_ptr<int64_t> _offset, std::shared_ptr<int64_t> _remaining_size, int64_t& _cur_index, std::shared_ptr<int64_t> _mode)
+    , const std::shared_ptr<int64_t>& _offset, const std::shared_ptr<int64_t>& _remaining_size, int64_t& _cur_index, const std::shared_ptr<int64_t>& _mode)
 {
     return messages_data::get_history_archive(_file_name, _data, _offset, _remaining_size, _cur_index, _mode);
 }
 
-bool contact_archive::get_messages_buddies(std::shared_ptr<archive::msgids_list> _ids, std::shared_ptr<history_block> _messages) const
+bool contact_archive::get_messages_buddies(const std::shared_ptr<archive::msgids_list>& _ids, const std::shared_ptr<history_block>& _messages) const
 {
     headers_list _headers;
 
-    for (auto iter_id = _ids->begin(); iter_id != _ids->end(); iter_id++)
+    for (auto id : *_ids)
     {
         message_header msg_header;
 
-        if (!index_->get_header(*iter_id, Out msg_header))
+        if (!index_->get_header(id, Out msg_header))
         {
             assert(!"message header not found");
             continue;
@@ -96,7 +98,7 @@ bool contact_archive::get_messages_buddies(std::shared_ptr<archive::msgids_list>
             continue;
         }
 
-        _headers.emplace_back(msg_header);
+        _headers.emplace_back(std::move(msg_header));
     }
 
     std::lock_guard<std::mutex> lock(mutex_);
@@ -121,67 +123,6 @@ void contact_archive::clear_dlg_state()
     state_->clear_state();
 }
 
-bool contact_archive::update_dlg_state_last_message()
-{
-    const auto &dlg_state = state_->get_state();
-
-    if (!dlg_state.has_last_msgid())
-    {
-        if (!dlg_state.get_last_message().has_msgid())
-        {
-            return false;
-        }
-
-        auto patched_dlg_state = dlg_state;
-
-        patched_dlg_state.set_last_message(history_message());
-
-        dlg_state_changes changes;
-        state_->set_state(patched_dlg_state, Out changes);
-
-        return true;
-    }
-
-    const auto last_msgid = dlg_state.get_last_msgid();
-    assert(last_msgid > 0);
-
-    if (!index_->has_header(last_msgid))
-    {
-        return false;
-    }
-
-    auto ids = std::make_shared<msgids_list>();
-    ids->push_back(last_msgid);
-
-    auto messages = std::make_shared<history_block>();
-    get_messages_buddies(ids, Out messages);
-    assert(messages->size() == 1);
-
-    if (messages->empty())
-    {
-        return false;
-    }
-
-    const auto &message = *messages->at(0);
-    assert(!message.is_deleted());
-    assert(!message.is_patch());
-
-    const auto is_same_message = message.contents_equal(dlg_state.get_last_message());
-    if (is_same_message)
-    {
-        return false;
-    }
-
-    auto patched_dlg_state = dlg_state;
-
-    patched_dlg_state.set_last_message(message);
-
-    dlg_state_changes changes;
-    state_->set_state(patched_dlg_state, Out changes);
-
-    return true;
-}
-
 void contact_archive::insert_history_block(
     history_block_sptr _data,
     Out headers_list& _inserted_messages,
@@ -197,21 +138,27 @@ void contact_archive::insert_history_block(
     const auto last_msgid = state_->get_state().get_last_msgid();
     auto last_message_updated = false;
 
-    for (auto iter_msg = _data->begin(); iter_msg != _data->end(); iter_msg++)
+    for (const auto &message : *_data)
     {
-        const auto &message = *iter_msg;
         assert(message);
         assert(message->has_msgid());
 
         message_header existing_header;
         if (index_->get_header(message->get_msgid(), Out existing_header))
         {
-            const auto is_patch_operation = (message->is_patch() ^ existing_header.is_patch());
+            const auto is_patch_operation = (message->is_patch() != existing_header.is_patch());
 
-            const auto skip_duplicate = !is_patch_operation;
+            const auto& quotes = message->get_quotes();
+            const bool quote_with_chat_name = !quotes.empty() && !quotes.front().get_chat_name().empty();
+
+            const bool is_prev_id_changed = message->get_prev_msgid() != existing_header.get_prev_msgid();
+
+            const auto skip_duplicate = !is_patch_operation && !quote_with_chat_name && !is_prev_id_changed;
             if (skip_duplicate)
             {
-                // message is already in the db, and it's not a patch thus just skip it
+                // message is already in the db, no need in quote header replacement,
+                // and it's not a patch thus just skip it,
+                // and prev_ids are not changed, no need to fix linked list
                 continue;
             }
         }
@@ -288,18 +235,6 @@ void contact_archive::insert_history_block(
             return;
         }
     }
-
-    const auto last_message_changed = (state_->get_state().get_last_message().get_msgid() != last_msgid);
-
-    if (last_message_updated || last_message_changed)
-    {
-        _state_changes.last_message_changed_ = update_dlg_state_last_message();
-
-        if (_state_changes.last_message_changed_)
-        {
-            Out _updated_state = state_->get_state();
-        }
-    }
 }
 
 int32_t contact_archive::load_from_local()
@@ -318,22 +253,22 @@ int32_t contact_archive::load_from_local()
         }
     }
 
-    image_cache_thread_ = std::move(std::thread(&image_cache::load_from_local, images_.get(), std::ref(*this)));
+    image_cache_thread_ = std::thread(&image_cache::load_from_local, images_.get(), std::cref(*this));
 
     return 0;
 }
 
-bool contact_archive::get_next_hole(int64_t _from, archive_hole& _hole, int64_t _depth)
+bool contact_archive::get_next_hole(int64_t _from, archive_hole& _hole, int64_t _depth) const
 {
     return index_->get_next_hole(_from, _hole, _depth);
 }
 
-int64_t contact_archive::validate_hole_request(const archive_hole& _hole, const int32_t _count)
+int64_t contact_archive::validate_hole_request(const archive_hole& _hole, const int32_t _count) const
 {
     return index_->validate_hole_request(_hole, _count);
 }
 
-bool contact_archive::need_optimize()
+bool contact_archive::need_optimize() const
 {
     return index_->need_optimize();
 }
@@ -375,6 +310,11 @@ void contact_archive::delete_messages_up_to(const int64_t _up_to)
     images_->synchronize(*index_);
 }
 
+void contact_archive::add_mention(const std::shared_ptr<archive::history_message>& _message)
+{
+    mentions_->add(_message);
+}
+
 std::wstring archive::db_filename()
 {
     return L"_db2";
@@ -399,3 +339,9 @@ std::wstring archive::cache_filename()
 {
     return L"cache2";
 }
+
+std::wstring archive::mentions_filename()
+{
+    return L"_mentions";
+}
+

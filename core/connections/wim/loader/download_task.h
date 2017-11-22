@@ -27,7 +27,7 @@ namespace core
 
             std::shared_ptr<download_progress_handler> handler_;
 
-            std::shared_ptr<web_file_info> make_info();
+            std::shared_ptr<web_file_info> make_info() const;
 
             std::wstring get_info_file_name() const;
 
@@ -61,7 +61,7 @@ namespace core
             bool is_downloaded_file_exists();
 
             void set_played(bool played);
-            
+
             std::string get_file_direct_url() const;
 
             // download thread functions

@@ -27,14 +27,14 @@ bool binary_stream::save_2_file(const std::wstring& _file_name) const
             return false;
     }
 
-    std::wstring temp_file_name = _file_name + L".tmp";
+    const std::wstring temp_file_name = _file_name + L".tmp";
 
     {
         auto outfile = tools::system::open_file_for_write(temp_file_name, std::ofstream::binary | std::ofstream::trunc);
         if (!outfile.is_open())
             return false;
 
-        auto_scope end_scope_call([&outfile]	{ outfile.close(); });
+        auto_scope end_scope_call([&outfile] { outfile.close(); });
 
         uint32_t size = available();
 
@@ -49,8 +49,6 @@ bool binary_stream::save_2_file(const std::wstring& _file_name) const
             assert(!"save stream to file error");
             return false;
         }
-
-        outfile.close();
     }
 
     boost::filesystem::path from(temp_file_name);
@@ -70,7 +68,7 @@ bool binary_stream::load_from_file(const std::wstring& _file_name)
     if (!infile.is_open())
         return false;
 
-    const int32_t mem_block_size = 1024*64;
+    constexpr int32_t mem_block_size = 1024 * 64;
 
     uint64_t size = infile.tellg();
     infile.seekg (0, std::ifstream::beg);
@@ -92,7 +90,7 @@ bool binary_stream::load_from_file(const std::wstring& _file_name)
             return false;
         }
 
-        write((char*)buffer, (int32_t) bytes_to_read);
+        write((const char*)buffer, (int32_t) bytes_to_read);
 
         size_read += bytes_to_read;
     }

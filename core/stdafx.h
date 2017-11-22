@@ -1,13 +1,14 @@
 #pragma once
 
 #ifdef _WIN32
-
+#include <WinSDKVer.h>
 #define WINVER 0x0500
 #define _WIN32_WINDOWS 0x0500
 #define _WIN32_WINNT 0x0600
 
 #define _CRT_SECURE_NO_WARNINGS
 #define _WIN32_LEAN_AND_MEAN
+#define _ATL_XP_TARGETING
 
 #include "win32/targetver.h"
 #include <event2/event.h>
@@ -31,6 +32,7 @@
 #include <functional>
 #include <future>
 #include <iomanip>
+#include <iterator>
 #include <list>
 #include <locale>
 #include <map>
@@ -86,6 +88,15 @@
 #include "../common.shared/constants.h"
 
 typedef rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator> rapidjson_allocator;
+
+#ifndef _RAPIDJSON_GET_STRING_
+#define _RAPIDJSON_GET_STRING_
+namespace core
+{
+    template <typename T>
+    inline std::string rapidjson_get_string(const T& value) { return std::string(value.GetString(), value.GetStringLength()); }
+}
+#endif // _RAPIDJSON_GET_STRING_
 
 #undef min
 #undef max

@@ -21,7 +21,7 @@ bool core_settings::end_init_default()
 {
     auto need_save = false;
     if (
-        !value_exists(core_settings_values::csv_device_id) || 
+        !value_exists(core_settings_values::csv_device_id) ||
         get_value<std::string>(core_settings_values::csv_device_id, std::string()).length() < 10)
     {
         set_value<std::string>(core_settings_values::csv_device_id, core::tools::system::generate_guid());
@@ -30,20 +30,14 @@ bool core_settings::end_init_default()
 
     if (!value_exists(core_settings_values::core_settings_locale))
     {
-        std::locale loc = boost::locale::generator().generate("");
-        std::string locale, lang, country;
-        lang = std::use_facet<boost::locale::info>(loc).language();
-        country = std::use_facet<boost::locale::info>(loc).country();
+        std::locale loc = boost::locale::generator().generate(std::string());
+        std::string lang = std::use_facet<boost::locale::info>(loc).language();
+        std::string country = std::use_facet<boost::locale::info>(loc).country();
+        std::string locale;
         if (!lang.empty() && !country.empty())
-            locale = lang + "-" + country;
+            locale = lang + '-' + country;
 
         set_value(core_settings_values::core_settings_locale, locale.empty() ? locale : boost::locale::to_lower(locale, loc));
-        need_save = true;
-    }
-
-    if (!value_exists(core_settings_values::core_need_show_promo))
-    {
-        set_value<bool>(core_settings_values::core_need_show_promo, false);
         need_save = true;
     }
 
@@ -62,7 +56,7 @@ bool core_settings::load()
     core::tools::binary_stream bstream;
     if (bstream.load_from_file(file_name_))
         return core::tools::settings::unserialize(bstream);
-    
+
     return load_exported();
 }
 
@@ -96,17 +90,6 @@ std::string core_settings::get_locale() const
     return get_value<std::string>(core_settings_values::core_settings_locale, std::string());
 }
 
-void core_settings::set_need_show_promo(bool _need_show_promo)
-{
-    set_value(core_settings_values::core_need_show_promo, _need_show_promo);
-    save();
-}
-
-bool core_settings::get_need_show_promo() const
-{
-    return get_value<bool>(core_settings_values::core_need_show_promo, false);
-}
-
 proxy_settings core_settings::get_user_proxy_settings()
 {
     proxy_settings core_proxy_settings;
@@ -117,9 +100,9 @@ proxy_settings core_settings::get_user_proxy_settings()
 
 bool core_settings::get_voip_mute_fix_flag() const
 {
-	bool res = false;
-	get_value(core_settings_values::voip_mute_fix_flag, &res);
-	return res;
+    bool res = false;
+    get_value(core_settings_values::voip_mute_fix_flag, &res);
+    return res;
 }
 
 void core_settings::set_voip_mute_fix_flag(bool bValue)
@@ -130,13 +113,6 @@ void core_settings::set_voip_mute_fix_flag(bool bValue)
 
 bool core_settings::unserialize(const rapidjson::Value& _node)
 {
-    auto iter_promo = _node.FindMember(settings_need_show_promo);
-    if (iter_promo != _node.MemberEnd() && iter_promo->value.IsBool())
-    {
-        auto need_show_promo = iter_promo->value.GetBool();
-        set_value(core_settings_values::core_need_show_promo, need_show_promo);
-    }
-
     return true;
 }
 

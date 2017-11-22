@@ -12,11 +12,11 @@ using namespace wim;
 
 
 send_file_params::send_file_params()
-    :	size_already_sent_(0),
+    : size_already_sent_(0),
     current_chunk_size_(0),
     full_data_size_(0),
-    data_(0),
-    session_id_(0)
+    session_id_(0),
+    data_(0)
 {
 
 }
@@ -25,14 +25,14 @@ send_file_params::send_file_params()
 
 
 send_file::send_file(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const send_file_params& _chunk,
     const std::string& _host,
     const std::string& _url)
-    :	wim_packet(_params),
-    chunk_(_chunk),
+    :	wim_packet(std::move(_params)),
     host_(_host),
-    url_(_url)
+    url_(_url),
+    chunk_(_chunk)
 {
 }
 
@@ -60,7 +60,7 @@ int32_t send_file::init_request(std::shared_ptr<core::http_request_simple> _requ
     _request->set_custom_header_param("Content-Type: application/octet-stream");
 
     std::stringstream ss_range;
-    ss_range << "bytes " << chunk_.size_already_sent_ << "-" << (chunk_.size_already_sent_ + chunk_.current_chunk_size_ - 1) << "/" <<  chunk_.full_data_size_;
+    ss_range << "bytes " << chunk_.size_already_sent_ << '-' << (chunk_.size_already_sent_ + chunk_.current_chunk_size_ - 1) << '/' <<  chunk_.full_data_size_;
 
     std::stringstream ss_content_range;
     ss_content_range << "Content-Range: " << ss_range.str();
@@ -85,7 +85,7 @@ int32_t send_file::init_request(std::shared_ptr<core::http_request_simple> _requ
     params["sig_sha256"] = sha256;
 
     std::stringstream ss_url_signed;
-    ss_url_signed << ss_url.str() << "?" << format_get_params(params);
+    ss_url_signed << ss_url.str() << '?' << format_get_params(params);
 
     _request->set_url(ss_url_signed.str());
 
@@ -122,7 +122,7 @@ int32_t send_file::parse_response(std::shared_ptr<core::tools::binary_stream> _r
         if (iter_static_url == iter_data->value.MemberEnd() || !iter_static_url->value.IsString())
             return wpie_http_parse_response;
 
-        file_url_ = iter_static_url->value.GetString();
+        file_url_ = rapidjson_get_string(iter_static_url->value);
     }
 
     return 0;
@@ -142,7 +142,7 @@ int32_t send_file::execute_request(std::shared_ptr<core::http_request_simple> _r
 }
 
 
-std::string send_file::get_file_url() const
+const std::string& send_file::get_file_url() const
 {
     return file_url_;
 }

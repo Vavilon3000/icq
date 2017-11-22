@@ -1,40 +1,53 @@
 #pragma once
 
-#define UI_COMMON_STYLE_NS_BEGIN namespace Ui { namespace CommonStyle {
-#define UI_COMMON_STYLE_NS_END } }
+namespace CommonStyle
+{
+    enum class Color
+    {
+        Min,
 
-UI_COMMON_STYLE_NS_BEGIN
+        GREEN_FILL,
+        GREEN_TEXT,
+        GRAY_FILL_LIGHT,
+        GRAY_FILL_DARK,
+        GRAY_BORDER,
+        TEXT_PRIMARY,
+        TEXT_SECONDARY,
+        TEXT_LIGHT,
+        RED_FILL,
+        TEXT_RED,
 
-QString getCloseButtonStyle();
-QString getMinimizeButtonStyle();
-QString getMaximizeButtonStyle();
-QString getRestoreButtonStyle();
+        Max,
+    };
 
-const QColor getContactListHoveredColor();
-const QColor getContactListSelectedColor();
+    enum class State
+    {
+        Min,
 
-QString getDisabledButtonStyle();
-QString getGrayButtonStyle();
-QString getGreenButtonStyle();
+        NORMAL,
+        HOVER,
+        PRESSED,
 
-const QColor getFrameColor();
-const int getBottomPanelHeight();
-const QColor getBottomPanelColor();
-const int getTopPanelHeight();
-const QColor getTopPanelColor();
+        Max,
+    };
 
-const QColor getLinkColor();
-const QColor getLinkColorHovered();
-const QColor getLinkColorPressed();
+    QColor getColor(const Color _color);
 
-const QColor getRedLinkColor();
-const QColor getRedLinkColorHovered();
+    QString getCloseButtonStyle();
+    QString getMinimizeButtonStyle();
+    QString getMaximizeButtonStyle();
+    QString getRestoreButtonStyle();
 
-const QColor getTextCommonColor();
+    QString getDisabledButtonStyle();
+    QString getGrayButtonStyle();
+    QString getGreenButtonStyle();
+    QString getRedButtonStyle();
 
-QString getLineEditStyle();
-QString getTextEditStyle();
-QString getLineEditErrorStyle();
+    const QColor getFrameColor();
+    const int getBottomPanelHeight();
+    const int getTopPanelHeight();
 
-
-UI_COMMON_STYLE_NS_END
+    QString getLineEditStyle();
+    QString getTextEditStyle();
+    QString getLineEditErrorStyle();
+}

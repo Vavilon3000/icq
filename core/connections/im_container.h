@@ -51,9 +51,6 @@ namespace core
         void on_login_by_phone(int64_t _seq, coll_helper& _params);
         void on_logout(int64_t _seq, coll_helper& _params);
         void on_phoneinfo(int64_t _seq, coll_helper& _params);
-        void on_snap_read(int64_t _seq, coll_helper& _params);
-        void on_delete_read(int64_t _seq, coll_helper& _params);
-        void on_snap_download_metainfo(int64_t _seq, coll_helper& _params);
         void on_connect_after_migration(int64_t _seq, coll_helper& _params);
         void on_get_contact_avatar(int64_t _seq, coll_helper& _params);
         void on_show_contact_avatar(int64_t _seq, coll_helper& _params);
@@ -95,6 +92,11 @@ namespace core
         void on_get_themes_meta(int64_t _seq, coll_helper& _params);
         void on_get_theme(int64_t _seq, coll_helper& _params);
         void on_get_sticker(int64_t _seq, coll_helper& _params);
+        void on_get_stickers_pack_info(int64_t _seq, coll_helper& _params);
+        void on_add_stickers_pack(int64_t _seq, coll_helper& _params);
+        void on_remove_stickers_pack(int64_t _seq, coll_helper& _params);
+        void on_get_stickers_store(int64_t _seq, coll_helper& _params);
+        void on_get_set_icon_big(int64_t _seq, coll_helper& _params);
         void on_get_chat_info(int64_t _seq, coll_helper& _params);
         void on_get_chat_blocked(int64_t _seq, coll_helper& _params);
         void on_get_chat_pending(int64_t _seq, coll_helper& _params);
@@ -115,7 +117,7 @@ namespace core
         void on_unfavorite(int64_t _seq, coll_helper& _params);
 
         void on_create_chat(int64_t _seq, coll_helper& _params);
-        
+
         void on_mod_chat_params(int64_t _seq, coll_helper& _params);
         void on_mod_chat_name(int64_t _seq, coll_helper& _params);
         void on_mod_chat_about(int64_t _seq, coll_helper& _params);
@@ -124,7 +126,7 @@ namespace core
         void on_mod_chat_link(int64_t _seq, coll_helper& _params);
         void on_mod_chat_ro(int64_t _seq, coll_helper& _params);
         void on_mod_chat_age(int64_t _seq, coll_helper& _params);
-        
+
         void on_block_chat_member(int64_t _seq, coll_helper& _params);
         void on_set_chat_member_role(int64_t _seq, coll_helper& _params);
 
@@ -150,11 +152,6 @@ namespace core
         void on_sign_url(int64_t _seq, coll_helper& _params);
         void on_stats(int64_t _seq, coll_helper& _params);
 
-        //snaps
-        void on_snaps_refresh(int64_t _seq, coll_helper& _params);
-        void on_refresh_user_snaps(int64_t _seq, coll_helper& _params);
-        void on_remove_from_snaps_storage(int64_t _seq, coll_helper& _params);
-
         std::shared_ptr<base_im> get_im(coll_helper& _params) const;
         void on_get_flags(int64_t _seq, coll_helper& _params);
 
@@ -162,13 +159,13 @@ namespace core
 
         void fromInternalProxySettings2Voip(const core::proxy_settings& proxySettings, voip_manager::VoipProxySettings& voipProxySettings);
 
-        void on_close_promo(int64_t _seq, coll_helper& _params);
-
         // masks
         void on_get_mask_id_list(int64_t _seq, coll_helper& _params);
         void on_get_mask_preview(int64_t _seq, coll_helper& _params);
         void on_get_mask_model(int64_t _seq, coll_helper& _params);
         void on_get_mask(int64_t _seq, coll_helper& _params);
+
+        void on_merge_account(int64_t _seq, coll_helper& _params);
 
     public:
 
@@ -180,7 +177,7 @@ namespace core
 
         bool has_valid_login() const;
 
-        im_container(std::shared_ptr<voip_manager::VoipManager> voip_manager);
+        im_container(const std::shared_ptr<voip_manager::VoipManager>& voip_manager);
         virtual ~im_container();
 
         void create();

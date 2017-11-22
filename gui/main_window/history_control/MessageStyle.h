@@ -23,17 +23,11 @@ int32_t getTimeMarginY();
 
 int32_t getTimeMaxWidth();
 
-QColor getIncomingBodyColorA();
+QColor getIncomingBodyColor();
 
-QColor getOutgoingBodyColorA();
-
-QColor getIncomingBodyColorB();
-
-QColor getOutgoingBodyColorB();
+QColor getOutgoingBodyColor();
 
 QString getLinkColorS();
-
-QColor getLinkColor();
 
 QString getMessageStyle();
 
@@ -56,8 +50,12 @@ int32_t getAvatarRightMargin();
 int32_t getBubbleHorPadding();
 
 int32_t getLastReadAvatarSize();
+QSize getLastStatusIconSize();
+
+QSize getLastStatusCheckMarkSize();
 
 int32_t getLastReadAvatarMargin();
+int32_t getLastStatusIconMargin();
 
 int32_t getHistoryWidgetMaxWidth();
 
@@ -80,5 +78,9 @@ int32_t getTextWidthStep();
 int32_t roundTextWidthDown(const int32_t width);
 
 int32_t getSnippetMaxWidth();
+
+int32_t getImagePreviewLinkFontSize();
+
+bool isShowLinksInImagePreview();
 
 UI_MESSAGE_STYLE_NS_END

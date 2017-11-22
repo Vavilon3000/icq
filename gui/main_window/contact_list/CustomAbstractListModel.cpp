@@ -8,15 +8,10 @@ namespace Logic
     {
         if (platform::is_apple())
         {
-            QWidget::connect(&Utils::InterConnector::instance(), SIGNAL(forceRefreshList(QAbstractItemModel *, bool)), this, SLOT(forceRefreshList(QAbstractItemModel *, bool)));
+            connect(&Utils::InterConnector::instance(), &Utils::InterConnector::forceRefreshList, this, &CustomAbstractListModel::forceRefreshList);
         }
     }
-    
-    CustomAbstractListModel::~CustomAbstractListModel()
-    {
-        //
-    }
-    
+
     void CustomAbstractListModel::forceRefreshList(QAbstractItemModel *model, bool mouseOver)
     {
         if (model == this)
@@ -35,7 +30,7 @@ namespace Logic
     {
         flags_ |= flag;
     }
-    
+
     void CustomAbstractListModel::unsetFlag(int flag)
     {
         flags_ &= (~flag);

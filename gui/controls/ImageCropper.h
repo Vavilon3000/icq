@@ -38,8 +38,8 @@ namespace Ui
             startResizeCropMousePos(QPoint()),
             proportion(INIT_PROPORTION),
             deltas(INIT_PROPORTION),
-            backgroundColor(QColor("#000000")),
-            croppingRectBorderColor(QColor("#ffffff"))
+            backgroundColor(QColor(ql1s("#000000"))),
+            croppingRectBorderColor(QColor(ql1s("#ffffff")))
         {}
 
     public:

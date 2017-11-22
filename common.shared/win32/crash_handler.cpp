@@ -34,11 +34,11 @@
 #define EXTERNC
 #endif
 
-// _ReturnAddress and _AddressOfReturnAddress should be prototyped before use 
+// _ReturnAddress and _AddressOfReturnAddress should be prototyped before use
 EXTERNC void * _AddressOfReturnAddress(void);
 EXTERNC void * _ReturnAddress(void);
 
-#endif 
+#endif
 
 namespace core
 {
@@ -49,8 +49,8 @@ namespace core
         bool crash_handler::is_sending_after_crash_ = false;
 
         crash_handler::crash_handler(
-            const std::string& _bundle, 
-            const std::wstring& _product_path, 
+            const std::string& _bundle,
+            const std::wstring& _product_path,
             const bool _is_sending_after_crash)
         {
             crash_handler::is_sending_after_crash_ = _is_sending_after_crash;
@@ -147,36 +147,36 @@ namespace core
                 return;
 
             // Install top-level SEH handler
-            SetUnhandledExceptionFilter(seh_handler);    
+            SetUnhandledExceptionFilter(seh_handler);
 
             // Catch pure virtual function calls.
-            // Because there is one _purecall_handler for the whole process, 
-            // calling this function immediately impacts all threads. The last 
-            // caller on any thread sets the handler. 
+            // Because there is one _purecall_handler for the whole process,
+            // calling this function immediately impacts all threads. The last
+            // caller on any thread sets the handler.
             // http://msdn.microsoft.com/en-us/library/t296ys27.aspx
 
             //return;
 
-            _set_purecall_handler(pure_call_handler);    
+            _set_purecall_handler(pure_call_handler);
 
             // Catch new operator memory allocation exceptions
             _set_new_handler(new_handler);
 
             // Catch invalid parameter exceptions.
-            _set_invalid_parameter_handler(invalid_parameter_handler); 
+            _set_invalid_parameter_handler(invalid_parameter_handler);
 
             // Set up C++ signal handlers
 
             _set_abort_behavior(_CALL_REPORTFAULT, _CALL_REPORTFAULT);
 
             // Catch an abnormal program termination
-            signal(SIGABRT, sigabrt_handler);  
+            signal(SIGABRT, sigabrt_handler);
 
             // Catch illegal instruction handler
-            signal(SIGINT, sigint_handler);     
+            signal(SIGINT, sigint_handler);
 
             // Catch a termination request
-            signal(SIGTERM, sigterm_handler);          
+            signal(SIGTERM, sigterm_handler);
 
         }
 
@@ -188,36 +188,36 @@ namespace core
             if (!need_write_dump())
                 return;
 
-            // Catch terminate() calls. 
-            // In a multithreaded environment, terminate functions are maintained 
-            // separately for each thread. Each new thread needs to install its own 
+            // Catch terminate() calls.
+            // In a multithreaded environment, terminate functions are maintained
+            // separately for each thread. Each new thread needs to install its own
             // terminate function. Thus, each thread is in charge of its own termination handling.
             // http://msdn.microsoft.com/en-us/library/t6fk7h29.aspx
-            
+
             // NOTE : turn off terminate handle
-            // set_terminate(terminate_handler);       
+            // set_terminate(terminate_handler);
 
             // Catch unexpected() calls.
-            // In a multithreaded environment, unexpected functions are maintained 
-            // separately for each thread. Each new thread needs to install its own 
+            // In a multithreaded environment, unexpected functions are maintained
+            // separately for each thread. Each new thread needs to install its own
             // unexpected function. Thus, each thread is in charge of its own unexpected handling.
-            // http://msdn.microsoft.com/en-us/library/h46t5b69.aspx  
-            set_unexpected(unexpected_handler);    
+            // http://msdn.microsoft.com/en-us/library/h46t5b69.aspx
+            set_unexpected(unexpected_handler);
 
             // Catch a floating point error
             typedef void (*sigh)(int);
-            signal(SIGFPE, (sigh)sigfpe_handler);     
+            signal(SIGFPE, (sigh)sigfpe_handler);
 
             // Catch an illegal instruction
-            signal(SIGILL, sigill_handler);     
+            signal(SIGILL, sigill_handler);
 
             // Catch illegal storage access errors
-            signal(SIGSEGV, sigsegv_handler);   
+            signal(SIGSEGV, sigsegv_handler);
 
         }
 
         // The following code gets exception pointers using a workaround found in CRT code.
-        void crash_handler::get_exception_pointers(DWORD dwExceptionCode, 
+        void crash_handler::get_exception_pointers(DWORD dwExceptionCode,
             EXCEPTION_POINTERS** ppExceptionPointers)
         {
             // The following code was taken from VC++ 8.0 CRT (invarg.c: line 104)
@@ -279,9 +279,9 @@ namespace core
 
             *ppExceptionPointers = new EXCEPTION_POINTERS;
             (*ppExceptionPointers)->ExceptionRecord = pExceptionRecord;
-            (*ppExceptionPointers)->ContextRecord = pContextRecord;  
+            (*ppExceptionPointers)->ContextRecord = pContextRecord;
         }
-        
+
          const std::string from_utf16(const std::wstring& _source_16)
         {
             return std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>().to_bytes(_source_16);
@@ -300,7 +300,7 @@ namespace core
 
         // This method creates minidump of the process
         void crash_handler::create_mini_dump(EXCEPTION_POINTERS* pExcPtrs)
-        {   
+        {
             MINIDUMP_EXCEPTION_INFORMATION mei;
             MINIDUMP_CALLBACK_INFORMATION mci;
 
@@ -356,18 +356,18 @@ namespace core
             mci.CallbackParam = NULL;
 
             typedef BOOL (WINAPI *LPMINIDUMPWRITEDUMP)(
-                HANDLE hProcess, 
-                DWORD ProcessId, 
-                HANDLE hFile, 
-                MINIDUMP_TYPE DumpType, 
-                CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam, 
-                CONST PMINIDUMP_USER_STREAM_INFORMATION UserEncoderParam, 
+                HANDLE hProcess,
+                DWORD ProcessId,
+                HANDLE hFile,
+                MINIDUMP_TYPE DumpType,
+                CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+                CONST PMINIDUMP_USER_STREAM_INFORMATION UserEncoderParam,
                 CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 
-            LPMINIDUMPWRITEDUMP pfnMiniDumpWriteDump = 
+            LPMINIDUMPWRITEDUMP pfnMiniDumpWriteDump =
                 (LPMINIDUMPWRITEDUMP)GetProcAddress(hDbgHelp, "MiniDumpWriteDump");
             if(!pfnMiniDumpWriteDump)
-            {    
+            {
                 // Bad MiniDumpWriteDump function
                 return;
             }
@@ -391,7 +391,7 @@ namespace core
                 &mci);
 
             if(!bWriteDump)
-            {    
+            {
                 // Error writing dump.
                 return;
             }
@@ -401,7 +401,7 @@ namespace core
         }
 
         void crash_handler::create_log_file_for_hockey_app(EXCEPTION_POINTERS* /* pExcPtrs */)
-        {   
+        {
             const int max_stack_trace_depth = 48;
             void *stack[max_stack_trace_depth];
             USHORT count = CaptureStackBackTrace(0, max_stack_trace_depth, stack, NULL);
@@ -434,7 +434,7 @@ namespace core
 
             auto log_text = log_stream.str();
             DWORD dwWritten;
-            HANDLE handleFile (CreateFile(log_name.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, 
+            HANDLE handleFile (CreateFile(log_name.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ,
                 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0));
 
             // https://msdn.microsoft.com/ru-ru/library/windows/desktop/5fc6ft2t(v=vs.80).aspx
@@ -463,10 +463,10 @@ namespace core
 
         // Structured exception handler
         LONG WINAPI crash_handler::seh_handler(PEXCEPTION_POINTERS pExceptionPtrs)
-        { 
+        {
             process_exception_pointers(pExceptionPtrs);
 
-            // Unreacheable code  
+            // Unreacheable code
             return EXCEPTION_EXECUTE_HANDLER;
         }
 
@@ -508,10 +508,10 @@ namespace core
 
         // CRT invalid parameter handler
         void __cdecl crash_handler::invalid_parameter_handler(
-            const wchar_t* /* expression */, 
-            const wchar_t* /* function */, 
-            const wchar_t* /* file */, 
-            unsigned int /* line */, 
+            const wchar_t* /* expression */,
+            const wchar_t* /* function */,
+            const wchar_t* /* file */,
+            unsigned int /* line */,
             uintptr_t pReserved)
         {
             pReserved;

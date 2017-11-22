@@ -1,36 +1,36 @@
 QWidget#MaskPanel
 {
-	min-width: 130dip;
-	max-width: 130dip;
-	margin: 0;
-	padding: 0;
+    min-width: 130dip;
+    max-width: 130dip;
+    margin: 0;
+    padding: 0;
 }
 
 QWidget#MaskList
 {
-	background-color: transparent;
-	border: none;
-	overflow: hidden;
-	margin: 0;
-	padding: 0;
+    background-color: transparent;
+    border: none;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
 }
 
 QWidget[orintation="vertical"]
 {
-	min-width: 75dip;
-	max-width: 75dip;
-	min-height: 0;
-	max-height: 10000dip;
+    min-width: 75dip;
+    max-width: 75dip;
+    min-height: 0;
+    max-height: 10000dip;
     margin: 0;
     padding: 0;
 }
 
 QWidget[orintation="horizontal"]
 {
-	min-width: 0;
-	max-width: 10000dip;
-	min-height: 75dip;
-	max-height: 75dip;
+    min-width: 0;
+    max-width: 10000dip;
+    min-height: 75dip;
+    max-height: 75dip;
     margin: 0;
     padding: 0;
 }
@@ -38,69 +38,69 @@ QWidget[orintation="horizontal"]
 
 QPushButton[MaskArrow="left"]
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_left_100.png);
+    border-image: url(:/voip/mask_left_100);
 }
 QPushButton[MaskArrow="left"]:hover
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_left_100_hover.png);
+    border-image: url(:/voip/mask_left_100_hover);
 }
 QPushButton[MaskArrow="left"]:hover:pressed
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_left_100_active.png);
+    border-image: url(:/voip/mask_left_100_active);
 }
 QPushButton[MaskArrow="left"]:disabled
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_left_100_disable.png);
+    border-image: url(:/voip/mask_left_100_disable);
 }
 
 QPushButton[MaskArrow="right"]
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_right_100.png);
+    border-image: url(:/voip/mask_right_100);
 }
 QPushButton[MaskArrow="right"]:hover
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_right_100_hover.png);
+    border-image: url(:/voip/mask_right_100_hover);
 }
 QPushButton[MaskArrow="right"]:hover:pressed
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_right_100_active.png);
+    border-image: url(:/voip/mask_right_100_active);
 }
 QPushButton[MaskArrow="right"]:disabled
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_right_100_disable.png);
+    border-image: url(:/voip/mask_right_100_disable);
 }
 
 
 QPushButton[MaskArrow="down"]
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_down_100.png);
+    border-image: url(:/voip/mask_down_100);
 }
 QPushButton[MaskArrow="down"]:hover
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_down_100_hover.png);
+    border-image: url(:/voip/mask_down_100_hover);
 }
 QPushButton[MaskArrow="down"]:hover:pressed
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_down_100_active.png);
+    border-image: url(:/voip/mask_down_100_active);
 }
 QPushButton[MaskArrow="down"]:disabled
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_down_100_disable.png);
+    border-image: url(:/voip/mask_down_100_disable);
 }
 
 QPushButton[MaskArrow="up"]
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_up_100.png);
+    border-image: url(:/voip/mask_up_100);
 }
 QPushButton[MaskArrow="up"]:hover
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_up_100_hover.png);
+    border-image: url(:/voip/mask_up_100_hover);
 }
 QPushButton[MaskArrow="up"]:hover:pressed
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_up_100_active.png);
+    border-image: url(:/voip/mask_up_100_active);
 }
 QPushButton[MaskArrow="up"]:disabled
 {
-	border-image: url(:/resources/video_panel/videoctrl_mask_up_100_disable.png);
+    border-image: url(:/voip/mask_up_100_disable);
 }

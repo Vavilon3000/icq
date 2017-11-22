@@ -1,106 +1,109 @@
+Ui--Smiles--AddButton
+{
+    padding: 0;
+    margin: 0;
+    border-image: url(:/smiles_menu/gradient_picker_100);
+}
+
+
+
+
 Ui--Smiles--TabButton
 {
-	min-height: 48dip;
-	max-height: 48dip;
-	max-width: 48dip;
-	min-width: 48dip;
-	padding: 0;
-	margin: 0;
-	border: none;
-	background: #ffffff;
-	background-repeat: no-repeat;
-	background-position: center center;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background-color: #ffffff;
+    background-repeat: no-repeat;
+    background-position: center center;
+}
+
+Ui--Smiles--TabButton
+{
+    padding: 0;
+    margin: 0;
+    border: none;
+    background-color: #ffffff;
+    background-repeat: no-repeat;
+    background-position: center center;
 }
 
 Ui--Smiles--TabButton::hover
 {
-	background: #ebebeb;
-	background-repeat: no-repeat;
-	background-position: center center;
+    background-color: #f2f2f2;
+    background-repeat: no-repeat;
+    background-position: center center;
 }
 
 Ui--Smiles--TabButton::checked
 {
-	background: #ebebeb;
-	border-bottom-color: #579e1c;
-	border-bottom-width: 2dip;
-	border-bottom-style: solid;
-	background-repeat: no-repeat;
-	background-position: center center;
+    background-color: #f2f2f2;
+    border-bottom-color: #57b359;
+    border-bottom-width: 2dip;
+    border-bottom-style: solid;
+    background-repeat: no-repeat;
+    background-position: center center;
 }
 
 Ui--Smiles--TabButton[underline="false"]
 {
-	background: #ffffff;
-	min-height: 40dip;
-	max-height: 40dip;
+    background: #ffffff;
 }
 
 Ui--Smiles--TabButton::hover[underline="false"]
 {
-	border-bottom: none;
-	background: #ebebeb;
+    border-bottom: none;
+    background-color: #f2f2f2;
 }
 
 Ui--Smiles--TabButton::checked[underline="false"]
 {
-	border-bottom: none;
-	background: #ebebeb;
+    border-bottom: none;
+    background-color: #f2f2f2;
 }
 
 
 Ui--Smiles--Toolbar
 {
-	padding: 0;
-	margin: 0;
-	background: #ffffff;
-	border-color: #d7d7d7;
-	border-width: 1dip;
-	border-style: solid;
-	border-right: none;
-	border-left: none;
-	border-top: none;
+    padding: 0;
+    margin: 0;
+    background-color: #ffffff;
+    border-color: #d7d7d7;
+    border-width: 1dip;
+    border-style: solid;
+    border-right: none;
+    border-left: none;
+    border-top: none;
 }
 
 Ui--Smiles--Toolbar#smiles_cat_selector
 {
-	border-bottom: none;
-	min-height: 40dip;
-	max-height: 40dip;
+    border-bottom: none;
+    min-height: 40dip;
+    max-height: 40dip;
 }
 
 QWidget#scroll_area_widget
 {
-	background: #ffffff;
+    background-color: #ffffff;
 }
 
 QTableView
 {
-	background: #ffffff;
-	border: none;
+    background-color: #ffffff;
+    border: none;
 }
 
 QScrollArea
 {
-	border: none;
-	background: #ffffff;
-}
-
-QLabel#set_header
-{
-	border: none;
-	margin: 0;
-	padding: 0;
-	font-family:"%FONT_FAMILY_BOLD%";
-	font-weight: %FONT_WEIGHT_BOLD%;
-	font-size: 12dip;
-	color: #579e1c;
+    border: none;
+    background-color: #ffffff;
 }
 
 Ui--Smiles--SmilesMenu
 {
-	border-top-color: #d7d7d7;
-	border-top-width: 1dip;
-	border-top-style: solid;
-	background: #ffffff;
+    border-top-color: #d7d7d7;
+    border-top-width: 1dip;
+    border-top-style: solid;
+    background-color: #ffffff;
 }

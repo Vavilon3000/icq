@@ -12,20 +12,18 @@
 #include "../../fonts.h"
 #include "../../core_dispatcher.h"
 #include "../../gui_settings.h"
-#include "../../cache/snaps/SnapStorage.h"
 
 namespace
 {
     const int left_margin = 16;
-    const int right_margin = 13;
-    const int icon_size = 28;
+    const int left_margin_linux = 12;
 
-    const int burger_width = 20;
+    const int right_margin = 12;
+    const int right_margin_linux = 6;
+
+    const int burger_width = 24;
     const int burger_width_compact = 30;
     const int burger_height = 20;
-
-    const int button_width = 28;
-    const int button_height = 24;
 }
 
 namespace Ui
@@ -44,15 +42,19 @@ namespace Ui
         p.setRenderHint(QPainter::Antialiasing);
         p.setRenderHint(QPainter::TextAntialiasing);
         painter.setRenderHint(QPainter::Antialiasing);
-        QPen pen(QColor("#999999"));
+        QPen pen(QColor(ql1s("#454545")));
         pen.setWidth(4);
         pen.setCapStyle(Qt::RoundCap);
         painter.setPen(pen);
         pix.fill(Qt::transparent);
 
-        painter.drawLine(QPoint(0, 6), QPoint(40, 6));
-        painter.drawLine(QPoint(0, 18), QPoint(40, 18));
-        painter.drawLine(QPoint(0, 30), QPoint(40, 30));
+        const static std::array<QLine, 3> lines =
+        {
+            QLine(QPoint(2, 6), QPoint(44, 6)),
+            QLine(QPoint(2, 20), QPoint(44, 20)),
+            QLine(QPoint(2, 34), QPoint(44, 34))
+        };
+        painter.drawLines(lines.data(), lines.size());
 
         painter.end();
         Utils::check_pixel_ratio(pix);
@@ -60,8 +62,8 @@ namespace Ui
             pix = pix.scaled(QSize(width() * 2, height() * 2), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         else
             pix = pix.scaled(size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        
-        p.fillRect(rect(), Ui::CommonStyle::getTopPanelColor());
+
+        p.fillRect(rect(), CommonStyle::getFrameColor());
         p.drawImage(0, 0, pix);
     }
 
@@ -89,45 +91,54 @@ namespace Ui
         LeftSpacer_ = new QWidget(this);
         LeftSpacer_->setFixedWidth(Utils::scale_value(left_margin));
         LeftSpacer_->setStyleSheet(
-            QString("border-style: none; border-bottom-style:solid; background: %1;")
-            .arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getTopPanelColor()))
+            qsl("border-style: none; border-bottom-style:solid; background-color: %1;")
+            .arg(CommonStyle::getFrameColor().name())
         );
         mainLayout->addWidget(LeftSpacer_);
         Burger_ = new BurgerWidget(this);
         Burger_->setFixedSize(Utils::scale_value(burger_width), Utils::scale_value(burger_height));
         Burger_->setCursor(Qt::PointingHandCursor);
         mainLayout->addWidget(Burger_);
+	    AdditionalSpacerLeft_ = new QWidget(this);
+        mainLayout->addWidget(AdditionalSpacerLeft_);
+        AdditionalSpacerLeft_->setFixedWidth(Utils::scale_value(right_margin_linux));
+        AdditionalSpacerLeft_->setStyleSheet("background: transparent; border-style: none;");
+	    AdditionalSpacerLeft_->hide();
         searchWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         mainLayout->addWidget(searchWidget);
         Search_ = searchWidget;
-        Discover_ = new CustomButton(this, ":/resources/explore_100.png");
-        Discover_->setFillColor(Qt::white);
-        Discover_->setHoverImage(":/resources/explore_100_active.png");
-        Discover_->setFixedSize(Utils::scale_value(button_width), Utils::scale_value(button_height));
-        Discover_->setCursor(Qt::PointingHandCursor);
-        mainLayout->addWidget(Discover_);
         RightSpacer_ = new QWidget(this);
         RightSpacer_->setStyleSheet(
-            QString("border-style: none; border-bottom-style:solid; border-right-style:solid; background: %1;")
-            .arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getTopPanelColor()))
+            qsl("border-style: none; border-bottom-style:solid; border-right-style:solid; background-color: %1;")
+            .arg(CommonStyle::getFrameColor().name())
             );
         mainLayout->addWidget(RightSpacer_);
+	    Additional_ = Utils::emptyHLayout();
+	    mainLayout->addLayout(Additional_);
+	    AdditionalSpacerRight_ = new QWidget(this);
+        mainLayout->addWidget(AdditionalSpacerRight_);
+        AdditionalSpacerRight_->setStyleSheet(qsl("background: transparent; border-style: none;"));
+        AdditionalSpacerRight_->setFixedWidth(Utils::scale_value(right_margin_linux));
+	    AdditionalSpacerRight_->hide();
         RightSpacer_->setFixedWidth(Utils::scale_value(right_margin));
         setLayout(mainLayout);
 
         Utils::ApplyStyle(this,
-            QString("background-color: %1;"
+            qsl("background-color: %1;"
                 "border-style: solid;"
-                "border-color: #d7d7d7;"
+                "border-color: %2;"
                 "border-width: 1dip;"
                 "border-top: none;"
                 "border-left: none;"
-                "border-bottom: none;"
-            ).arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getTopPanelColor())));
+                "border-bottom: none;")
+            .arg(CommonStyle::getFrameColor().name())
+            .arg(CommonStyle::getColor(CommonStyle::Color::GRAY_BORDER).name())
+        );
 
-        connect(Burger_, SIGNAL(back()), this, SIGNAL(back()), Qt::QueuedConnection);
-        connect(Burger_, SIGNAL(clicked()), this, SIGNAL(burgerClicked()), Qt::QueuedConnection);
-        connect(Discover_, SIGNAL(clicked()), this, SIGNAL(discoverClicked()), Qt::QueuedConnection);
+        connect(Burger_, &Ui::BurgerWidget::back, this, &TopPanelWidget::back, Qt::QueuedConnection);
+        connect(Burger_, &Ui::BurgerWidget::clicked, this, &TopPanelWidget::burgerClicked, Qt::QueuedConnection);
+        connect(searchWidget, &Ui::SearchWidget::activeChanged, this, &TopPanelWidget::searchActiveChanged, Qt::QueuedConnection);
+        connect(&Utils::InterConnector::instance(), &Utils::InterConnector::titleButtonsUpdated, this, &TopPanelWidget::titleButtonsUpdated, Qt::QueuedConnection);
     }
 
     void TopPanelWidget::setMode(Mode _mode)
@@ -136,27 +147,59 @@ namespace Ui
 
         Burger_->setFixedWidth(Utils::scale_value(isCompact ? burger_width_compact : burger_width));
         Burger_->setVisible(_mode != SPREADED);
-        Discover_->setVisible(!isCompact && _mode != SPREADED && !Search_->isActive());
         Search_->setVisible(!isCompact);
         LeftSpacer_->setVisible(_mode != SPREADED);
-        
+#ifdef __linux__
+	    LeftSpacer_->setFixedWidth(Utils::scale_value(isCompact ? left_margin : left_margin_linux));
+#endif //__linux__
+
         if (isCompact)
         {
             RightSpacer_->setStyleSheet(
-                QString("border-style: none; border-bottom-style:solid; border-right-style:none; background: %1;")
-                .arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getTopPanelColor()))
+                qsl("border-style: none; border-bottom-style:solid; border-right-style:none; background-color: %1;")
+                .arg(CommonStyle::getFrameColor().name())
                 );
+            RightSpacer_->show();
+#ifdef __linux__
+	        emit Utils::InterConnector::instance().hideTitleButtons();
+	        AdditionalSpacerRight_->hide();
+            AdditionalSpacerLeft_->hide();
+#endif //__linux__
         }
         else
         {
             RightSpacer_->setStyleSheet(
-                QString("border-style: none; border-bottom-style:solid; border-right-style:solid; background: %1;")
-                .arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getTopPanelColor()))
+                qsl("border-style: none; border-bottom-style:solid; border-right-style:solid; background-color: %1;")
+                .arg(CommonStyle::getFrameColor().name())
                 );
+            RightSpacer_->hide();
+#ifdef __linux__
+	        emit Utils::InterConnector::instance().updateTitleButtons();
+	        AdditionalSpacerRight_->show();
+            AdditionalSpacerLeft_->show();
+#endif //__linux__
         }
         RightSpacer_->setStyle(QApplication::style());
 
         Mode_ = _mode;
+    }
+
+    void TopPanelWidget::searchActiveChanged(bool active)
+    {
+#ifdef __linux__
+        if (active)
+	        emit Utils::InterConnector::instance().hideTitleButtons();
+        else
+            emit Utils::InterConnector::instance().updateTitleButtons();
+#endif //__linux__
+    }
+
+    void TopPanelWidget::titleButtonsUpdated()
+    {
+#ifdef __linux__
+        if (Mode_ == Ui::TopPanelWidget::COMPACT)
+            emit Utils::InterConnector::instance().hideTitleButtons();
+#endif //__linux__
     }
 
     void TopPanelWidget::setBack(bool _back)
@@ -167,9 +210,12 @@ namespace Ui
 
     void TopPanelWidget::searchActivityChanged(bool _active)
     {
-        Discover_->setVisible(!_active && Mode_ == Ui::TopPanelWidget::NORMAL);
         Burger_->setVisible(Mode_ != Ui::TopPanelWidget::SPREADED);
-        RightSpacer_->setVisible(!_active);
+    }
+
+    void TopPanelWidget::addWidget(QWidget* w)
+    {
+	    Additional_->addWidget(w);
     }
 
     void TopPanelWidget::paintEvent(QPaintEvent* _e)

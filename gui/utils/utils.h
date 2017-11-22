@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../corelib/enumerations.h"
+#include "../types/message.h"
 
 class QApplication;
 
@@ -15,6 +16,66 @@ namespace Ui
 
 namespace Utils
 {
+    template <typename... Args>
+    struct QNonConstOverload
+    {
+        template <typename R, typename T>
+        Q_DECL_CONSTEXPR auto operator()(R(T::*ptr)(Args...)) const Q_DECL_NOTHROW -> decltype(ptr)
+        {
+            return ptr;
+        }
+
+        template <typename R, typename T>
+        static Q_DECL_CONSTEXPR auto of(R(T::*ptr)(Args...)) Q_DECL_NOTHROW -> decltype(ptr)
+        {
+            return ptr;
+        }
+    };
+
+    template <typename... Args>
+    struct QConstOverload
+    {
+        template <typename R, typename T>
+        Q_DECL_CONSTEXPR auto operator()(R(T::*ptr)(Args...) const) const Q_DECL_NOTHROW -> decltype(ptr)
+        {
+            return ptr;
+        }
+
+        template <typename R, typename T>
+        static Q_DECL_CONSTEXPR auto of(R(T::*ptr)(Args...) const) Q_DECL_NOTHROW -> decltype(ptr)
+        {
+            return ptr;
+        }
+    };
+
+    template <typename... Args>
+    struct QOverload : QConstOverload<Args...>, QNonConstOverload<Args...>
+    {
+        using QConstOverload<Args...>::of;
+        using QConstOverload<Args...>::operator();
+        using QNonConstOverload<Args...>::of;
+        using QNonConstOverload<Args...>::operator();
+
+        template <typename R>
+        Q_DECL_CONSTEXPR auto operator()(R(*ptr)(Args...)) const Q_DECL_NOTHROW -> decltype(ptr)
+        {
+            return ptr;
+        }
+
+        template <typename R>
+        static Q_DECL_CONSTEXPR auto of(R(*ptr)(Args...)) Q_DECL_NOTHROW -> decltype(ptr)
+        {
+            return ptr;
+        }
+    };
+
+#if defined(__cpp_variable_templates) && __cpp_variable_templates >= 201304 // C++14
+    template <typename... Args> Q_CONSTEXPR Q_DECL_UNUSED QOverload<Args...> qOverload = {};
+    template <typename... Args> Q_CONSTEXPR Q_DECL_UNUSED QConstOverload<Args...> qConstOverload = {};
+    template <typename... Args> Q_CONSTEXPR Q_DECL_UNUSED QNonConstOverload<Args...> qNonConstOverload = {};
+#endif
+
+
     class ShadowWidgetEventFilter : public QObject
     {
         Q_OBJECT
@@ -23,7 +84,7 @@ namespace Utils
         ShadowWidgetEventFilter(int _shadowWidth);
 
     protected:
-        bool eventFilter(QObject* _obj, QEvent* _event);
+        virtual bool eventFilter(QObject* _obj, QEvent* _event) override;
 
     private:
         void setGradientColor(QGradient& _gradient, bool _isActive);
@@ -32,37 +93,30 @@ namespace Utils
         int ShadowWidth_;
     };
 
-    inline const std::string QStringToString(const QString& _s)
-    {
-        return _s.toUtf8().constData();
-    }
-
     QString getCountryNameByCode(const QString& _iso_code);
     QMap<QString, QString> getCountryCodes();
 
     QString ScaleStyle(const QString& _style, double _scale);
 
-    void ApplyStyle(QWidget* _widget, QString _style);
+    void ApplyStyle(QWidget* _widget, const QString& _style);
     void ApplyPropertyParameter(QWidget* _widget, const char* _property, QVariant _parameter);
 
     QString LoadStyle(const QString& _qssFile);
 
-    QPixmap getDefaultAvatar(const QString& _uin, const QString& _displayName, const int _sizePx, const bool _isFilled);
+    QPixmap getDefaultAvatar(const QString& _uin, const QString& _displayName, const int _sizePx);
 
     std::vector<QStringList> GetPossibleStrings(const QString& _text, unsigned& _count);
-    
+
     QPixmap roundImage(const QPixmap& _img, const QString& _state, bool _isDefault, bool _miniIcons);
 
     void addShadowToWidget(QWidget* _target);
     void addShadowToWindow(QWidget* _target, bool _enabled = true);
 
-	void grabTouchWidget(QWidget* _target, bool _topWidget = false);
+    void grabTouchWidget(QWidget* _target, bool _topWidget = false);
 
     void removeLineBreaks(QString& _source);
 
     bool isValidEmailAddress(const QString& _email);
-
-    bool isProbablyPhoneNumber(const QString& _number);
 
     bool foregroundWndIsFullscreened();
 
@@ -81,9 +135,9 @@ namespace Utils
     QSize scale_bitmap(const QSize& _px);
     QSize unscale_bitmap(const QSize& _px);
     QRect scale_bitmap(const QRect& _px);
-	int scale_bitmap_with_value(const int _px);
-	QSize scale_bitmap_with_value(const QSize& _px);
-	QRect scale_bitmap_with_value(const QRect& _px);
+    int scale_bitmap_with_value(const int _px);
+    QSize scale_bitmap_with_value(const QSize& _px);
+    QRect scale_bitmap_with_value(const QRect& _px);
 
     template <typename _T>
     void check_pixel_ratio(_T& _image);
@@ -105,12 +159,12 @@ namespace Utils
     HWND createFakeParentWindow();
 #endif //WIN32
 
-    const uint getInputMaximumChars();
+    uint getInputMaximumChars();
 
     int calcAge(const QDateTime& _birthdate);
 
     void drawText(QPainter & painter, const QPointF & point, int flags,
-        const QString & text, QRectF * boundingRect = 0);
+        const QString & text, QRectF * boundingRect = nullptr);
 
     QString DefaultDownloadsPath();
     QString UserDownloadsPath();
@@ -121,9 +175,9 @@ namespace Utils
 
     void copyFileToClipboard(const QString& _path);
 
-    void saveAs(const QString& _inputFilename, std::function<void (QString& _filename, QString& _directory)> _callback, std::function<void ()> _cancel_callback = std::function<void ()>(), bool asSheet = true /* for OSX only */);
+    void saveAs(const QString& _inputFilename, std::function<void (const QString& _filename, const QString& _directory)> _callback, std::function<void ()> _cancel_callback = std::function<void ()>(), bool asSheet = true /* for OSX only */);
 
-    typedef std::vector<std::pair<QString, Ui::KeyToSendMessage>> SendKeysIndex;
+    using SendKeysIndex = std::vector<std::pair<QString, Ui::KeyToSendMessage>>;
 
     const SendKeysIndex& getSendKeysIndex();
 
@@ -135,7 +189,7 @@ namespace Utils
 
     void UpdateProfile(const std::vector<std::pair<std::string, QString>>& _fields);
 
-    QString getItemSafe(const std::vector<QString>& _values, size_t _selected, QString _default);
+    QString getItemSafe(const std::vector<QString>& _values, size_t _selected, const QString& _default);
 
     Ui::GeneralDialog *NameEditorDialog(
         QWidget* _parent,
@@ -186,7 +240,7 @@ namespace Utils
 
     bool dragUrl(QWidget* _parent, const QPixmap& _preview, const QString& _url);
 
-    bool extractUinFromIcqLink(const QString &_uri, Out QString &_uin);
+    QString extractUinFromIcqLink(const QString &_uri);
 
     class StatsSender : public QObject
     {
@@ -215,56 +269,29 @@ namespace Utils
     const wchar_t* get_crossprocess_mutex_name();
     const char* get_crossprocess_pipe_name();
 
-    QHBoxLayout* emptyHLayout(QWidget* parent = 0);
-    QVBoxLayout* emptyVLayout(QWidget* parent = 0);
+    QHBoxLayout* emptyHLayout(QWidget* parent = nullptr);
+    QVBoxLayout* emptyVLayout(QWidget* parent = nullptr);
 
     QString getProductName();
     QString getInstallerName();
 
     void openMailBox(const QString& email, const QString& mrimKey, const QString& mailId);
     void openAgentUrl(
-        const QString& _url, 
-        const QString& _fail_url, 
-        const QString& _email, 
+        const QString& _url,
+        const QString& _fail_url,
+        const QString& _email,
         const QString& _mrimKey);
-    
+
     QString getUnreadsBadgeStr(int _unreads);
-    void drawUnreads(QPainter *p, const QFont &font, const QColor *bgColor, const QColor *textColor, const QColor *borderColor, int unreads, int balloonSize, int x, int y);
+    void drawUnreads(QPainter *p, const QFont &font, QColor bgColor, QColor textColor, QColor borderColor, int unreads, int balloonSize, int x, int y);
     QPoint getUnreadsSize(QPainter *p, const QFont &font, bool bBorder, int unreads, int balloonSize);
 
-    /*
-    Template used for reverse iteration in C++11 range-based for loops.
-  
-    std::vector<int> v = {1, 2, 3, 4, 5};
-    for (auto x : reverse_iterate(v))
-        std::cout << x << " ";
- */
-
-    template <typename T>
-    class reverse_range
-    {
-        T &x;
-    
-    public:
-        reverse_range(T &_x) : x(_x) {}
-    
-        typename T::reverse_iterator begin() const
-        {
-            return x.rbegin();
-        }
-    
-        typename T::reverse_iterator  end() const
-        {
-            return x.rend();
-        }
-    };
- 
-    template <typename T>
-    reverse_range<T> reverse_iterate(T &x)
-    {
-        return reverse_range<T>(x);
-    }
-
     QImage iconWithCounter(int size, int count, QColor bg, QColor fg, QImage back = QImage());
+
+    void openUrl(const QString& _url);
+
+    QString convertMentions(const QString& _source, const Data::MentionMap& _mentions);
+
+    void openDialogOrProfile(const QString& _contact, const QString& _chat = QString());
 }
 

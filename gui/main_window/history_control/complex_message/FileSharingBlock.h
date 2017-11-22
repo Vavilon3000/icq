@@ -47,10 +47,6 @@ public:
 
     QString getShowInDirLinkText() const;
 
-    bool isAuthorVisible() const;
-
-    bool isFailedSnap() const;
-
     bool isPreviewReady() const;
 
     virtual bool isSharingEnabled() const override;
@@ -59,8 +55,6 @@ public:
 
     virtual void onDistanceToViewportChanged(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect) override;
 
-    void setAuthorNickGeometry(const QRect &rect);
-
     void setCtrlButtonGeometry(const QRect &rect);
 
     virtual void connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover) override;
@@ -68,7 +62,7 @@ public:
     virtual void setQuoteSelection() override;
 
 protected:
-    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_color) override;
+    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& _quoteColor) override;
 
     virtual void enterEvent(QEvent*) override;
 
@@ -91,13 +85,7 @@ private:
 
     void changeGifPlaybackStatus(const bool isPlaying);
 
-    void connectGeneralSignals(const bool isConnected);
-
     void connectImageSignals(const bool isConnected);
-
-    void createAuthorNickControl(const QString &_authorName);
-
-    void drawFailedSnap(QPainter &p, const QRect &previewRect);
 
     void drawPlainFileBlock(QPainter &p, const QRect &frameRect, const QColor& quote_color);
 
@@ -113,17 +101,13 @@ private:
 
     void drawPreview(QPainter &p, const QRect &previewRect, QPainterPath& _path, const QColor& quote_color);
 
-    void drawPreviewableBlock(QPainter &p, const QRect &previewRect, const QRect &authorAvatarRect, const QRect &authorNickRect, const QColor& quote_color);
-
-    void drawSnapAuthor(QPainter &p, const QRect &authorAvatarRect, const QRect &authorNameRect, const QRect &previewRect);
+    void drawPreviewableBlock(QPainter &p, const QRect &previewRect, const QColor& quote_color);
 
     void initPlainFile();
 
     void initPreview();
 
     bool isGifOrVideoPlaying() const;
-
-    void loadSnapAuthorAvatar(const QString &_uin, const QString &_nick);
 
     virtual void onDownloadingStarted() override;
 
@@ -136,8 +120,6 @@ private:
     virtual void onDownloading(const int64_t _bytesTransferred, const int64_t _bytesTotal) override;
 
     virtual void onDownloadingFailed(const int64_t requestId) override;
-
-    virtual void markSnapExpired() override;
 
     void onGifImageVisibilityChanged(const bool isVisible);
 
@@ -160,8 +142,6 @@ private:
     void playMedia(const QString &localPath);
 
     void requestPreview(const QString &uri);
-
-    void requestSnapMetainfo();
 
     void sendGenericMetainfoRequests();
 
@@ -190,7 +170,7 @@ private:
     bool OpenPreviewer_;
 
     bool IsVisible_;
-    
+
     bool IsInPreloadDistance_;
 
     QSize OriginalPreviewSize_;
@@ -205,22 +185,6 @@ private:
 
     ActionButtonWidget *CtrlButton_;
 
-    Themes::IThemePixmapSptr SnapExpiredImage_;
-
-    QPixmapSCptr SnapAuthorAvatar_;
-
-    QString SnapAuthorNick_;
-
-    TextEmojiWidget *SnapAuthorNickCtrl_;
-
-    QString SnapAuthorUin_;
-
-    uint64_t SnapId_;
-
-    int64_t SnapMetainfoRequestId_;
-
-    bool IsFailedSnap_;
-
     std::unique_ptr<Utils::LoadMovieToFFMpegPlayerFromFileTask> load_task_;
 
 private Q_SLOTS:
@@ -231,10 +195,6 @@ private Q_SLOTS:
     void onImageDownloadingProgress(qint64 seq, int64_t bytesTotal, int64_t bytesTransferred, int32_t pctTransferred);
 
     void onImageMetaDownloaded(int64_t seq, Data::LinkMetadata meta);
-
-    void onSnapAuthorAvatarChanged(QString aimId);
-
-    void onSnapMetainfoDownloaded(int64_t _seq, bool success, uint64_t _snap_id, int64_t _expire_utc, QString _author_uin, QString _author_name);
 
     void onPaused();
 

@@ -12,19 +12,22 @@
 namespace Ui
 {
     TextEditEx::TextEditEx(QWidget* _parent, const QFont& _font, const QPalette& _palette, bool _input, bool _isFitToText)
-        :	QTextBrowser(_parent),
-        index_(0),
-        font_(_font),
-        prevPos_(-1),
-        input_(_input),
-        isFitToText_(_isFitToText),
-        isCatchEnter_(false),
-        add_(0),
-        limit_(-1)
+        : QTextBrowser(_parent)
+        , index_(0)
+        , font_(_font)
+        , prevPos_(-1)
+        , input_(_input)
+        , isFitToText_(_isFitToText)
+        , add_(0)
+        , limit_(-1)
+        , prevCursorPos_(0)
+        , isCatchEnter_(false)
     {
         init(_font.pixelSize());
         setPalette(_palette);
         initFlashTimer();
+
+        connect(this, &TextEditEx::cursorPositionChanged, this, &TextEditEx::onCursorPositionChanged);
     }
 
     TextEditEx::TextEditEx(QWidget* _parent, const QFont& _font, const QColor& _color, bool _input, bool _isFitToText)
@@ -35,9 +38,10 @@ namespace Ui
         , prevPos_(-1)
         , input_(_input)
         , isFitToText_(_isFitToText)
-        , isCatchEnter_(false)
         , add_(0)
         , limit_(-1)
+        , prevCursorPos_(0)
+        , isCatchEnter_(false)
     {
         init(font_.pixelSize());
 
@@ -45,8 +49,10 @@ namespace Ui
         p.setColor(QPalette::Text, color_);
         setPalette(p);
         initFlashTimer();
+
+        connect(this, &TextEditEx::cursorPositionChanged, this, &TextEditEx::onCursorPositionChanged);
     }
-    
+
     void TextEditEx::limitCharacters(int count)
     {
         limit_ = count;
@@ -54,6 +60,9 @@ namespace Ui
 
     void TextEditEx::init(int /*_fontSize*/)
     {
+        setAttribute(Qt::WA_InputMethodEnabled);
+        setInputMethodHints(Qt::ImhMultiLine);
+
         setAcceptRichText(false);
         setFont(font_);
         document()->setDefaultFont(font_);
@@ -64,8 +73,10 @@ namespace Ui
 
         if (isFitToText_)
         {
-            connect(this->document(), SIGNAL(contentsChanged()), this, SLOT(editContentChanged()), Qt::QueuedConnection);
+            connect(this->document(), &QTextDocument::contentsChanged, this, &TextEditEx::editContentChanged, Qt::QueuedConnection);
         }
+
+        connect(this, &QTextBrowser::anchorClicked, this, &TextEditEx::onAnchorClicked);
     }
 
     void TextEditEx::initFlashTimer()
@@ -74,14 +85,14 @@ namespace Ui
         flashChangeTimer_ = new QTimer(this);
         flashChangeTimer_->setInterval(500);
         flashChangeTimer_->setSingleShot(true);
-        connect(flashChangeTimer_, SIGNAL(timeout()), this, SLOT(enableFlash()), Qt::QueuedConnection);
+        connect(flashChangeTimer_, &QTimer::timeout, this, &TextEditEx::enableFlash, Qt::QueuedConnection);
     }
 
     void TextEditEx::setFlashInterval(int _interval)
     {
         QApplication::setCursorFlashTime(_interval);
         Qt::TextInteractionFlags f = textInteractionFlags();
-        setTextInteractionFlags(0);
+        setTextInteractionFlags(Qt::NoTextInteraction);
         setTextInteractionFlags(f);
     }
 
@@ -109,18 +120,58 @@ namespace Ui
         setFlashInterval(flashInterval_);
     }
 
+    void TextEditEx::onAnchorClicked(const QUrl &_url)
+    {
+        Utils::openUrl(_url.toString());
+    }
+
+    void TextEditEx::onCursorPositionChanged()
+    {
+        auto cursor = textCursor();
+        const auto charFormat = cursor.charFormat();
+        const auto anchor = charFormat.anchorHref();
+        if (anchor.startsWith(ql1s("@[")))
+        {
+            auto block = cursor.block();
+            for (auto itFragment = block.begin(); itFragment != block.end(); ++itFragment)
+            {
+                QTextFragment cf = itFragment.fragment();
+
+                if (cf.charFormat() == charFormat && cf.charFormat().anchorHref() == anchor)
+                {
+                    const auto curPos = cursor.position();
+                    const auto anchorPos = cf.position();
+                    const auto anchorLen = cf.length();
+
+                    int newPos = 0;
+                    if (input_)
+                        newPos = prevCursorPos_ > curPos ? anchorPos : anchorPos + anchorLen;
+                    else
+                        newPos = curPos > 0 ? anchorPos + anchorLen : anchorPos;
+
+                    cursor.setPosition(newPos, cursor.hasSelection() ? QTextCursor::KeepAnchor : QTextCursor::MoveAnchor);
+                    setTextCursor(cursor);
+                    prevCursorPos_ = newPos;
+                    return;
+                }
+            }
+        }
+
+        prevCursorPos_ = cursor.position();
+    }
+
     QString TextEditEx::getPlainText(int _from, int _to) const
     {
+        QString outString;
         if (_from == _to)
-            return "";
+            return outString;
 
         if (_to != -1 && _to < _from)
         {
             assert(!"invalid data");
-            return "";
+            return outString;
         }
 
-        QString outString;
         QTextStream result(&outString);
 
         int posStart = 0;
@@ -131,7 +182,7 @@ namespace Ui
         for (QTextBlock it_block = document()->begin(); it_block != document()->end(); it_block = it_block.next())
         {
             if (!first)
-                result << '\n';
+                result << ql1c('\n');
 
             posStart = it_block.position();
             if (_to != -1 && posStart >= _to)
@@ -154,27 +205,30 @@ namespace Ui
 
                     first = false;
 
-                    if (currentFragment.charFormat().isImageFormat())
+                    auto charFormat = currentFragment.charFormat();
+                    if (charFormat.isImageFormat())
                     {
                         if (posStart < _from)
                             continue;
 
-                        QTextImageFormat imgFmt = currentFragment.charFormat().toImageFormat();
+                        QTextImageFormat imgFmt = charFormat.toImageFormat();
 
                         auto iter = resourceIndex_.find(imgFmt.name());
                         if (iter != resourceIndex_.end())
                             result << iter->second;
                     }
+                    else if (charFormat.isAnchor() && charFormat.anchorHref().startsWith(ql1s("@[")))
+                    {
+                        result << charFormat.anchorHref();
+                    }
                     else
                     {
-                        QString fragmentText = currentFragment.text();
-
                         int cStart = std::max((_from - posStart), 0);
                         int count = -1;
                         if (_to != -1 && _to <= posStart + length)
                             count = _to - posStart - cStart;
 
-                        QString txt = fragmentText.mid(cStart, count);
+                        QString txt = currentFragment.text().mid(cStart, count);
                         txt.remove(QChar::SoftHyphen);
 
                         QChar *uc = txt.data();
@@ -188,10 +242,10 @@ namespace Ui
                             case 0xfdd1: // QTextEndOfFrame
                             case QChar::ParagraphSeparator:
                             case QChar::LineSeparator:
-                                *uc = QLatin1Char('\n');
+                                *uc = ql1c('\n');
                                 break;
                             case QChar::Nbsp:
-                                *uc = QLatin1Char(' ');
+                                *uc = ql1c(' ');
                                 break;
                             default:
                                 ;
@@ -223,7 +277,8 @@ namespace Ui
 
         if (_source->hasUrls())
         {
-            for (auto url : _source->urls())
+            const auto urls = _source->urls();
+            for (const auto& url : urls)
             {
                 if (url.isLocalFile())
                     return;
@@ -233,22 +288,19 @@ namespace Ui
         {
             if (limit_ != -1 && document()->characterCount() >= limit_)
                 return;
-            
+
             QString text = _source->text();
             if (limit_ != -1 && text.length() + document()->characterCount() > limit_)
                 text.resize(limit_ - document()->characterCount());
-            
+
+            const auto oldPos = textCursor().position();
+            const auto oldLen = document()->characterCount();
+
             if (input_)
             {
                 if (platform::is_apple())
                 {
                     Logic::Text4Edit(text, *this, Logic::Text2DocHtmlMode::Pass, false);
-                    /*
-                    auto cursor = textCursor();
-                    cursor.beginEditBlock();
-                    cursor.insertText(text);
-                    cursor.endEditBlock();
-                    */
                 }
                 else
                 {
@@ -258,6 +310,19 @@ namespace Ui
             else
             {
                 Logic::Text4Edit(text, *this, Logic::Text2DocHtmlMode::Pass, false);
+            }
+
+            const auto newPos = textCursor().position();
+            if (oldPos < newPos && document()->characterCount() > oldLen)
+            {
+                auto cur = textCursor();
+                cur.setPosition(oldPos);
+                if (cur.charFormat().anchorHref().startsWith(ql1s("@[")))
+                {
+                    cur.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, newPos - oldPos);
+                    cur.setCharFormat(QTextCharFormat());
+                    cur.clearSelection();
+                }
             }
         }
     }
@@ -319,17 +384,55 @@ namespace Ui
         }
     }
 
-    bool TextEditEx::catchEnter(int /*_modifiers*/)
+    bool TextEditEx::catchEnter(const int /*_modifiers*/)
     {
         return isCatchEnter_;
+    }
+
+    bool TextEditEx::catchNewLine(const int _modifiers)
+    {
+        return false;
     }
 
     void TextEditEx::keyPressEvent(QKeyEvent* _event)
     {
         emit keyPressed(_event->key());
 
-        if (_event->key() == Qt::Key_Backspace && toPlainText().isEmpty())
-            emit emptyTextBackspace();
+        if (_event->key() == Qt::Key_Backspace || _event->key() == Qt::Key_Delete)
+        {
+            if (toPlainText().isEmpty())
+                emit emptyTextBackspace();
+            else
+            {
+                auto cursor = textCursor();
+                const auto charFormat = cursor.charFormat();
+                const auto anchor = charFormat.anchorHref();
+                if (anchor.startsWith(ql1s("@[")))
+                {
+                    auto block = cursor.block();
+                    for (QTextBlock::iterator itFragment = block.begin(); itFragment != block.end(); ++itFragment)
+                    {
+                        QTextFragment cf = itFragment.fragment();
+
+                        if (cf.charFormat() == charFormat && cf.charFormat().anchorHref() == anchor)
+                        {
+                            cursor.setPosition(cf.position());
+                            cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, cf.length());
+                            cursor.removeSelectedText();
+
+                            const auto aimid = anchor.midRef(2, anchor.length() - 3);
+                            const auto it = mentions_.find(aimid);
+                            if (it != mentions_.end())
+                            {
+                                mentions_.erase(it);
+                                emit mentionErased(aimid.toString());
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
         if (_event->key() == Qt::Key_Escape)
             emit escapePressed();
@@ -349,6 +452,12 @@ namespace Ui
                 emit enter();
                 return;
             }
+            else
+            {
+                if (catchNewLine(modifiers))
+                    textCursor().insertText(qsl("\n"));
+                return;
+            }
         }
 
         if (platform::is_apple() && input_ && _event->key() == Qt::Key_Backspace && _event->modifiers().testFlag(Qt::KeyboardModifier::ControlModifier))
@@ -363,17 +472,17 @@ namespace Ui
 
             return;
         }
-        
-        const auto lenght = document()->characterCount();
-        bool deny = limit_ != -1 && lenght >= limit_ && !_event->text().isEmpty();
+
+        const auto length = document()->characterCount();
+        const auto deny = limit_ != -1 && length >= limit_ && !_event->text().isEmpty();
 
         auto oldPos = textCursor().position();
         QTextBrowser::keyPressEvent(_event);
         auto newPos = textCursor().position();
-        
-        if (deny && document()->characterCount() > lenght)
+
+        if (deny && document()->characterCount() > length)
             textCursor().deletePreviousChar();
-        
+
         if (_event->modifiers() & Qt::ShiftModifier && _event->key() == Qt::Key_Up && oldPos == newPos)
         {
             auto cur = textCursor();
@@ -383,6 +492,18 @@ namespace Ui
 
         if (oldPos != newPos && _event->modifiers() == Qt::NoModifier)
         {
+            if (oldPos < newPos && document()->characterCount() > length)
+            {
+                auto cur = textCursor();
+                cur.setPosition(oldPos);
+                if (cur.charFormat().anchorHref().startsWith(ql1s("@[")))
+                {
+                    cur.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, newPos - oldPos);
+                    cur.setCharFormat(QTextCharFormat());
+                    cur.clearSelection();
+                }
+            }
+
             if (flashInterval_ == 0)
                 flashInterval_ = QApplication::cursorFlashTime();
 
@@ -392,9 +513,15 @@ namespace Ui
         _event->ignore();
     }
 
+    void TextEditEx::inputMethodEvent(QInputMethodEvent* e)
+    {
+        QTextBrowser::setPlaceholderText(e->preeditString().isEmpty() ? placeholderText_ : QString());
+        QTextBrowser::inputMethodEvent(e);
+    }
+
     QString TextEditEx::getPlainText() const
     {
-        return getPlainText(0, -1);
+        return getPlainText(0);
     }
 
     void TextEditEx::setPlainText(const QString& _text, bool _convertLinks, const QTextCharFormat::VerticalAlignment _aligment)
@@ -403,6 +530,24 @@ namespace Ui
         resourceIndex_.clear();
 
         Logic::Text4Edit(_text, *this, Logic::Text2DocHtmlMode::Escape, _convertLinks, false, nullptr, Emoji::EmojiSizePx::Auto, _aligment);
+    }
+
+    void TextEditEx::setMentions(Data::MentionMap _mentions)
+    {
+        mentions_ = std::move(_mentions);
+    }
+
+    const Data::MentionMap& TextEditEx::getMentions() const
+    {
+        return mentions_;
+    }
+
+    void TextEditEx::insertMention(const QString& _aimId, const QString& _friendly)
+    {
+        mentions_.emplace(_aimId, _friendly);
+
+        const QString add = ql1s("@[") % _aimId % ql1s("] ");
+        Logic::Text4Edit(add, *this, Logic::Text2DocHtmlMode::Escape, false, Emoji::EmojiSizePx::Auto);
     }
 
     void TextEditEx::insertEmoji(int _main, int _ext)
@@ -562,6 +707,12 @@ namespace Ui
         return sizeRect;
     }
 
+    void TextEditEx::setPlaceholderText(const QString& _text)
+    {
+        QTextBrowser::setPlaceholderText(_text);
+        placeholderText_ = _text;
+    }
+
     void TextEditEx::setCatchEnter(bool _isCatchEnter)
     {
         isCatchEnter_ = _isCatchEnter;
@@ -577,22 +728,12 @@ namespace Ui
         return height;
     }
 
-    void TextEditEx::mousePress(QMouseEvent* ev)
-    {
-        mousePressEvent(ev);
-    }
-
-    void TextEditEx::mouseRelease(QMouseEvent* ev)
-    {
-        mouseReleaseEvent(ev);
-    }
-
     void TextEditEx::contextMenuEvent(QContextMenuEvent *e)
     {
         auto menu = createStandardContextMenu();
         if (!menu)
             return;
-        
+
         ContextMenu::applyStyle(menu, false, Utils::scale_value(14), Utils::scale_value(24));
         menu->exec(e->globalPos());
         menu->deleteLater();

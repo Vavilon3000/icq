@@ -86,7 +86,7 @@ public:
 
     virtual MenuFlags getMenuFlags() const override;
 
-    virtual bool onMenuItemTriggered(const QString &command) final override;
+    virtual bool onMenuItemTriggered(const QVariantMap &params) final override;
 
     virtual void onActivityChanged(const bool isActive) override;
 
@@ -102,7 +102,7 @@ public:
 
     virtual int getMaxPreviewWidth() const { return 0; }
 
-	virtual void setQuoteSelection();
+    virtual void setQuoteSelection() override;
 
     virtual void connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover);
 
@@ -113,7 +113,7 @@ public:
 protected:
     virtual bool drag() override;
 
-    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_color) = 0;
+    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& _quoteColor) = 0;
 
     virtual void enterEvent(QEvent *) override;
 
@@ -143,11 +143,13 @@ protected:
 
     virtual void mouseReleaseEvent(QMouseEvent *e) override;
 
+    virtual QPoint getShareButtonPos(const bool _isBubbleRequired, const QRect& _bubbleRect) const override;
+
     void clickHandled() { ClickHandled_ = true; }
 
     void connectButtonToHover(ActionButtonWidget* btn, Ui::ComplexMessage::QuoteBlockHover* hover);
 
-	QuoteColorAnimation QuoteAnimation_;
+    QuoteColorAnimation QuoteAnimation_;
 
 private:
     GenericBlock();

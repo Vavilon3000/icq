@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include "../../cache/themes/themes.h"
+#include "../../controls/CommonStyle.h"
 #include "../../controls/DpiAwareImage.h"
 #include "../../controls/TextEditEx.h"
 #include "../../fonts.h"
@@ -22,11 +23,7 @@ namespace Ui
     {
         qint32 getBubbleHorPadding();
 
-        qint32 getBubbleRadius();
-
         qint32 getIconLeftPadding();
-
-        int32_t getMinBubbleOffset();
 
         qint32 getTextHorPadding();
 
@@ -45,19 +42,18 @@ namespace Ui
 
     ChatEventItem::ChatEventItem(const HistoryControl::ChatEventInfoSptr& _eventInfo, const qint64 _id)
         : HistoryControlPageItem(nullptr)
-        , EventInfo_(_eventInfo)
         , TextWidget_(nullptr)
-        , isLastRead_(false)
+        , EventInfo_(_eventInfo)
         , height_(0)
         , id_(_id)
     {
+        Icon_ = std::make_unique<DpiAwareImage>(EventInfo_->loadEventIcon(getWidgetMinHeight()));
     }
 
     ChatEventItem::ChatEventItem(QWidget* _parent, const HistoryControl::ChatEventInfoSptr& _eventInfo, const qint64 _id)
         : HistoryControlPageItem(_parent)
-        , EventInfo_(_eventInfo)
         , TextWidget_(nullptr)
-        , isLastRead_(false)
+        , EventInfo_(_eventInfo)
         , height_(0)
         , id_(_id)
     {
@@ -66,7 +62,7 @@ namespace Ui
         TextWidget_ = new TextEditEx(
             this,
             Fonts::appFont(getWidgetFontSize()),
-            QColor("#767676"),
+            CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY),
             false,
             false
             );
@@ -81,7 +77,7 @@ namespace Ui
         TextWidget_->setOpenExternalLinks(true);
         TextWidget_->setWordWrapMode(QTextOption::WordWrap);
         TextWidget_->setFocusPolicy(Qt::NoFocus);
-        TextWidget_->setStyleSheet("background: transparent");
+        TextWidget_->setStyleSheet(qsl("background: transparent"));
         TextWidget_->document()->setDocumentMargin(0);
 
         const auto &message = EventInfo_->formatEventText();
@@ -90,13 +86,7 @@ namespace Ui
         TextWidget_->setAlignment(Qt::AlignHCenter);
         TextWidget_->show();
 
-        Icon_.reset(
-            new DpiAwareImage(
-                EventInfo_->loadEventIcon(
-                    getWidgetMinHeight()
-                )
-            )
-        );
+        Icon_ = std::make_unique<DpiAwareImage>(EventInfo_->loadEventIcon(getWidgetMinHeight()));
 
         updateTheme();
     }
@@ -106,22 +96,15 @@ namespace Ui
         return EventInfo_->formatEventText();
     }
 
-    bool ChatEventItem::setLastRead(const bool _isLastRead)
+    void ChatEventItem::setLastStatus(LastStatus _lastStatus)
     {
-        HistoryControlPageItem::setLastRead(_isLastRead);
-
-        if (_isLastRead == isLastRead_)
+        if (getLastStatus() != _lastStatus)
         {
-            return false;
+            assert(_lastStatus == LastStatus::None);
+            HistoryControlPageItem::setLastStatus(_lastStatus);
+            updateGeometry();
+            update();
         }
-
-        isLastRead_ = _isLastRead;
-
-        updateGeometry();
-
-        update();
-
-        return true;
     }
 
     int32_t ChatEventItem::evaluateFullIconWidth()
@@ -238,30 +221,12 @@ namespace Ui
         }
 
         updateTheme();
-
-        if (isLastRead_)
-        {
-            drawLastReadAvatar(
-                p,
-                getAimid(),
-                EventInfo_->getSenderFriendly(),
-                MessageStyle::getRightMargin(EventInfo_->isOutgoing()),
-                MessageStyle::getLastReadAvatarMargin());
-        }
     }
 
     QSize ChatEventItem::sizeHint() const
     {
-        auto height = height_;
-
-        if (isLastRead_)
-        {
-            height += MessageStyle::getLastReadAvatarSize() + 2 * MessageStyle::getLastReadAvatarMargin();
-        }
-
-        return QSize(0, height);
+        return QSize(0, height_);
     }
-
 
     void ChatEventItem::resizeEvent(QResizeEvent* _event)
     {
@@ -288,14 +253,11 @@ namespace Ui
             bubbleWidth += evaluateFullIconWidth();
         }
 
-        bubbleWidth += textWidth;
-        bubbleWidth += getTextHorPadding();
+        bubbleWidth += textWidth + getTextHorPadding();
 
         // evaluate bubble height
 
-        auto bubbleHeight = textHeight;
-        bubbleHeight += getTextVertOffset();
-        bubbleHeight += getTextVertOffset();
+        const auto bubbleHeight = textHeight + getTextVertOffset() + getTextVertOffset();
 
         BubbleRect_ = QRect(0, 0, bubbleWidth, bubbleHeight);
         BubbleRect_.moveCenter(QRect(0, 0, newWidth, bubbleHeight).center());
@@ -305,8 +267,7 @@ namespace Ui
 
         // setup geometry
 
-        height_ = bubbleHeight;
-        height_ += topPadding;
+        height_ = bubbleHeight + topPadding;
 
         auto textWidgetLeft = BubbleRect_.left();
 
@@ -349,16 +310,6 @@ namespace Ui
         qint32 getBubbleHorPadding()
         {
             return Utils::scale_value(12);
-        }
-
-        qint32 getBubbleRadius()
-        {
-            return Utils::scale_value(10);
-        }
-
-        int32_t getMinBubbleOffset()
-        {
-            return Utils::scale_value(24);
         }
 
         qint32 getTextHorPadding()

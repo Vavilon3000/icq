@@ -12,9 +12,9 @@ namespace core
         static const int32_t default_proxy_port;
 
         bool			use_proxy_;
+        bool			need_auth_;
         std::wstring	proxy_server_;
         int32_t     	proxy_port_;
-        bool			need_auth_;
         std::wstring	login_;
         std::wstring	password_;
         int32_t			proxy_type_;
@@ -22,8 +22,8 @@ namespace core
         proxy_settings()
             : use_proxy_(false)
             , need_auth_(false)
-            , proxy_type_((int32_t)core::proxy_types::auto_proxy)
             , proxy_port_(default_proxy_port)
+            , proxy_type_((int32_t)core::proxy_types::auto_proxy)
         {
         }
 
@@ -50,7 +50,7 @@ namespace core
 
         size_t current_settings_;
 
-        mutable std::mutex mutex_;
+        mutable boost::mutex mutex_;
 
     public:
         explicit proxy_settings_manager(core_settings& _settings_storage);

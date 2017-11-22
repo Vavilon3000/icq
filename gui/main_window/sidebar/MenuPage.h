@@ -14,7 +14,7 @@ namespace Ui
     class ContactAvatarWidget;
     class TextEditEx;
     class BackButton;
-    class ContactList;
+    class ContactListWidget;
     class SearchWidget;
     class LabelEx;
     class LineWidget;
@@ -29,19 +29,19 @@ namespace Ui
         void updateMembers();
 
     public:
-        MenuPage(QWidget* parent);
-        virtual void initFor(const QString& aimId);
+        explicit MenuPage(QWidget* parent);
+        void initFor(const QString& aimId) override;
 
     public Q_SLOTS:
         void allMemebersClicked();
 
     protected:
-        virtual void paintEvent(QPaintEvent* e);
-        virtual void resizeEvent(QResizeEvent *e);
-        virtual void updateWidth();
+        void paintEvent(QPaintEvent* e) override;
+        void resizeEvent(QResizeEvent *e) override;
+        void updateWidth() override;
 
     private Q_SLOTS:
-        void contactChanged(QString);
+        void contactChanged(const QString&);
         void favoritesClicked();
         void copyLinkClicked();
         void themesClicked();
@@ -51,21 +51,19 @@ namespace Ui
         void quitClicked();
         void notificationsChecked(int);
         void addToChatClicked();
-        void chatInfo(qint64, std::shared_ptr<Data::ChatInfo>);
-        void chatBlocked(QList<Data::ChatMemberInfo>);
-        void chatPending(QList<Data::ChatMemberInfo>);
+        void chatInfo(qint64, const std::shared_ptr<Data::ChatInfo>&);
+        void chatBlocked(const QVector<Data::ChatMemberInfo>&);
+        void chatPending(const QVector<Data::ChatMemberInfo>&);
         void spamClicked();
         void addContactClicked();
-        void contactClicked(QString);
-        void searchBegin();
-        void searchEnd();
+        void contactClicked(const QString&);
         void backButtonClicked();
         void moreClicked();
         void adminsClicked();
         void blockedClicked();
         void pendingClicked();
         void avatarClicked();
-        void chatEvent(QString);
+        void chatEvent(const QString&);
         void menu(QAction*);
         void actionResult(int);
         void approveAllClicked();
@@ -76,8 +74,7 @@ namespace Ui
         void readOnlyClicked(int);
         void removeClicked();
         void touchScrollStateChanged(QScroller::State);
-        void searchClicked();
-        void chatRoleChanged(QString);
+        void chatRoleChanged(const QString&);
 
     private:
         void init();
@@ -119,15 +116,15 @@ namespace Ui
         QWidget* textTopSpace_;
         CustomButton* notificationsButton_;
         QCheckBox* notificationsCheckbox_;
-        CustomButton* publicButton_;
+        LabelEx* publicButton_;
         QCheckBox* publicCheckBox_;
-        CustomButton* approvedButton_;
+        LabelEx* approvedButton_;
         QCheckBox* approvedCheckBox_;
-        CustomButton* linkToChat_;
+        LabelEx* linkToChat_;
         QCheckBox* linkToChatCheckBox_;
-        CustomButton* readOnly_;
+        LabelEx* readOnly_;
         QCheckBox* readOnlyCheckBox_;
-        CustomButton* ageRestrictions_;
+        LabelEx* ageRestrictions_;
         QCheckBox* ageCheckBox_;
         ActionButton* addToChat_;
         ActionButton* favoriteButton_;
@@ -147,15 +144,14 @@ namespace Ui
         ClickedWidget* blockList_;
         ClickedWidget* avatarName_;
         ClickedWidget* pendingList_;
-        ActionButton* searchInChat_;
 
-        QLabel* allMembersCount_;
-        QLabel* blockCount_;
-        QLabel* pendingCount_;
-        QLabel* blockLabel_;
-        QLabel* pendingLabel_;
-        QLabel* listLabel_;
-        QLabel* allMembersLabel_;
+        LabelEx* allMembersCount_;
+        LabelEx* blockCount_;
+        LabelEx* pendingCount_;
+        LabelEx* blockLabel_;
+        LabelEx* pendingLabel_;
+        LabelEx* listLabel_;
+        LabelEx* allMembersLabel_;
         Logic::ChatMembersModel* chatMembersModel_;
         Logic::ContactListItemDelegate* delegate_;
         std::shared_ptr<Data::ChatInfo> info_;
@@ -173,7 +169,7 @@ namespace Ui
         QWidget* approvedBottomSpace_;
         QWidget* linkBottomSpace_;
         QWidget* readOnlyBottomSpace_;
-        ContactList* cl_;
+        ContactListWidget* cl_;
         SearchWidget* searchWidget_;
         QStackedWidget* stackedWidget_;
         QVBoxLayout* rootLayout_;

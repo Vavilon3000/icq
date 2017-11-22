@@ -2,23 +2,23 @@
 
 namespace Ui
 {
-	class NoResultsWidget : public QWidget
-	{
-		Q_OBJECT
+    class NoResultsWidget : public QWidget
+    {
+        Q_OBJECT
 
-	private:
+    private:
 
-		QVBoxLayout*	rootLayout_;
+        QVBoxLayout* rootLayout_;
 
-	protected:
+    protected:
 
-		virtual void paintEvent(QPaintEvent* _e) override;
+        virtual void paintEvent(QPaintEvent* _e) override;
 
-	public:
+    public:
 
 
-		NoResultsWidget(QWidget* _parent);
-		virtual ~NoResultsWidget();
-	};
+        NoResultsWidget(QWidget* _parent);
+        virtual ~NoResultsWidget();
+    };
 
 }

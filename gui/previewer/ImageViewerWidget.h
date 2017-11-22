@@ -35,7 +35,7 @@ namespace Previewer
         void mouseMoveEvent(QMouseEvent* _event) override;
         void wheelEvent(QWheelEvent* _event) override;
 
-        void paintEvent(QPaintEvent* _event);
+        void paintEvent(QPaintEvent* _event) override;
 
     private:
         double getScaleStep() const;

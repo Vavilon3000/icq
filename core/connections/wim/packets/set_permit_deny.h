@@ -43,7 +43,7 @@ namespace core
         public:
 
             set_permit_deny(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const std::string& _aimid,
                 const set_permit_deny::operation _op);
 

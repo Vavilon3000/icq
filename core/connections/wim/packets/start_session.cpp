@@ -11,10 +11,10 @@
 
 #define WIM_API_START_SESSION_HOST			"https://api.icq.net/aim/startSession"
 #define ICQ_APP_IDTYPE						"ICQ"
-#define WIM_EVENTS							"myInfo,presence,buddylist,typing,dataIM,userAddedToBuddyList,service,webrtcMsg,mchat,hist,hiddenChat,diff,permitDeny,imState,notification,snapsEvent"
+#define WIM_EVENTS							"myInfo,presence,buddylist,typing,dataIM,userAddedToBuddyList,service,webrtcMsg,mchat,hist,hiddenChat,diff,permitDeny,imState,notification,apps"
 #define WIM_PRESENCEFIELDS					"aimId,buddyIcon,bigBuddyIcon,iconId,bigIconId,largeIconId,displayId,friendly,offlineMsg,state,statusMsg,userType,phoneNumber,cellNumber,smsNumber,workNumber,otherNumber,capabilities,ssl,abPhoneNumber,moodIcon,lastName,abPhones,abContactName,lastseen,mute,livechat,official"
 #define WIM_INTERESTCAPS					"8eec67ce70d041009409a7c1602a5c84," WIM_CAP_VOIP_VOICE "," WIM_CAP_VOIP_VIDEO
-#define WIM_ASSERTCAPS						WIM_CAP_VOIP_VOICE "," WIM_CAP_VOIP_VIDEO "," WIM_CAP_UNIQ_REQ_ID "," WIM_CAP_EMOJI "," WIM_CAP_MAIL_NOTIFICATIONS "," WIM_CAP_SNAPS
+#define WIM_ASSERTCAPS						WIM_CAP_VOIP_VOICE "," WIM_CAP_VOIP_VIDEO "," WIM_CAP_UNIQ_REQ_ID "," WIM_CAP_EMOJI "," WIM_CAP_MAIL_NOTIFICATIONS "," WIM_CAP_MENTIONS "," WIM_CAP_INTRO_DLG_STATE
 #define WIM_INVISIBLE						"false"
 
 
@@ -23,16 +23,22 @@ using namespace wim;
 
 #define SAAB__CODE_SAAB_OPENAUTH_REQUEST_NOT_FRESH 1015
 
-start_session::start_session(const wim_packet_params& params, bool _is_ping, const std::string& _uniq_device_id, const std::string& _locale, time_t _timeout, std::function<bool(int32_t)> _wait_function)
-    :	wim_packet(params),
-        is_ping_(_is_ping),
-        need_relogin_(false),
-        correct_ts_(false),
-        ts_(0),
-        uniq_device_id_(_uniq_device_id),
-        locale_(_locale),
-        timeout_(_timeout),
-        wait_function_(_wait_function)
+start_session::start_session(
+    wim_packet_params params,
+    const bool _is_ping,
+    const std::string& _uniq_device_id,
+    const std::string& _locale,
+    const time_t _timeout,
+    std::function<bool(const int32_t)> _wait_function)
+    : wim_packet(std::move(params))
+    , uniq_device_id_(_uniq_device_id)
+    , locale_(_locale)
+    , is_ping_(_is_ping)
+    , need_relogin_(false)
+    , correct_ts_(false)
+    , timeout_(_timeout)
+    , wait_function_(_wait_function)
+    , ts_(0)
 {
     set_can_change_hosts_scheme(true);
 }
@@ -79,9 +85,9 @@ int32_t start_session::init_request_full_start_session(std::shared_ptr<core::htt
     request->push_post_parameter("deviceId", escape_symbols(uniq_device_id_));
 
 #ifdef _DEBUG
-    request->push_post_parameter("sessionTimeout", "86400"); //1 day
+    request->push_post_parameter("sessionTimeout", "259200"); //3 days
 #else
-    request->push_post_parameter("sessionTimeout", "1209600"); //two weeks
+    request->push_post_parameter("sessionTimeout", "7776000"); //90 days
 #endif
 
     //move instance into na state after activeTimeout time elapsed since last activity
@@ -92,12 +98,9 @@ int32_t start_session::init_request_full_start_session(std::shared_ptr<core::htt
     time_t ts = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) - params_.time_offset_;
     request->push_post_parameter("ts", tools::from_int64(ts));
     request->push_post_parameter("view", "online");
-    request->push_post_parameter("nonce", tools::from_int64(ts) + "-" + tools::from_int64(params_.nonce_));
+    request->push_post_parameter("nonce", tools::from_int64(ts) + '-' + tools::from_int64(params_.nonce_));
 
-    std::map<std::string, std::string> post_params;
-    request->get_post_parameters(post_params);
-
-    request->push_post_parameter("sig_sha256", escape_symbols(get_url_sign(WIM_API_START_SESSION_HOST, post_params, params_, true)));
+    request->push_post_parameter("sig_sha256", escape_symbols(get_url_sign(WIM_API_START_SESSION_HOST, request->get_post_parameters(), params_, true)));
 
     return 0;
 }
@@ -119,6 +122,12 @@ int32_t start_session::init_request_short_start_session(std::shared_ptr<core::ht
 
 int32_t start_session::init_request(std::shared_ptr<core::http_request_simple> _request)
 {
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
     return (is_ping_ ? init_request_short_start_session(_request) : init_request_full_start_session(_request));
 }
 
@@ -189,20 +198,20 @@ int32_t start_session::parse_response_data(const rapidjson::Value& _data)
     if (iter_aimsid == _data.MemberEnd() || !iter_aimsid->value.IsString())
         return wpie_error_parse_response;
 
-    aimsid_ = iter_aimsid->value.GetString();
+    aimsid_ = rapidjson_get_string(iter_aimsid->value);
 
     auto iter_fetch_url = _data.FindMember("fetchBaseURL");
     if (iter_fetch_url == _data.MemberEnd() || !iter_fetch_url->value.IsString())
         return wpie_error_parse_response;
 
-    fetch_url_ = iter_fetch_url->value.GetString();
+    fetch_url_ = rapidjson_get_string(iter_fetch_url->value);
 
     auto iter_my_info = _data.FindMember("myInfo");
     if (iter_my_info != _data.MemberEnd() && iter_my_info->value.IsObject())
     {
         auto iter_aimid = iter_my_info->value.FindMember("aimId");
         if (iter_aimid != iter_my_info->value.MemberEnd() || !iter_aimid->value.IsString())
-            aimid_ = iter_aimid->value.GetString();
+            aimid_ = rapidjson_get_string(iter_aimid->value);
     }
 
     return 0;

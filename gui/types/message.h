@@ -34,6 +34,8 @@ namespace Data
 
     struct Quote;
 
+    typedef std::map<QString, QString, StringComparator> MentionMap;
+
 	class MessageBuddy
 	{
 	public:
@@ -53,13 +55,17 @@ namespace Data
 
         bool ContainsPttAudio() const;
 
+        bool ContainsGif() const;
+
         bool ContainsImage() const;
 
         bool ContainsVideo() const;
 
-        bool GetIndentWith(const MessageBuddy &buddy);
+        bool ContainsMentions() const;
 
-        bool hasAvatarWith(const MessageBuddy& _prevBuddy, const bool _isMultichat);
+        bool GetIndentWith(const MessageBuddy &buddy) const;
+
+        bool hasAvatarWith(const MessageBuddy& _prevBuddy, const bool _isMultichat) const;
 
         bool isSameDirection(const MessageBuddy& _prevBuddy) const;
 
@@ -105,7 +111,7 @@ namespace Data
 
 		const QString& GetText() const;
 
-		const qint32 GetTime() const;
+		qint32 GetTime() const;
 
 		qint64 GetLastId() const;
 
@@ -161,7 +167,8 @@ namespace Data
 		qint64 Prev_;
         int PendingId_;
         qint32 Time_;
-        QList<Quote> Quotes_;
+        QVector<Quote> Quotes_;
+        MentionMap Mentions_;
 
 		bool Chat_;
 		QString ChatFriendly_;
@@ -210,19 +217,21 @@ namespace Data
 			, YoursLastRead_(-1)
 			, TheirsLastRead_(-1)
 			, TheirsLastDelivered_(-1)
+            , FavoriteTime_(-1)
 			, Time_(-1)
 			, Outgoing_(false)
 			, Chat_(false)
 			, Visible_(true)
             , Official_(false)
-            , senderNick_(QString())
-            , FavoriteTime_(-1)
+            , IsContact_(false)
+            , IsLastMessageDelivered(true)
             , IsFromSearch_(false)
             , RequestId_(-1)
-            , IsContact_(false)
-            , SearchTerm_("")
             , SearchedMsgId_(-1)
             , SearchPriority_(-1)
+            , isFromGlobalSearch_(false)
+            , hasMentionMe_(false)
+            , unreadMentionsCount_(0)
 		{
 		}
 
@@ -237,7 +246,7 @@ namespace Data
 
         bool HasText() const;
 
-		void SetText(const QString &text);
+		void SetText(QString text);
 
 		QString AimId_;
 		qint64 UnreadCount_;
@@ -252,6 +261,8 @@ namespace Data
 		bool Visible_;
         bool Official_;
         bool IsContact_;
+        bool IsLastMessageDelivered;
+        QString senderAimId_;
 		QString LastMessageFriendly_;
         QString senderNick_;
         QString Friendly_;
@@ -261,7 +272,11 @@ namespace Data
         qint64 SearchedMsgId_;
         int SearchPriority_;
         QString MailId_;
-        QString Email_;
+        QString header_;
+        bool isFromGlobalSearch_;
+
+        bool hasMentionMe_;
+        int unreadMentionsCount_;
 
 	private:
 		QString Text_;
@@ -283,33 +298,36 @@ namespace Data
         QString senderId_;
         QString chatId_;
         QString senderFriendly_;
+        QString chatStamp_;
+        QString chatName_;
         qint32 time_;
         qint64 msgId_;
         int32_t setId_;
         int32_t stickerId_;
         bool isForward_;
-        
+        MentionMap mentions_;
+
         int id_;
-        
+
         //gui only values
         bool isFirstQuote_;
         bool isLastQuote_;
-        
+
         Quote::Type type_;
 
         Quote()
             : time_(-1)
-            , id_(-1)
             , msgId_(-1)
             , setId_(-1)
             , stickerId_(-1)
+            , isForward_(false)
+            , id_(-1)
             , isFirstQuote_(false)
             , isLastQuote_(false)
-            , isForward_(false)
             , type_(Quote::Type::text)
         {
         }
-        
+
         bool isEmpty() const { return text_.isEmpty() && !isSticker(); }
         bool isSticker() const { return setId_ != -1 && stickerId_ != -1; }
 
@@ -318,20 +336,39 @@ namespace Data
     };
 
 	typedef std::shared_ptr<MessageBuddy> MessageBuddySptr;
-	typedef QList<MessageBuddySptr> MessageBuddies;
+	typedef QVector<MessageBuddySptr> MessageBuddies;
 	typedef std::shared_ptr<MessageBuddies> MessageBuddiesSptr;
 
-	void UnserializeMessageBuddies(
-        core::coll_helper* helper,
+    struct MessagesResult
+    {
+        QString aimId;
+        MessageBuddies messages;
+        MessageBuddies introMessages;
+        MessageBuddies modifications;
+        int64_t lastMsgId;
+        bool havePending;
+    };
+
+    MessagesResult UnserializeMessageBuddies(core::coll_helper* helper, const QString &myAimid);
+
+    Data::MessageBuddySptr unserializeMessage(
+        core::coll_helper &msgColl,
+        const QString &aimId,
         const QString &myAimid,
-        Out QString &aimId,
-        Out bool &havePending,
-        Out MessageBuddies& messages,
-        Out MessageBuddies& modifications,
-        Out int64_t& last_msgid);
+        const qint64 theirs_last_delivered,
+        const qint64 theirs_last_read);
+
+    struct ServerMessagesIds
+    {
+        QString AimId_;
+        QVector<qint64> AllIds_;
+        QVector<int64_t> DeletedIds_;
+        Data::MessageBuddies UpdatedMessages_;
+    };
+    ServerMessagesIds UnserializeServerMessagesIds(const core::coll_helper& helper);
 
 	void SerializeDlgState(core::coll_helper* helper, const DlgState& state);
-	void UnserializeDlgState(core::coll_helper* helper, const QString &myAimId, bool _from_search, Out DlgState& state);
+	DlgState UnserializeDlgState(core::coll_helper* helper, const QString &myAimId, bool _from_search);
 }
 
 Q_DECLARE_METATYPE(Data::MessageBuddy);

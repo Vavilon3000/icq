@@ -8,7 +8,7 @@ QPushButton[Full_view="false"]
     min-height: 8dip;
     max-height: 8dip;
     border: 0;
-    border-image: url(:/resources/basic_elements/arrow_small_up_green_100.png);
+    border-image: url(:/controls/arrow_green_up_100);
 }
 
 
@@ -22,5 +22,5 @@ QPushButton[Full_view="true"]
     min-height: 8dip;
     max-height: 8dip;
     border: 0;
-    border-image: url(:/resources/basic_elements/arrow_small_green_100.png);
+    border-image: url(:/controls/arrow_green_100);
 }

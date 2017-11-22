@@ -12,158 +12,167 @@
 
 namespace voip_manager
 {
-	struct CipherState;
-	struct FrameSize;
+    struct CipherState;
+    struct FrameSize;
 }
 
 namespace Ui
 {
-	class BaseVideoPanel;
-	class ShadowWindow;
+    class BaseVideoPanel;
+    class ShadowWindow;
 
 
-	class ResizeEventFilter : public QObject
-	{
-		Q_OBJECT
+    class ResizeEventFilter : public QObject
+    {
+        Q_OBJECT
 
-	public:
-		ResizeEventFilter(std::vector<BaseVideoPanel*>& panels, ShadowWindow* shadow, QObject* _parent);
+    public:
+        ResizeEventFilter(std::vector<BaseVideoPanel*>& panels, ShadowWindow* shadow, QObject* _parent);
 
-		void addPanel(BaseVideoPanel* _panel);
-		void removePanel(BaseVideoPanel* _panel);
+        void addPanel(BaseVideoPanel* _panel);
+        void removePanel(BaseVideoPanel* _panel);
 
-	protected:
-		bool eventFilter(QObject* _obj, QEvent* _event);
+    protected:
+        bool eventFilter(QObject* _obj, QEvent* _event) override;
 
-	private:
-		std::vector<BaseVideoPanel*> panels_;
-		ShadowWindow* shadow_;
-	};
+    private:
+        std::vector<BaseVideoPanel*> panels_;
+        ShadowWindow* shadow_;
+    };
 
-	class ShadowWindowParent
-	{
-	public:
-		ShadowWindowParent(QWidget* parent);
+    class ShadowWindowParent
+    {
+    public:
+        ShadowWindowParent(QWidget* parent);
         ~ShadowWindowParent();
 
-		void showShadow();
-		void hideShadow();
-		ShadowWindow* getShadowWidget();
-		void setActive(bool _value);
+        void showShadow();
+        void hideShadow();
+        ShadowWindow* getShadowWidget();
+        void setActive(bool _value);
 
-	protected:
-		// shadow
-		ShadowWindow* shadow_;
-	};
+    protected:
+        // shadow
+        ShadowWindow* shadow_;
+    };
 
-	struct UIEffects
-	{
-		UIEffects(QWidget& _obj);
-		virtual ~UIEffects();
+    struct UIEffects
+    {
+        UIEffects(QWidget& _obj);
+        virtual ~UIEffects();
 
-		void fadeOut(unsigned _interval);
-		void fadeIn(unsigned _interval);
+        void fadeOut(unsigned _interval);
+        void fadeIn(unsigned _interval);
 
-		void geometryTo(const QRect& _rc, unsigned _interval);
+        void geometryTo(const QRect& _rc, unsigned _interval);
         bool isFadedIn();
 
-	private:
-		bool fadedIn_;
+    private:
+        bool fadedIn_;
 
-		QGraphicsOpacityEffect* fadeEffect_;
-		QPropertyAnimation* animation_;
-		QPropertyAnimation* resizeAnimation_;
+        QGraphicsOpacityEffect* fadeEffect_;
+        std::unique_ptr<QPropertyAnimation> animation_;
+        std::unique_ptr<QPropertyAnimation> resizeAnimation_;
 
-		QWidget& obj_;
-	};
+        QWidget& obj_;
+    };
 
-	class AspectRatioResizebleWnd : public QWidget
-	{
-		Q_OBJECT
-	public:
-		AspectRatioResizebleWnd();
-		virtual ~AspectRatioResizebleWnd();
+    class AspectRatioResizebleWnd : public QWidget
+    {
+        Q_OBJECT
+    public:
+        AspectRatioResizebleWnd();
+        virtual ~AspectRatioResizebleWnd();
 
-		bool isInFullscreen() const;
-		void switchFullscreen();
+        bool isInFullscreen() const;
+        void switchFullscreen();
 
-		void useAspect();
-		void unuseAspect();
+        void useAspect();
+        void unuseAspect();
         void saveMinSize(const QSize& size);
 
-	protected:
-		bool nativeEvent(const QByteArray& _eventType, void* _message, long* _result) override;
-		virtual quintptr getContentWinId() = 0;
-		virtual void escPressed() { }
+    protected:
+        bool nativeEvent(const QByteArray& _eventType, void* _message, long* _result) override;
+        virtual quintptr getContentWinId() = 0;
+        virtual void escPressed() { }
 
-		private Q_SLOTS:
-		void onVoipFrameSizeChanged(const voip_manager::FrameSize& _fs);
-		//void onVoipCallCreated(const voip_manager::ContactEx& _contactEx);
+        private Q_SLOTS:
+        void onVoipFrameSizeChanged(const voip_manager::FrameSize& _fs);
+        //void onVoipCallCreated(const voip_manager::ContactEx& _contactEx);
 
-	private:
-		float aspectRatio_;
-		bool useAspect_;
+    private:
+        float aspectRatio_;
+        bool useAspect_;
         QSize originMinSize_;
 
-		UIEffects* selfResizeEffect_;
-		// Commented because we always constrain size of video window.
-		//bool firstTimeUseAspectRatio_;
+        std::unique_ptr<UIEffects> selfResizeEffect_;
+        // Commented because we always constrain size of video window.
+        //bool firstTimeUseAspectRatio_;
 
-		void applyFrameAspectRatio(float _wasAr);
-		void keyReleaseEvent(QKeyEvent*) override;
+        void applyFrameAspectRatio(float _wasAr);
+        void keyReleaseEvent(QKeyEvent*) override;
 #ifdef _WIN32
-		bool onWMSizing(RECT& _rc, unsigned _wParam);
+        bool onWMSizing(RECT& _rc, unsigned _wParam);
 #endif
         void fitMinimalSizeToAspect();
-	};
+    };
 
     // Inherit from this class to create panel in voip window.
-	class BaseVideoPanel : public QWidget	
-	{
-	public:
-		BaseVideoPanel(QWidget* parent, Qt::WindowFlags f = Qt::Window | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+    class BaseVideoPanel : public QWidget
+    {
+    public:
+        BaseVideoPanel(QWidget* parent, Qt::WindowFlags f = Qt::Window | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
 
-		virtual void updatePosition(const QWidget& parent) = 0;
+        virtual void updatePosition(const QWidget& parent) = 0;
 
-		virtual void fadeIn(unsigned int duration);
-		virtual void fadeOut(unsigned int duration);
-        
+        virtual void fadeIn(unsigned int duration);
+        virtual void fadeOut(unsigned int duration);
+
         bool isGrabMouse();
         virtual bool isFadedIn();
 
     protected:
-        
+
         bool grabMouse;
-        
+
     private:
-        
-		std::unique_ptr<UIEffects> effect_;
-	};
+
+        std::unique_ptr<UIEffects> effect_;
+    };
 
     // Inherit from this class to create panel on top in voip window.
-	class BaseTopVideoPanel : public BaseVideoPanel
-	{
-	public:
-		BaseTopVideoPanel(QWidget* parent, Qt::WindowFlags f = Qt::Window | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
-
-		void updatePosition(const QWidget& parent) override;
-	};
+    class BaseTopVideoPanel : public BaseVideoPanel
+    {
+    public:
+#if defined(__linux__)
+        BaseTopVideoPanel(QWidget* parent, Qt::WindowFlags f = Qt::Widget);
+#else
+        BaseTopVideoPanel(QWidget* parent, Qt::WindowFlags f = Qt::Window | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+#endif
+        void updatePosition(const QWidget& parent) override;
+    };
 
     // Inherit from this class to create panel on bottom in voip window.
-	class BaseBottomVideoPanel : public BaseVideoPanel
-	{
-	public:
-		BaseBottomVideoPanel(QWidget* parent, Qt::WindowFlags f = Qt::Window | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+    class BaseBottomVideoPanel : public BaseVideoPanel
+    {
+    public:
+        BaseBottomVideoPanel(QWidget* parent,
+#ifndef __linux__
+          Qt::WindowFlags f = Qt::Window | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint
+#else
+          Qt::WindowFlags f = Qt::Widget
+#endif
+                );
 
-		void updatePosition(const QWidget& parent) override;
-	};
+        void updatePosition(const QWidget& parent) override;
+    };
 
     // This panel fill all parent window
     class FullVideoWindowPanel : public Ui::BaseVideoPanel
     {
         Q_OBJECT
 
-    public:        
+    public:
 
         FullVideoWindowPanel(QWidget* parent);
 
@@ -178,7 +187,7 @@ namespace Ui
 
     protected:
 
-        virtual void	resizeEvent(QResizeEvent *event);
+        void resizeEvent(QResizeEvent *event) override;
     };
 
     // Use this class if you want to process
@@ -190,32 +199,32 @@ namespace Ui
 
         void updateSizeFromParent();
     };
-    
+
     class QSliderEx : public QSlider
     {
         Q_OBJECT
     public:
         QSliderEx(Qt::Orientation _orientation, QWidget* _parent = NULL);
         virtual ~QSliderEx();
-        
+
     protected:
         void mousePressEvent(QMouseEvent* _ev) override;
     };
-    
+
     class QPushButtonEx : public QPushButton
     {
         Q_OBJECT
     Q_SIGNALS:
         void onHover();
-        
+
     public:
         QPushButtonEx(QWidget* _parent);
         virtual ~QPushButtonEx();
-        
+
     protected:
         void enterEvent(QEvent* _e);
     };
-    
+
     class VolumeControl : public QWidget
     {
         Q_OBJECT
@@ -223,15 +232,15 @@ namespace Ui
         void controlActivated(bool);
         void onMuteChanged(bool);
         void clicked();
-        
+
     private Q_SLOTS:
         void onVoipVolumeChanged(const std::string&, int);
         void onVoipMuteChanged(const std::string&, bool);
-        
+
         void onVolumeChanged(int);
         void onMuteOnOffClicked();
         void onCheckMousePos();
-        
+
     public:
         VolumeControl(
                       QWidget* _parent,
@@ -241,19 +250,18 @@ namespace Ui
                       const std::function<void(QPushButton&, bool)>& _onChangeStyle
                       );
         virtual ~VolumeControl();
-        
+
         QPoint getAnchorPoint() const;
         virtual void hideSlider();
-        
+
     protected:
         void leaveEvent(QEvent* _e) override;
         void showEvent(QShowEvent *) override;
         void hideEvent(QHideEvent *) override;
         void changeEvent(QEvent*) override;
-        
+
         void updateSlider();
 
-        
     protected:
         bool                                    audioPlaybackDeviceMuted_;
         bool                                    onMainWindow_;
@@ -267,24 +275,24 @@ namespace Ui
         QWidget*                                rootWidget_;
         std::function<void(QPushButton&, bool)> onChangeStyle_;
     };
-    
+
     class VolumeControlHorizontal : public VolumeControl
     {
         Q_OBJECT
-        
+
     public:
         VolumeControlHorizontal (QWidget* _parent, bool _onMainWindow,
                       const QString& _backgroundStyle,
                       const std::function<void(QPushButton&, bool)>& _onChangeStyle);
-        
+
         void showSlider();
         QPoint soundButtonGlobalPosition();
         void hideSlider() override;
-        
+
     Q_SIGNALS:
         void onHoverButton();
     };
-    
+
 
     /**
      * This widget organizes volume control logic.
@@ -300,33 +308,33 @@ namespace Ui
     class VolumeGroup : public QWidget
     {
         Q_OBJECT
-        
+
     public:
-        
+
         VolumeGroup (QWidget* parent, bool onMainPage, const std::function<void(QPushButton&, bool)>& _onChangeStyle, int verticalSize);
-        
+
         QWidget* verticalVolumeWidget();
-        
+
         void hideSlider();
         void updateSliderPosition();
-    
+
     Q_SIGNALS:
-        
+
         void controlActivated(bool);
         // Need to show vertical volume control in right time.
         void isVideoWindowActive(bool&);
         void clicked();
-        
+
     private Q_SLOTS:
-        
+
         void showSlider();
-        
+
     private:
-        
+
         void moveEvent(QMoveEvent * event) override;
-        
+
         void forceShowSlider();
-        
+
         VolumeControl * vVolumeControl;
         VolumeControlHorizontal * hVolumeControl;
         int verticalSize;
@@ -369,24 +377,24 @@ namespace Ui
         PanelBackground* backgroundWidget_;
     };
 
-	// QWidget which has clicked signal.
-	class PureClickedWidget : public QWidget
-	{
-		Q_OBJECT
+    // QWidget which has clicked signal.
+    class PureClickedWidget : public QWidget
+    {
+        Q_OBJECT
 
-	Q_SIGNALS :
-		void clicked();
+    Q_SIGNALS :
+        void clicked();
 
-	public:
-		PureClickedWidget(QWidget* parent);
-		void setEnabled(bool value);
+    public:
+        PureClickedWidget(QWidget* parent);
+        void setEnabled(bool value);
 
-	protected:
-		virtual void mouseReleaseEvent(QMouseEvent *) override;
+    protected:
+        virtual void mouseReleaseEvent(QMouseEvent *) override;
 
-	private:
-		bool Enabled_;
-	};
+    private:
+        bool Enabled_;
+    };
 
     // Show dialog to add new users to video call.
     void showAddUserToVideoConverenceDialogVideoWindow(QObject* parent, FullVideoWindowPanel* parentWindow);

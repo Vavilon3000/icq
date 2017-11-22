@@ -58,14 +58,14 @@ public:
 
     void showActionButton(const QRect &pos);
 
-    virtual ContentType getContentType() const { return IItemBlock::Link; }
+    virtual ContentType getContentType() const override { return IItemBlock::Link; }
 
     virtual void connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover) override;
 
     virtual void setQuoteSelection() override;
 
 protected:
-    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_color) override;
+    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& _quoteColor) override;
 
     void drawEmptyBubble(QPainter &p, const QRect &bubbleRect);
 
@@ -119,8 +119,6 @@ private:
 
     void setGifPlaying(const bool _playing);
 
-    bool isVideoPlaying() const;
-
     bool isGifPreview() const;
 
     bool isOverImage(const QPoint &pos) const;
@@ -144,8 +142,6 @@ private:
     void playGif(const QString &localPath, const bool _byUser);
 
     void preloadFullImageIfNeeded();
-
-    void requestSnapMetainfo();
 
     void schedulePreviewerOpening(const QPoint &globalPos);
 
@@ -207,12 +203,6 @@ private:
 
     QString DownloadUri_;
 
-    int64_t FileSize_;
-
-    uint64_t SnapId_;
-
-    int64_t SnapMetainfoRequestId_;
-
     int MaxPreviewWidth_;
 
     std::unique_ptr<Utils::LoadMovieToFFMpegPlayerFromFileTask> load_task_;
@@ -237,8 +227,6 @@ private Q_SLOTS:
     void onImageDownloadingProgress(qint64 seq, int64_t bytesTotal, int64_t bytesTransferred, int32_t pctTransferred);
 
     void onImageMetaDownloaded(int64_t seq, Data::LinkMetadata meta);
-
-    void onSnapMetainfoDownloaded(int64_t _seq, bool _success, uint64_t _snap_id);
 
     void onPaused();
 };

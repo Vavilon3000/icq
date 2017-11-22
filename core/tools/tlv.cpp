@@ -61,27 +61,27 @@ bool core::tools::tlvpack::unserialize(const binary_stream& _stream)
 
 void core::tools::tlvpack::serialize(binary_stream& _stream) const
 {
-    for (auto iter = tlvlist_.begin(); iter != tlvlist_.end(); iter++)
-        (*iter)->serialize(_stream);
+    for (const auto &x : tlvlist_)
+        x->serialize(_stream);
 }
 
-void core::tools::tlvpack::push_child(std::shared_ptr<tlv> _tlv)
+void core::tools::tlvpack::push_child(const std::shared_ptr<tlv>& _tlv)
 {
     tlvlist_.push_back(_tlv);
 }
 
-void core::tools::tlvpack::push_child(const tlv& _tlv)
+void core::tools::tlvpack::push_child(tlv _tlv)
 {
-    tlvlist_.push_back(std::shared_ptr<tlv>(new tlv(_tlv)));
+    tlvlist_.push_back(std::make_shared<tlv>(std::move(_tlv)));
 }
 
 
 std::shared_ptr<tlv> core::tools::tlvpack::get_item(uint32_t _type) const
 {
-    for (auto iter = tlvlist_.cbegin(); iter != tlvlist_.cend(); iter++)
+    for (const auto& x : tlvlist_)
     {
-        if ((*iter)->get_type() == _type)
-            return (*iter);
+        if (x->get_type() == _type)
+            return x;
     }
 
     return std::shared_ptr<tlv>();
@@ -109,7 +109,7 @@ std::shared_ptr<tlv> core::tools::tlvpack::get_next()
 
 
 tlv::tlv()
-    :	type_(0)
+    : type_(0)
 {
 }
 
@@ -205,7 +205,7 @@ template<> std::string tlv::get_value<std::string>(const std::string& _default_v
     std::string val = _default_value;
 
     if (!value_stream_.available())
-        return "";
+        return std::string();
 
     uint32_t size = value_stream_.available();
     val.assign((const char*) value_stream_.read(size), size);
@@ -217,24 +217,6 @@ template<> std::string tlv::get_value<std::string>(const std::string& _default_v
 template<> std::string tlv::get_value<std::string>() const
 {
     return get_value<std::string>(std::string());
-}
-
-namespace core
-{
-    namespace tools
-    {
-
-        template<> const std::string tlv::get_value<const std::string>(const std::string& _default_value) const
-        {
-            return get_value<std::string>(_default_value);
-        }
-
-        template<> const std::string tlv::get_value<const std::string>() const
-        {
-            return get_value<std::string>(std::string());
-        }
-
-    }
 }
 
 template<> void tlv::set_value<std::string>(const std::string& _value)

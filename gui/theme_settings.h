@@ -34,14 +34,14 @@ namespace Ui
         std::vector<int> themesIdToLoad_;
 
         themes::themePtr defaultTheme_;
-        themes::themePtr initialTheme_;
+        mutable themes::themePtr initialTheme_;
 
     public:
         qt_theme_settings();
         ~qt_theme_settings();
 
         void themesDataUnserialized();
-        int themeIdForContact(QString _aimId);
+        int themeIdForContact(const QString& _aimId) const;
         void unserialize(core::coll_helper _collection);
 
         void postDefaultThemeIdToCore(const int _themeId) const;
@@ -53,13 +53,13 @@ namespace Ui
         void setDefaultTheme(std::shared_ptr<themes::theme> _theme);
 
         void postContactsThemesToCore() const;
-        std::shared_ptr<themes::theme> themeForContact(QString _aimId);
-        int contactOpenned(QString _aimId);
+        std::shared_ptr<themes::theme> themeForContact(const QString& _aimId) const;
+        int contactOpenned(const QString& _aimId);
         void setThemeIdForContact(int _themeId, const QString& _aimId, const bool _saveContactsThemes = true);
-        std::shared_ptr<themes::theme> themeForId(int _themeId);
+        std::shared_ptr<themes::theme> themeForId(int _themeId) const;
         void flushThemesToLoad();
         void themeSelected(int _themeId, const QString& _aimId);
-        std::unordered_map<int, int> getThemeCounts();
+        std::unordered_map<int, int> getThemeCounts() const;
 
         bool getIsLoaded() const { return isLoaded_; };
         void setIsLoaded(bool _isLoaded) { isLoaded_ = _isLoaded; };
@@ -74,7 +74,7 @@ namespace Ui
 
         void saveThemesMapping();
         void restoreThemesMapping();
-        themes::themePtr initialTheme();
+        themes::themePtr initialTheme() const;
         bool settingInProcess_;
         bool isLoaded_;
 

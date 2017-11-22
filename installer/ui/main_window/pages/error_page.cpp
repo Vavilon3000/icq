@@ -52,7 +52,7 @@ namespace installer
 
 					QLabel* label_support_link = new QLabel(this);
 					label_support_link->setObjectName("error_page_support_link");
-					label_support_link->setText(QString("<a href=\"http://www.icq.com/support/?open-form\" style=\"color: #579e1c;\">") + QT_TR_NOOP("Write to developer") + "</a>");
+					label_support_link->setText(QString("<a href=\"http://www.icq.com/support/?open-form\" style=\"color: #57b359;\">") + QT_TR_NOOP("Write to developer") + "</a>");
 					label_support_link->setTextInteractionFlags(Qt::LinksAccessibleByMouse);
 					label_support_link->setOpenExternalLinks(true);
 					error_layout->addWidget(label_support_link);

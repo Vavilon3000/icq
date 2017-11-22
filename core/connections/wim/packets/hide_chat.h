@@ -29,7 +29,7 @@ namespace core
 
         public:
 
-            hide_chat(const wim_packet_params& _params, const std::string& _aimid, int64_t _last_msg_id);
+            hide_chat(wim_packet_params _params, const std::string& _aimid, int64_t _last_msg_id);
             virtual ~hide_chat();
         };
 

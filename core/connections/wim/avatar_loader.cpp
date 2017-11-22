@@ -18,11 +18,11 @@ using namespace wim;
 //////////////////////////////////////////////////////////////////////////
 avatar_task::avatar_task(
     int64_t _task_id,
-    std::shared_ptr<avatar_context> _context, 
+    std::shared_ptr<avatar_context> _context,
     std::shared_ptr<avatar_load_handlers> _handlers)
-    :   task_id_(_task_id),
-        context_(_context),
-        handlers_(_handlers)
+    : context_(_context),
+    handlers_(_handlers),
+    task_id_(_task_id)
 {
 }
 
@@ -46,11 +46,11 @@ int64_t avatar_task::get_id() const
 
 //////////////////////////////////////////////////////////////////////////
 avatar_loader::avatar_loader()
-    :   local_thread_(new async_executer()),
-        server_thread_(new async_executer()),
+    :   task_id_(0),
         working_(false),
         network_error_(false),
-        task_id_(0)
+        local_thread_(std::make_shared<async_executer>()),
+        server_thread_(std::make_shared<async_executer>())
 {
 }
 
@@ -59,7 +59,7 @@ avatar_loader::~avatar_loader()
 {
 }
 
-const std::string avatar_loader::get_avatar_type_by_size(int32_t _size) const
+std::string avatar_loader::get_avatar_type_by_size(int32_t _size) const
 {
     if (_size > 128)
     {
@@ -73,7 +73,7 @@ const std::string avatar_loader::get_avatar_type_by_size(int32_t _size) const
     return "ceilBigBuddyIcon";
 }
 
-const std::wstring avatar_loader::get_avatar_path(const std::wstring& _im_data_path, const std::string& _contact, const std::string _avatar_type)
+std::wstring avatar_loader::get_avatar_path(const std::wstring& _im_data_path, const std::string& _contact, const std::string& _avatar_type) const
 {
     std::string lower_avatar_type = _avatar_type;
     std::transform(lower_avatar_type.begin(), lower_avatar_type.end(), lower_avatar_type.begin(), ::tolower);
@@ -114,9 +114,9 @@ void avatar_loader::execute_task(std::shared_ptr<avatar_task> _task, std::functi
     }
 
     auto packet = std::make_shared<request_avatar>(
-        *wim_params_, 
-        _task->get_context()->contact_, 
-        _task->get_context()->avatar_type_, 
+        *wim_params_,
+        _task->get_context()->contact_,
+        _task->get_context()->avatar_type_,
         write_time);
 
     std::weak_ptr<avatar_loader> wr_this = shared_from_this();
@@ -199,7 +199,7 @@ void avatar_loader::run_tasks_loop()
 
     std::weak_ptr<avatar_loader> wr_this = shared_from_this();
 
- 
+
     execute_task(task, [wr_this, task](int32_t _error)
     {
         auto ptr_this = wr_this.lock();
@@ -244,11 +244,9 @@ std::shared_ptr<avatar_task> avatar_loader::get_next_task()
 }
 
 void avatar_loader::load_avatar_from_server(
-    std::shared_ptr<avatar_context> _context, 
+    std::shared_ptr<avatar_context> _context,
     std::shared_ptr<avatar_load_handlers> _handlers)
 {
-    std::weak_ptr<avatar_loader> wr_this = shared_from_this();
-
     add_task(std::make_shared<avatar_task>(++task_id_, _context, _handlers));
 
     if (!working_ && !network_error_)

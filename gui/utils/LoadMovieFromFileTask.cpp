@@ -17,9 +17,7 @@ LoadMovieFromFileTask::~LoadMovieFromFileTask()
 
 void LoadMovieFromFileTask::run()
 {
-    QSharedPointer<QMovie> movie(new QMovie(Path_));
-
-    emit loadedSignal(movie);
+    emit loadedSignal(QSharedPointer<QMovie>::create(Path_));
 }
 
 // LoadFFMpegPlayerFromFileTask
@@ -39,7 +37,7 @@ LoadMovieToFFMpegPlayerFromFileTask::~LoadMovieToFFMpegPlayerFromFileTask()
 
 void LoadMovieToFFMpegPlayerFromFileTask::run()
 {
-    mplayer_ = QSharedPointer<Ui::DialogPlayer>(new Ui::DialogPlayer(parent_, (isGif_ ? Ui::DialogPlayer::Flags::is_gif : 0)));
+    mplayer_ = QSharedPointer<Ui::DialogPlayer>::create(parent_, (isGif_ ? Ui::DialogPlayer::Flags::is_gif : 0));
 
     connect(mplayer_.data(), &Ui::DialogPlayer::loaded, this, &LoadMovieToFFMpegPlayerFromFileTask::onLoaded, (Qt::ConnectionType)(Qt::QueuedConnection | Qt::UniqueConnection));
 

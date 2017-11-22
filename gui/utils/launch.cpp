@@ -7,9 +7,10 @@
 #include "../types/link_metadata.h"
 #include "../types/message.h"
 #include "../types/typing.h"
-#include "../types/snap.h"
-#include "../cache/snaps/SnapStorage.h"
+#include "../cache/stickers/stickers.h"
+#include "../main_window/contact_list/ContactListModel.h"
 #include "../main_window/history_control/MessagesModel.h"
+#include "../main_window/tray/RecentMessagesAlert.h"
 
 #ifdef ICQ_QT_STATIC
     #ifdef _WIN32
@@ -18,9 +19,10 @@
     #endif //_WIN32
 
     #ifndef __linux__
-        Q_IMPORT_PLUGIN(QTiffPlugin);
+        Q_IMPORT_PLUGIN(QTiffPlugin)
     #else
-		Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
+        Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
+        Q_IMPORT_PLUGIN(QICOPlugin);
     #endif //__linux__
 
     #ifdef __APPLE__
@@ -29,7 +31,7 @@
     #endif
 #endif
 
-const QString urlCommand = "-urlcommand";
+static const std::string urlCommand = "-urlcommand";
 
 launch::CommandLineParser::CommandLineParser(int _argc, char* _argv[])
 {
@@ -53,7 +55,7 @@ launch::CommandLineParser::CommandLineParser(int _argc, char* _argv[])
             if (i >= _argc)
                 break;
 
-            urlCommand_ = _argv[i];
+            urlCommand_ = QString::fromUtf8(_argv[i]);
         }
     }
 }
@@ -73,7 +75,7 @@ const QString& launch::CommandLineParser::getUrlCommand() const
     return urlCommand_;
 }
 
-const QString& launch::CommandLineParser::getExecutable() const 
+const QString& launch::CommandLineParser::getExecutable() const
 {
     return executable_;
 }
@@ -84,9 +86,9 @@ int launch::main(int _argc, char* _argv[])
     if (isLaunched)
         return 0;
     isLaunched = true;
-    
+
     Utils::Application app(_argc, _argv);
-    
+
     CommandLineParser cmd_parser(_argc, _argv);
 
     if (!app.isMainInstance())
@@ -105,13 +107,16 @@ int launch::main(int _argc, char* _argv[])
     {
         qRegisterMetaType<Data::ImageListPtr>("Data::ImageListPtr");
         qRegisterMetaType<std::shared_ptr<Data::ContactList>>("std::shared_ptr<Data::ContactList>");
-        qRegisterMetaType<std::shared_ptr<Data::MessageBuddies>>("std::shared_ptr<Data::MessageBuddies>");
+        qRegisterMetaType<std::shared_ptr<Data::Buddy>>("std::shared_ptr<Data::Buddy>");
+        qRegisterMetaType<Data::MessageBuddies>("Data::MessageBuddies");
         qRegisterMetaType<std::shared_ptr<Data::ChatInfo>>("std::shared_ptr<Data::ChatInfo>");
-        qRegisterMetaType<QList<Data::ChatInfo>>("QList<Data::ChatInfo>");
-        qRegisterMetaType<QList<Data::ChatMemberInfo>>("QList<Data::ChatMemberInfo>");
+        qRegisterMetaType<QVector<Data::ChatInfo>>("QVector<Data::ChatInfo>");
+        qRegisterMetaType<QVector<Data::ChatMemberInfo>>("QVector<Data::ChatMemberInfo>");
         qRegisterMetaType<Data::DlgState>("Data::DlgState");
+        qRegisterMetaType<Logic::scroll_mode_type>("Logic::scroll_mode_type");
         qRegisterMetaType<Logic::MessageKey>("Logic::MessageKey");
-        qRegisterMetaType<QList<Logic::MessageKey>>("QList<Logic::MessageKey>");
+        qRegisterMetaType<Logic::UpdateChatSelection>("Logic::UpdateChatSelection");
+        qRegisterMetaType<QVector<Logic::MessageKey>>("QVector<Logic::MessageKey>");
         qRegisterMetaType<QScroller::State>("QScroller::State");
         qRegisterMetaType<Ui::MessagesBuddiesOpt>("Ui::MessagesBuddiesOpt");
         qRegisterMetaType<QSystemTrayIcon::ActivationReason>("QSystemTrayIcon::ActivationReason");
@@ -123,13 +128,11 @@ int launch::main(int _argc, char* _argv[])
         qRegisterMetaType<Data::LinkMetadata>("Data::LinkMetadata");
         qRegisterMetaType<QSharedPointer<QMovie>>("QSharedPointer<QMovie>");
         qRegisterMetaType<Data::Quote>("Data::Quote");
-        qRegisterMetaType<QList<Data::Quote>>("QList<Data::Quote>");
-        qRegisterMetaType<QList<Data::DlgState>>("QList<Data::DlgState>");
-        qRegisterMetaType<std::shared_ptr<QList<Data::DlgState>>>("std::shared_ptr<QList<Data::DlgState>>");
-        qRegisterMetaType<Logic::SnapState>("Logic::SnapState");
-        qRegisterMetaType<Logic::UserSnapsInfo>("Logic::UserSnapsInfo");
-        qRegisterMetaType<QList<Logic::UserSnapsInfo>>("QList<Logic::UserSnapsInfo>");
-        qRegisterMetaType<QList<Logic::PreviewItem>>("QList<Logic::PreviewItem>");
+        qRegisterMetaType<QVector<Data::Quote>>("QVector<Data::Quote>");
+        qRegisterMetaType<QVector<Data::DlgState>>("QVector<Data::DlgState>");
+        qRegisterMetaType<std::shared_ptr<Ui::Stickers::Set>>("std::shared_ptr<Ui::Stickers::Set>");
+        qRegisterMetaType<Data::MessageBuddySptr>("Data::MessageBuddySptr");
+        qRegisterMetaType<Ui::AlertType>("Ui::AlertType");
     }
     else
     {
@@ -147,11 +150,10 @@ int launch::main(int _argc, char* _argv[])
     QT_TRANSLATE_NOOP("QWidgetTextControl", "Select All");
 
 #if defined(ICQ_FINAL_BUILD)
-    qDebug() << "Final build is now running";
+    qDebug() << ql1s("Final build is now running");
 #elif defined(ICQ_DEVELOPMENT_BUILD)
-    qDebug() << "Development build is now running";
+    qDebug() << ql1s("Development build is now running");
 #endif
 
-    Logic::GetSnapStorage();
     return app.exec();
 }

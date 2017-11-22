@@ -15,10 +15,6 @@ public:
 
     virtual QSize blockSizeForMaxWidth(const int32_t maxWidth) override;
 
-    virtual QRect getAuthorAvatarRect() const override;
-
-    virtual QRect getAuthorNickRect() const override;
-
     virtual const QRect& getContentRect() const override;
 
     const QRect& getFilenameRect() const override;

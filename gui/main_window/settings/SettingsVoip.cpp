@@ -11,7 +11,7 @@ using namespace Ui;
 
 void GeneralSettingsWidget::Creator::initVoiceVideo(QWidget* _parent, VoiceAndVideoOptions& _voiceAndVideo)
 {
-    auto scrollArea = CreateScrollAreaAndSetTrScrollBar(_parent);
+    auto scrollArea = CreateScrollAreaAndSetTrScrollBarV(_parent);
     scrollArea->setWidgetResizable(true);
     Utils::grabTouchWidget(scrollArea->viewport(), true);
 
@@ -20,7 +20,7 @@ void GeneralSettingsWidget::Creator::initVoiceVideo(QWidget* _parent, VoiceAndVi
 
     auto mainLayout = Utils::emptyVLayout(mainWidget);
     mainLayout->setAlignment(Qt::AlignTop);
-    mainLayout->setContentsMargins(Utils::scale_value(36), 0, 0, Utils::scale_value(36));
+    mainLayout->setContentsMargins(Utils::scale_value(16), 0, 0, Utils::scale_value(36));
 
     scrollArea->setWidget(mainWidget);
 
@@ -76,7 +76,7 @@ void GeneralSettingsWidget::Creator::initVoiceVideo(QWidget* _parent, VoiceAndVi
         {
             __deviceChanged(ix, voip_proxy::kvoipDevTypeAudioCapture);
         },
-            [](bool) -> QString { return ""; });
+            [](bool) -> QString { return QString(); });
 
         _voiceAndVideo.audioCaptureDevices = di.menu;
         _voiceAndVideo.aCapSelected = di.currentSelected;
@@ -94,7 +94,7 @@ void GeneralSettingsWidget::Creator::initVoiceVideo(QWidget* _parent, VoiceAndVi
         {
             __deviceChanged(ix, voip_proxy::kvoipDevTypeAudioPlayback);
         },
-            [](bool) -> QString { return ""; });
+            [](bool) -> QString { return QString(); });
 
         _voiceAndVideo.audioPlaybackDevices = di.menu;
         _voiceAndVideo.aPlaSelected = di.currentSelected;
@@ -112,7 +112,7 @@ void GeneralSettingsWidget::Creator::initVoiceVideo(QWidget* _parent, VoiceAndVi
         {
             __deviceChanged(ix, voip_proxy::kvoipDevTypeVideoCapture);
         },
-            [](bool) -> QString { return ""; });
+            [](bool) -> QString { return QString(); });
 
         _voiceAndVideo.videoCaptureDevices = di.menu;
         _voiceAndVideo.vCapSelected = di.currentSelected;

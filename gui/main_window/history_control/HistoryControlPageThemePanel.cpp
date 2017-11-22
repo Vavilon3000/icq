@@ -11,53 +11,52 @@
 
 namespace Ui
 {
-    HistoryControlPageThemePanel::HistoryControlPageThemePanel(HistoryControlPage* _parent) : QWidget(_parent), historyControlPage_(_parent), settingThemeToAll_(false), selectionThemeFromSettings_(false)
+    HistoryControlPageThemePanel::HistoryControlPageThemePanel(HistoryControlPage* _parent)
+        : QWidget(_parent), historyControlPage_(_parent), selectionThemeFromSettings_(false), settingThemeToAll_(false)
     {
         QHBoxLayout *mainLayout = Utils::emptyHLayout(this);
         mainLayout->setContentsMargins(Utils::scale_value(16), 0, Utils::scale_value(16), 0);
-        
+
         backFromThemeButton_ = new BackButton(this);
-        connect(backFromThemeButton_, SIGNAL(clicked()), this, SLOT(backFromThemePressed()), Qt::QueuedConnection);
+        connect(backFromThemeButton_, &BackButton::clicked, this, &HistoryControlPageThemePanel::backFromThemePressed, Qt::QueuedConnection);
         backFromThemeButton_->setCursor(Qt::PointingHandCursor);
         mainLayout->addWidget(backFromThemeButton_);
-        
+
         mainLayout->addSpacerItem(new QSpacerItem(Utils::scale_value(16), 0, QSizePolicy::Expanding, QSizePolicy::Preferred));
-        
+
         cancelButton_ = new LabelEx(this);
-        cancelButton_->setText(QT_TRANSLATE_NOOP("chat_page", "Cancel"));
-        QPalette p;
-        p.setColor(QPalette::Foreground, CommonStyle::getLinkColor());
-        cancelButton_->setPalette(p);
-        cancelButton_->setFont(Fonts::appFontScaled(16));
+        cancelButton_->setText(QT_TRANSLATE_NOOP("chat_page", "CANCEL"));
+        cancelButton_->setColor(CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY));
+        cancelButton_->setFont(Fonts::appFontScaled(15, Fonts::FontWeight::Medium));
         cancelButton_->setCursor(Qt::PointingHandCursor);
         cancelButton_->adjustSize();
         mainLayout->addWidget(cancelButton_, 0, Qt::AlignRight);
-        connect(cancelButton_, SIGNAL(clicked()), this, SLOT(cancelThemePressed()), Qt::QueuedConnection);
+        connect(cancelButton_, &LabelEx::clicked, this, &HistoryControlPageThemePanel::cancelThemePressed, Qt::QueuedConnection);
 
         mainLayout->addSpacerItem(new QSpacerItem(Utils::scale_value(32), 0, QSizePolicy::Fixed, QSizePolicy::Fixed));
 
-        setToAllButton_ = new QPushButton(QT_TRANSLATE_NOOP("chat_page", "Set to all"));
+        setToAllButton_ = new QPushButton(QT_TRANSLATE_NOOP("chat_page", "SET TO ALL"));
         Utils::ApplyStyle(setToAllButton_, CommonStyle::getGreenButtonStyle());
         setToAllButton_->setCursor(Qt::PointingHandCursor);
         mainLayout->addWidget(setToAllButton_, 0, Qt::AlignRight);
-        connect(setToAllButton_, SIGNAL(clicked()), this, SLOT(setToAllThemePressed()), Qt::QueuedConnection);
-        
+        connect(setToAllButton_, &QPushButton::clicked, this, &HistoryControlPageThemePanel::setToAllThemePressed, Qt::QueuedConnection);
+
         mainLayout->addSpacerItem(new QSpacerItem(Utils::scale_value(16), 0, QSizePolicy::Fixed, QSizePolicy::Fixed));
-        
-        setButton_ = new QPushButton(QT_TRANSLATE_NOOP("chat_page", "Set"));
+
+        setButton_ = new QPushButton(QT_TRANSLATE_NOOP("chat_page", "SET"));
         Utils::ApplyStyle(setButton_, CommonStyle::getGreenButtonStyle());
         setButton_->setCursor(Qt::PointingHandCursor);
         mainLayout->addWidget(setButton_);
-        connect(setButton_, SIGNAL(clicked()), this, SLOT(setThemePressed()), Qt::QueuedConnection);
+        connect(setButton_, &QPushButton::clicked, this, &HistoryControlPageThemePanel::setThemePressed, Qt::QueuedConnection);
 
         setVisible(false);
         setLayout(mainLayout);
     }
-    
+
     HistoryControlPageThemePanel::~HistoryControlPageThemePanel()
     {
     }
-    
+
     void HistoryControlPageThemePanel::setShowSetThemeButton(const bool _show)
     {
         if (_show)
@@ -66,12 +65,12 @@ namespace Ui
         }
         setButton_->setVisible(_show);
     }
-    
+
     void HistoryControlPageThemePanel::setCallback(ThemePanelCallback _callback)
     {
         callback_ = _callback;
     }
-    
+
     void HistoryControlPageThemePanel::cancelThemePressed()
     {
         if (callback_)
@@ -81,7 +80,7 @@ namespace Ui
         }
         historyControlPage_->showMainTopPanel();
     }
-    
+
     void HistoryControlPageThemePanel::setThemePressed()
     {
         if (callback_)
@@ -91,7 +90,7 @@ namespace Ui
         }
         historyControlPage_->showMainTopPanel();
     }
-    
+
     void HistoryControlPageThemePanel::setToAllThemePressed()
     {
         if (callback_)
@@ -101,10 +100,10 @@ namespace Ui
         }
         historyControlPage_->showMainTopPanel();
     }
-    
+
     void HistoryControlPageThemePanel::backFromThemePressed()
     {
-        QString targetContact = settingThemeToAll_ ? "" : historyControlPage_->aimId();
+        const QString targetContact = settingThemeToAll_ ? QString() : historyControlPage_->aimId();
         emit Utils::InterConnector::instance().themesSettingsShow(selectionThemeFromSettings_, targetContact);
         selectionThemeFromSettings_ = false; // flush
         if (callback_)
@@ -114,19 +113,19 @@ namespace Ui
         }
         historyControlPage_->showMainTopPanel();
     }
-    
+
     void HistoryControlPageThemePanel::setSelectionToAll(bool _settingThemeToAll)
     {
         settingThemeToAll_ = _settingThemeToAll;
     }
-    
+
     void HistoryControlPageThemePanel::paintEvent(QPaintEvent *_e)
     {
         QWidget::paintEvent(_e);
 
         QPainter painter(this);
-        painter.fillRect(rect(), Ui::CommonStyle::getTopPanelColor());
-        painter.setPen(QPen(QColor("#d7d7d7"), Utils::scale_value(1)));
+        painter.fillRect(rect(), CommonStyle::getFrameColor());
+        painter.setPen(QPen(CommonStyle::getColor(CommonStyle::Color::GRAY_BORDER), Utils::scale_value(1)));
         painter.drawLine(contentsRect().bottomLeft(), contentsRect().bottomRight());
     }
 }

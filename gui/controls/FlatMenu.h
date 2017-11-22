@@ -5,7 +5,7 @@ namespace Ui
     class FlatMenuStyle: public QProxyStyle
     {
         Q_OBJECT
-        
+
     public:
         int pixelMetric(PixelMetric _metric, const QStyleOption* _option = 0, const QWidget* _widget = 0) const;
     };
@@ -30,8 +30,11 @@ namespace Ui
         void setExpandDirection(Qt::Alignment _direction);
         void stickToIcon();
 
-        static int shown() { return FlatMenu::shown_; }
-        
+        static int shown()
+        {
+            return FlatMenu::shown_;
+        }
+
         inline Qt::Alignment expandDirection() const
         {
             return expandDirection_;

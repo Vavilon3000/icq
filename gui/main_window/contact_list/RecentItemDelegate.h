@@ -6,51 +6,54 @@
 
 namespace Logic
 {
-	class RecentItemDelegate : public AbstractItemDelegateWithRegim
-	{
-	public:
+    class RecentItemDelegate : public AbstractItemDelegateWithRegim
+    {
+        bool shouldRenderCompact(const QModelIndex& _index) const;
 
-		RecentItemDelegate(QObject* parent);
+    public:
 
-		void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-		void paint(QPainter *painter, const QStyleOptionViewItem &option, const Data::DlgState& dlgState, bool dragOverlay) const;
+        RecentItemDelegate(QObject* parent);
 
-		QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-		QSize sizeHintForAlert() const;
+        void paint(QPainter* _painter, const QStyleOptionViewItem& _option, const QModelIndex& _index) const override;
+        void paint(QPainter* _painter, const QStyleOptionViewItem& _option, const Data::DlgState& _dlgState, bool _dragOverlay, bool _renderAsInCL = true) const;
 
-		void blockState(bool value);
+        QSize sizeHint(const QStyleOptionViewItem &_option, const QModelIndex &_index) const override;
+        QSize sizeHintForAlert() const;
 
         void addTyping(const TypingFires& _typing);
         void removeTyping(const TypingFires& _typing);
 
-        void setDragIndex(const QModelIndex& index);
-
         void setPictOnlyView(bool _pictOnlyView);
         bool getPictOnlyView() const;
 
+        virtual void blockState(bool value) override;
+        virtual void setDragIndex(const QModelIndex& index) override;
         virtual void setFixedWidth(int _newWidth) override;
-
         virtual void setRegim(int _regim) override;
 
-	private:
+    private:
 
         std::list<TypingFires> typings_;
-        
-		struct ItemKey
-		{
-			const bool IsSelected;
 
-			const bool IsHovered;
+        struct ItemKey
+        {
+            const bool IsSelected;
 
-			const int UnreadDigitsNumber;
+            const bool IsHovered;
 
-			ItemKey(const bool isSelected, const bool isHovered, const int unreadDigitsNumber);
+            const int UnreadDigitsNumber;
 
-			bool operator < (const ItemKey &_key) const;
-		};
+            ItemKey(const bool isSelected, const bool isHovered, const int unreadDigitsNumber);
 
-		bool StateBlocked_;
+            bool operator < (const ItemKey &_key) const;
+        };
+
+        bool StateBlocked_;
+
         QModelIndex DragIndex_;
+
         ContactList::ViewParams viewParams_;
-	};
+
+        mutable QSet<QString> pendingsDialogs;
+    };
 }

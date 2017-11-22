@@ -3,25 +3,25 @@
 class QuoteColorAnimation : public QObject
 {
     Q_OBJECT
-	Q_PROPERTY(QColor quoteColor READ quoteColor WRITE setQuoteColor);
+    Q_PROPERTY(QColor quoteColor READ quoteColor WRITE setQuoteColor);
 
 public:
-	QuoteColorAnimation(QWidget* parent);
+    QuoteColorAnimation(QWidget* parent);
 
-	QColor quoteColor() const;
-	void setQuoteColor(QColor color);
+    QColor quoteColor() const;
+    void setQuoteColor(QColor color);
 
-	void setSemiTransparent();
-	void startQuoteAnimation();
+    void setSemiTransparent();
+    void startQuoteAnimation();
 
     bool isPlay() const;
     void deactivate();
 
 protected:
 
-	QWidget*	Widget_;
-	QColor		QuoteColor_;
-	int			Alpha_;
-    bool        IsActive_;
-    bool        bPlay_;
+    QWidget* Widget_;
+    QColor QuoteColor_;
+    int Alpha_;
+    bool IsActive_;
+    bool bPlay_;
 };

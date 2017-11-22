@@ -9,7 +9,7 @@
 namespace Ui
 {
     SearchFilters::SearchFilters(QWidget* _parent)
-        :	QWidget(_parent)
+        : QWidget(_parent)
         , keyword_(new LineEditEx(this))
         , searchButton_(new QPushButton(this))
 
@@ -22,17 +22,15 @@ namespace Ui
 
         keyword_->setPlaceholderText(QT_TRANSLATE_NOOP("search_widget", "Phone or Name, Email, UIN"));
         keyword_->setAttribute(Qt::WA_MacShowFocusRect, false);
-        keyword_->setObjectName("keyword");
+        keyword_->setObjectName(qsl("keyword"));
         keyword_->setFont(Fonts::appFontScaled(18));
-        QString keyword_style;
-        keyword_style =
-            "QLineEdit { margin-right: 12dip; padding: 0; }";
-        Utils::ApplyStyle(keyword_, Ui::CommonStyle::getLineEditStyle() + keyword_style);
+        const auto keyword_style = ql1s("QLineEdit { margin-right: 12dip; padding: 0; }");
+        Utils::ApplyStyle(keyword_, CommonStyle::getLineEditStyle() + keyword_style);
 
         keywordLayout->addWidget(keyword_);
 
-		Utils::ApplyStyle(searchButton_, CommonStyle::getGreenButtonStyle());
-        searchButton_->setText(QT_TRANSLATE_NOOP("search_widget", "Search"));
+        Utils::ApplyStyle(searchButton_, CommonStyle::getGreenButtonStyle());
+        searchButton_->setText(QT_TRANSLATE_NOOP("search_widget", "SEARCH"));
         searchButton_->setObjectName("search_button");
         searchButton_->setCursor(QCursor(Qt::PointingHandCursor));
 
@@ -40,7 +38,7 @@ namespace Ui
 
         rootLayout->addLayout(keywordLayout);
 
-        /*	QHBoxLayout* filtersLayout = new QHBoxLayout();
+        /*QHBoxLayout* filtersLayout = new QHBoxLayout();
         filtersLayout->setAlignment(Qt::AlignLeft);
         filtersLayout->setContentsMargins(0, Utils::scale_value(16), 0, 0);
 
@@ -65,9 +63,9 @@ namespace Ui
         setLayout(rootLayout);
 
 
-        connect(searchButton_, SIGNAL(clicked()), this, SLOT(onSearchButtonClicked()), Qt::QueuedConnection);
-        connect(keyword_, SIGNAL(enter()), this, SLOT(onSearchButtonClicked()), Qt::QueuedConnection);
-        connect(keyword_, SIGNAL(clicked()), this, SIGNAL(clicked()), Qt::QueuedConnection);
+        connect(searchButton_, &QPushButton::clicked, this, &SearchFilters::onSearchButtonClicked, Qt::QueuedConnection);
+        connect(keyword_, &Ui::LineEditEx::enter, this, &SearchFilters::onSearchButtonClicked, Qt::QueuedConnection);
+        connect(keyword_, &Ui::LineEditEx::clicked, this, &SearchFilters::clicked, Qt::QueuedConnection);
     }
 
     SearchFilters::~SearchFilters()

@@ -10,10 +10,10 @@ namespace core
     {
         class semaphore
         {
-            std::mutex					mtx_;
-            std::condition_variable		cv_;
+            boost::mutex mtx_;
+            boost::condition_variable cv_;
 
-            unsigned long				count_;
+            unsigned long count_;
 
         public:
 

@@ -8,10 +8,10 @@ using namespace core;
 using namespace wim;
 
 set_permit_deny::set_permit_deny(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _aimid,
     const set_permit_deny::operation _op)
-    :	wim_packet(_params),
+    :	wim_packet(std::move(_params)),
         aimid_(_aimid),
         op_(_op)
 {
@@ -52,12 +52,17 @@ int32_t set_permit_deny::init_request(std::shared_ptr<core::http_request_simple>
         "?f=json" <<
         "&aimsid=" << escape_symbols(get_params().aimsid_) <<
         "&r=" << core::tools::system::generate_guid() <<
-        "&" << operation_2_str(op_) << "=" << aimid_;
-
-    
+        '&' << operation_2_str(op_) << '=' << aimid_;
 
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

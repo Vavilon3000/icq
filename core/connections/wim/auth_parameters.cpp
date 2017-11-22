@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "auth_parameters.h"
+#include "../../corelib/collection_helper.h"
 
 
 using namespace core;
@@ -34,13 +35,11 @@ inline std::string get_dev_id()
 }
 
 core::wim::auth_parameters::auth_parameters()
-    : exipired_in_(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()))
+    : dev_id_(get_dev_id())
+    , exipired_in_(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()))
     , time_offset_(0)
-    , dev_id_(get_dev_id())
     , robusto_client_id_(-1)
     , serializable_(true)
-    , login_()
-    , fetch_url_()
 {
 }
 
@@ -172,34 +171,34 @@ bool core::wim::auth_parameters::unserialize(core::tools::binary_stream& _stream
     auto tlv_robusto_client_id = tlv_pack_childs.get_item(apt_robusto_client_id);
 
     if (
-        !tlv_aimid || 
-        !tlv_a_token || 
-        !tlv_session_key || 
-        !tlv_dev_id || 
-        !tlv_aim_sid ||  
-        !tlv_exipired_in || 
+        !tlv_aimid ||
+        !tlv_a_token ||
+        !tlv_session_key ||
+        !tlv_dev_id ||
+        !tlv_aim_sid ||
+        !tlv_exipired_in ||
         !tlv_time_offset)
         return false;
 
-    aimid_ = tlv_aimid->get_value<std::string>("");
-    a_token_ = tlv_a_token->get_value<std::string>("");
-    session_key_ = tlv_session_key->get_value<std::string>("");
-    dev_id_ = tlv_dev_id->get_value<std::string>("");
-    aimsid_ = tlv_aim_sid->get_value<std::string>("");
+    aimid_ = tlv_aimid->get_value<std::string>();
+    a_token_ = tlv_a_token->get_value<std::string>();
+    session_key_ = tlv_session_key->get_value<std::string>();
+    dev_id_ = tlv_dev_id->get_value<std::string>();
+    aimsid_ = tlv_aim_sid->get_value<std::string>();
     exipired_in_ = tlv_exipired_in->get_value<int64_t>(0);
     time_offset_ = tlv_time_offset->get_value<int64_t>(0);
 
     if (tlv_robusto_token)
-        robusto_token_ = tlv_robusto_token->get_value<std::string>("");
+        robusto_token_ = tlv_robusto_token->get_value<std::string>();
 
     if (tlv_robusto_client_id)
         robusto_client_id_ = tlv_robusto_client_id->get_value<int32_t>(-1);
 
     if (tlv_version)
-        version_ = tlv_version->get_value<std::string>("");
+        version_ = tlv_version->get_value<std::string>();
 
     if (tlv_locale)
-        locale_ = tlv_locale->get_value<std::string>("");
+        locale_ = tlv_locale->get_value<std::string>();
 
     return true;
 }
@@ -210,31 +209,31 @@ bool core::wim::auth_parameters::unserialize(const rapidjson::Value& _node)
     if (iter_aimid == _node.MemberEnd() || !iter_aimid->value.IsString())
         return false;
 
-    aimid_ = iter_aimid->value.GetString();
+    aimid_ = rapidjson_get_string(iter_aimid->value);
 
     auto iter_atoken = _node.FindMember("atoken");
     if (iter_atoken != _node.MemberEnd() && iter_atoken->value.IsString())
-        a_token_ = iter_atoken->value.GetString();
+        a_token_ = rapidjson_get_string(iter_atoken->value);
 
     auto iter_agenttoken = _node.FindMember("agenttoken");
     if (iter_agenttoken != _node.MemberEnd() && iter_agenttoken->value.IsString())
-        agent_token_ = iter_agenttoken->value.GetString();
+        agent_token_ = rapidjson_get_string(iter_agenttoken->value);
 
     auto iter_guid = _node.FindMember("productguid");
     if (iter_guid != _node.MemberEnd() && iter_guid->value.IsString())
-        product_guid_8x_ = iter_guid->value.GetString();
+        product_guid_8x_ = rapidjson_get_string(iter_guid->value);
 
     auto iter_session_key = _node.FindMember("sessionkey");
     if (iter_session_key != _node.MemberEnd() && iter_session_key->value.IsString())
-        session_key_ = iter_session_key->value.GetString();
+        session_key_ = rapidjson_get_string(iter_session_key->value);
 
     auto iter_devid = _node.FindMember("devid");
     if (iter_devid != _node.MemberEnd() && iter_devid->value.IsString())
-        dev_id_ = iter_devid->value.GetString();
+        dev_id_ = rapidjson_get_string(iter_devid->value);
 
     auto iter_aimsid = _node.FindMember("aimsid");
     if (iter_aimsid != _node.MemberEnd() && iter_aimsid->value.IsString())
-        aimsid_ = iter_aimsid->value.GetString();
+        aimsid_ = rapidjson_get_string(iter_aimsid->value);
 
     // TODO : time_t
     auto iter_expiredin = _node.FindMember("expiredin");
@@ -252,19 +251,19 @@ bool core::wim::auth_parameters::unserialize(const rapidjson::Value& _node)
     auto iter_login = _node.FindMember("login");
     if (iter_login != _node.MemberEnd() && iter_login->value.IsString())
     {
-        login_ = iter_login->value.GetString();
+        login_ = rapidjson_get_string(iter_login->value);
     }
 
     auto iter_fetchurl = _node.FindMember("fetchurl");
     if (iter_fetchurl != _node.MemberEnd() && iter_fetchurl->value.IsString())
     {
-        fetch_url_ = iter_fetchurl->value.GetString();
+        fetch_url_ = rapidjson_get_string(iter_fetchurl->value);
     }
 
     auto iter_password_md5 = _node.FindMember("password_md5");
     if (iter_password_md5 != _node.MemberEnd() && iter_password_md5->value.IsString())
     {
-        password_md5_ = iter_password_md5->value.GetString();
+        password_md5_ = rapidjson_get_string(iter_password_md5->value);
     }
 
 
@@ -288,6 +287,29 @@ void core::wim::auth_parameters::serialize(rapidjson::Value& _node, rapidjson_al
     _node.AddMember("agenttoken", agent_token_, _a);
 }
 
+bool core::wim::auth_parameters::unserialize(coll_helper& _params)
+{
+    aimid_ = _params.get_value_as_string("aimid");
+    if (aimid_.empty())
+        return false;
+
+    a_token_ = _params.get_value_as_string("atoken");
+    agent_token_ = _params.get_value_as_string("agenttoken");
+    product_guid_8x_ = _params.get_value_as_string("productguid");
+    session_key_ = _params.get_value_as_string("sessionkey");
+    std::string dev_id = _params.get_value_as_string("devid");
+    if (!dev_id.empty())
+        dev_id_ = std::move(dev_id);
+    aimsid_ = _params.get_value_as_string("aimsid");
+    if (_params.is_value_exist("expiredin"))
+        exipired_in_ = _params.get_value_as_int64("expiredin");
+    time_offset_ = _params.get_value_as_int64("timeoffset");
+    login_ = _params.get_value_as_string("login");
+    fetch_url_ = _params.get_value_as_string("fetchurl");
+    password_md5_ = _params.get_value_as_string("password_md5");
+
+    return true;
+}
 
 
 fetch_parameters::fetch_parameters()
@@ -303,10 +325,10 @@ void fetch_parameters::serialize(core::tools::binary_stream& _stream) const
     core::tools::tlvpack pack;
     core::tools::binary_stream temp_stream;
 
-    
+
     pack.push_child(core::tools::tlv(fpt_fetch_url, fetch_url_));
     pack.push_child(core::tools::tlv(fpt_last_successful_fetch, (int64_t) last_successful_fetch_));
-    
+
     pack.serialize(temp_stream);
 
     core::tools::tlvpack rootpack;
@@ -331,13 +353,13 @@ bool fetch_parameters::unserialize(core::tools::binary_stream& _stream)
 
     auto tlv_fetch_url = tlv_pack_childs.get_item(fpt_fetch_url);
     auto tlv_last_successfull_fetch = tlv_pack_childs.get_item(fpt_last_successful_fetch);
-        
+
     if (
-        !tlv_fetch_url || 
+        !tlv_fetch_url ||
         !tlv_last_successfull_fetch)
         return false;
 
-    fetch_url_ = tlv_fetch_url->get_value<std::string>("");
+    fetch_url_ = tlv_fetch_url->get_value<std::string>();
     last_successful_fetch_ = tlv_last_successfull_fetch->get_value<int64_t>(0);
 
     return true;

@@ -32,27 +32,27 @@ int32_t my_info::unserialize(const rapidjson::Value& _node)
 {
     auto iter_aimid = _node.FindMember("aimId");
     if (iter_aimid != _node.MemberEnd() && iter_aimid->value.IsString())
-        aimId_ = iter_aimid->value.GetString();
+        aimId_ = rapidjson_get_string(iter_aimid->value);
 
     auto iter_displayId = _node.FindMember("displayId");
     if (iter_displayId != _node.MemberEnd() && iter_displayId->value.IsString())
-        displayId_ = iter_displayId->value.GetString();
+        displayId_ = rapidjson_get_string(iter_displayId->value);
 
     auto iter_friendlyName = _node.FindMember("friendly");
     if (iter_friendlyName != _node.MemberEnd() && iter_friendlyName->value.IsString())
-        friendlyName_ = iter_friendlyName->value.GetString();
+        friendlyName_ = rapidjson_get_string(iter_friendlyName->value);
 
     auto iter_state = _node.FindMember("state");
     if (iter_state != _node.MemberEnd() && iter_state->value.IsString())
-        state_ = iter_state->value.GetString();
+        state_ = rapidjson_get_string(iter_state->value);
 
     auto iter_userType = _node.FindMember("userType");
     if (iter_userType != _node.MemberEnd() && iter_userType->value.IsString())
-        userType_ = iter_userType->value.GetString();
+        userType_ = rapidjson_get_string(iter_userType->value);
 
     auto iter_phoneNumber = _node.FindMember("attachedPhoneNumber");
     if (iter_phoneNumber != _node.MemberEnd() && iter_phoneNumber->value.IsString())
-        phoneNumber_ = iter_phoneNumber->value.GetString();
+        phoneNumber_ = rapidjson_get_string(iter_phoneNumber->value);
 
     auto iter_flags = _node.FindMember("globalFlags");
     if (iter_flags != _node.MemberEnd() && iter_flags->value.IsUint())
@@ -64,7 +64,7 @@ int32_t my_info::unserialize(const rapidjson::Value& _node)
         const auto & expression_node = iter_expressions->value;
         auto iter_large_icon = expression_node.FindMember("largeBuddyIcon");
         if (iter_large_icon != expression_node.MemberEnd() && iter_large_icon->value.IsString())
-            largeIconId_ = iter_large_icon->value.GetString();
+            largeIconId_ = rapidjson_get_string(iter_large_icon->value);
     }
 
     auto item_has_mail = _node.FindMember("hasMail");
@@ -128,12 +128,12 @@ bool my_info::unserialize(core::tools::binary_stream& _data)
     if (!item_aimId_ || !item_displayId_  || !item_friendlyName_ || !item_state_ || !item_userType_ || (!item_phoneNumber_ && !item_flags_))
         return false;
 
-    aimId_ =  item_aimId_->get_value<std::string>("");
-    displayId_ =  item_displayId_->get_value<std::string>("");
-    friendlyName_ =  item_friendlyName_->get_value<std::string>("");
-    state_ =  item_state_->get_value<std::string>("");
-    userType_ =  item_userType_->get_value<std::string>("");
-    phoneNumber_ =  item_phoneNumber_->get_value<std::string>("");
+    aimId_ =  item_aimId_->get_value<std::string>(std::string());
+    displayId_ =  item_displayId_->get_value<std::string>(std::string());
+    friendlyName_ =  item_friendlyName_->get_value<std::string>(std::string());
+    state_ =  item_state_->get_value<std::string>(std::string());
+    userType_ =  item_userType_->get_value<std::string>(std::string());
+    phoneNumber_ =  item_phoneNumber_->get_value<std::string>(std::string());
     flags_ = item_flags_->get_value<uint32_t>(0);
     if (item_has_mail_)
         hasMail_ = item_has_mail_->get_value<bool>(false);
@@ -142,7 +142,7 @@ bool my_info::unserialize(core::tools::binary_stream& _data)
 
 my_info_cache::my_info_cache()
     : changed_(false)
-    , info_(new my_info())
+    , info_(std::make_shared<my_info>())
 {
 
 }

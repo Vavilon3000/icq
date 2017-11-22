@@ -48,7 +48,7 @@ public:
 
     virtual int getMaxPreviewWidth() const override { return MaxPreviewWidth_; }
 
-    virtual ContentType getContentType() const { return IItemBlock::FileSharing; }
+    virtual ContentType getContentType() const override { return IItemBlock::FileSharing; }
 
 protected:
     const QString& getFileLocalPath() const;
@@ -81,8 +81,6 @@ protected:
 
     bool isPreviewable() const;
 
-    bool isSnap() const;
-
     bool isVideo() const;
 
     virtual void onDownloadingStarted() = 0;
@@ -96,8 +94,6 @@ protected:
     virtual void onDownloading(const int64_t bytesTransferred, const int64_t bytesTotal) = 0;
 
     virtual void onDownloadingFailed(const int64_t requestId) = 0;
-
-    virtual void markSnapExpired();
 
     virtual void onLocalCopyInfoReady(const bool isCopyExists) = 0;
 

@@ -12,14 +12,14 @@ namespace core
         void set_os_version(const std::string& _os_version);
         std::string get_os_version();
 
-        class crash_handler  
+        class crash_handler
         {
         public:
 
             // Constructor
             crash_handler(
-                const std::string& _bundle, 
-                const std::wstring& _product_path, 
+                const std::string& _bundle,
+                const std::wstring& _product_path,
                 const bool _is_sending_after_crash);
 
             // Destructor
@@ -33,7 +33,7 @@ namespace core
 
             // Collects current process state.
             static void get_exception_pointers(
-                DWORD dwExceptionCode, 
+                DWORD dwExceptionCode,
                 EXCEPTION_POINTERS** pExceptionPointers);
 
             // This method creates minidump of the process
@@ -51,7 +51,7 @@ namespace core
 
             static void __cdecl pure_call_handler();
 
-            static void __cdecl invalid_parameter_handler(const wchar_t* expression, 
+            static void __cdecl invalid_parameter_handler(const wchar_t* expression,
                 const wchar_t* function, const wchar_t* file, unsigned int line, uintptr_t pReserved);
 
             static int __cdecl new_handler(size_t);

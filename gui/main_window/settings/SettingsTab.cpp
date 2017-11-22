@@ -9,6 +9,7 @@
 #include "../../utils/gui_coll_helper.h"
 #include "../../controls/CustomButton.h"
 #include "../../controls/GeneralDialog.h"
+#include "../../controls/LabelEx.h"
 #include "../../controls/TransparentScrollBar.h"
 #include "../../utils/log/log.h"
 
@@ -26,7 +27,7 @@ namespace Ui
     {
     private:
         QWidget *settingsView;
-        QLabel *topicLabel;
+        LabelEx *topicLabel;
         QWidget* topWidget_;
         CustomButton *myProfileButton;
         CustomButton *generalButton;
@@ -39,34 +40,37 @@ namespace Ui
     public:
         void init(QWidget* _p, QLayout* _pl)
         {
-            auto back = new CustomButton(_p, ":/resources/basic_elements/contr_basic_back_100.png");
+            auto back = new CustomButton(_p, qsl(":/controls/arrow_left_100"));
             back->setFixedSize(QSize(Utils::scale_value(BACK_WIDTH), Utils::scale_value(BACK_HEIGHT)));
-            back->setStyleSheet("background: transparent; border-style: none;");
+            back->setStyleSheet(qsl("background: transparent; border-style: none;"));
             back->setOffsets(Utils::scale_value(LEFT_OFFSET), 0);
             back->setAlign(Qt::AlignLeft);
             topWidget_ = new QWidget(_p);
             auto hLayout = Utils::emptyHLayout(topWidget_);
             hLayout->setContentsMargins(0, 0, Utils::scale_value(LEFT_OFFSET + BACK_WIDTH), 0);
             hLayout->addWidget(back);
-            topicLabel = new QLabel(_p);
+            topicLabel = new LabelEx(_p);
+            topicLabel->setColor(CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT));
+            topicLabel->setFont(Fonts::appFontScaled(16, Fonts::FontWeight::Medium));
             Utils::grabTouchWidget(topicLabel);
-            topicLabel->setObjectName("settings_topic_label");
+            topicLabel->setAlignment(Qt::AlignCenter);
+            topicLabel->setFixedHeight(Utils::scale_value(48));
             topicLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
             hLayout->addWidget(topicLabel);
             _pl->addWidget(topWidget_);
 
             back->setCursor(QCursor(Qt::PointingHandCursor));
-            connect(back, &QAbstractButton::clicked,[] () 
-            { 
-                emit Utils::InterConnector::instance().myProfileBack(); 
+            connect(back, &QAbstractButton::clicked,[] ()
+            {
+                emit Utils::InterConnector::instance().myProfileBack();
             });
 
             const auto flatted = true;
             const auto checkable = true;
-            
-            myProfileButton = new CustomButton(settingsView, ":/resources/settings/settings_profile_100.png");
-            myProfileButton->setActiveImage(":/resources/settings/settings_profile_100_active.png");
-            Testing::setAccessibleName(myProfileButton, "settings_my_profile_button");
+
+            myProfileButton = new CustomButton(settingsView, qsl(":/resources/settings/settings_profile_100.png"));
+            myProfileButton->setActiveImage(qsl(":/resources/settings/settings_profile_100_active.png"));
+            Testing::setAccessibleName(myProfileButton, qsl("settings_my_profile_button"));
             Utils::grabTouchWidget(myProfileButton);
             myProfileButton->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred));
             myProfileButton->setMouseTracking(true);
@@ -78,8 +82,8 @@ namespace Ui
             myProfileButton->setCursor(QCursor(Qt::PointingHandCursor));
             _pl->addWidget(myProfileButton);
 
-            generalButton = new CustomButton(settingsView, ":/resources/settings/settings_general_100.png");
-            generalButton->setActiveImage(":/resources/settings/settings_general_100_active.png");
+            generalButton = new CustomButton(settingsView, qsl(":/resources/settings/settings_general_100.png"));
+            generalButton->setActiveImage(qsl(":/resources/settings/settings_general_100_active.png"));
             Utils::grabTouchWidget(generalButton);
             generalButton->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred));
             generalButton->setMouseTracking(true);
@@ -91,8 +95,8 @@ namespace Ui
             generalButton->setCursor(QCursor(Qt::PointingHandCursor));
             _pl->addWidget(generalButton);
 
-            themesButton = new CustomButton(settingsView, ":/resources/settings/settings_themes_100.png");
-            themesButton->setActiveImage(":/resources/settings/settings_themes_100_active.png");
+            themesButton = new CustomButton(settingsView, qsl(":/resources/settings/settings_themes_100.png"));
+            themesButton->setActiveImage(qsl(":/resources/settings/settings_themes_100_active.png"));
             themesButton->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred));
             themesButton->setMouseTracking(true);
             themesButton->setFlat(flatted);
@@ -103,8 +107,8 @@ namespace Ui
             themesButton->setCursor(QCursor(Qt::PointingHandCursor));
             _pl->addWidget(themesButton);
 
-            notificationsButton = new CustomButton(settingsView, ":/resources/settings/settings_notify_100.png");
-            notificationsButton->setActiveImage(":/resources/settings/settings_notify_100_active.png");
+            notificationsButton = new CustomButton(settingsView, qsl(":/resources/settings/settings_notify_100.png"));
+            notificationsButton->setActiveImage(qsl(":/resources/settings/settings_notify_100_active.png"));
             Utils::grabTouchWidget(notificationsButton);
             notificationsButton->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred));
             notificationsButton->setMouseTracking(true);
@@ -116,8 +120,8 @@ namespace Ui
             notificationsButton->setCursor(QCursor(Qt::PointingHandCursor));
             _pl->addWidget(notificationsButton);
 
-            voipButton = new CustomButton(settingsView, ":/resources/settings/settings_video_100.png");
-            voipButton->setActiveImage(":/resources/settings/settings_video_100_active.png");
+            voipButton = new CustomButton(settingsView, qsl(":/resources/settings/settings_video_100.png"));
+            voipButton->setActiveImage(qsl(":/resources/settings/settings_video_100_active.png"));
             Utils::grabTouchWidget(voipButton);
             voipButton->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred));
             voipButton->setMouseTracking(true);
@@ -144,16 +148,16 @@ namespace Ui
         currentSettingsItem_(Utils::CommonSettingsType::CommonSettingsType_None),
         isCompact_(false)
     {
-        setStyleSheet(Utils::LoadStyle(":/main_window/settings/settings_tab.qss"));
+        setStyleSheet(Utils::LoadStyle(qsl(":/qss/settings_tab")));
 
-        auto scrollArea = CreateScrollAreaAndSetTrScrollBar(this);
-        scrollArea->setObjectName("scroll_area");
+        auto scrollArea = CreateScrollAreaAndSetTrScrollBarV(this);
+        scrollArea->setObjectName(qsl("scroll_area"));
         scrollArea->setWidgetResizable(true);
         scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         Utils::grabTouchWidget(scrollArea->viewport(), true);
 
         auto scrollAreaContent = new QWidget(scrollArea);
-        scrollAreaContent->setObjectName("settings_view");
+        scrollAreaContent->setObjectName(qsl("settings_view"));
         Utils::grabTouchWidget(scrollAreaContent);
 
         auto scrollAreaContentLayout = Utils::emptyVLayout(scrollAreaContent);
@@ -166,14 +170,14 @@ namespace Ui
 
         ui_->init(scrollAreaContent, scrollAreaContentLayout);
 
-        connect(ui_->myProfileButton, SIGNAL(toggled(bool)), this, SLOT(settingsProfileClicked()), Qt::QueuedConnection);
-        connect(ui_->generalButton, SIGNAL(toggled(bool)), this, SLOT(settingsGeneralClicked()), Qt::QueuedConnection);
-        connect(ui_->voipButton, SIGNAL(toggled(bool)), this, SLOT(settingsVoiceVideoClicked()), Qt::QueuedConnection);
-        connect(ui_->notificationsButton, SIGNAL(toggled(bool)), this, SLOT(settingsNotificationsClicked()), Qt::QueuedConnection);
-        connect(ui_->themesButton, SIGNAL(toggled(bool)), this, SLOT(settingsThemesClicked()), Qt::QueuedConnection);
+        connect(ui_->myProfileButton, &Ui::CustomButton::toggled, this, &SettingsTab::settingsProfileClicked, Qt::QueuedConnection);
+        connect(ui_->generalButton, &Ui::CustomButton::toggled, this, &SettingsTab::settingsGeneralClicked, Qt::QueuedConnection);
+        connect(ui_->voipButton, &Ui::CustomButton::toggled, this, &SettingsTab::settingsVoiceVideoClicked, Qt::QueuedConnection);
+        connect(ui_->notificationsButton, &Ui::CustomButton::toggled, this, &SettingsTab::settingsNotificationsClicked, Qt::QueuedConnection);
+        connect(ui_->themesButton, &Ui::CustomButton::toggled, this, &SettingsTab::settingsThemesClicked, Qt::QueuedConnection);
 
         connect(&Utils::InterConnector::instance(), &Utils::InterConnector::compactModeChanged, this, &SettingsTab::compactModeChanged, Qt::QueuedConnection);
-        
+
 #ifdef STRIP_VOIP
         ui_->voipButton->hide();
 #endif //STRIP_VOIP
@@ -224,7 +228,7 @@ namespace Ui
         currentSettingsItem_ = Utils::CommonSettingsType::CommonSettingsType_Profile;
         updateSettingsState();
 
-        emit Utils::InterConnector::instance().profileSettingsShow("");
+        emit Utils::InterConnector::instance().profileSettingsShow(QString());
         emit Utils::InterConnector::instance().showHeader(QT_TRANSLATE_NOOP("main_page", "My profile"));
         GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::myprofile_open);
     }
@@ -274,48 +278,41 @@ namespace Ui
         updateSettingsState();
 
         emit Utils::InterConnector::instance().showHeader(QT_TRANSLATE_NOOP("main_page", "Wallpaper"));
-        emit Utils::InterConnector::instance().themesSettingsShow(false, "");
+        emit Utils::InterConnector::instance().themesSettingsShow(false, QString());
     }
 
     void SettingsTab::updateSettingsState()
     {
-        ui_->myProfileButton->blockSignals(true);
-        ui_->generalButton->blockSignals(true);
-        ui_->voipButton->blockSignals(true);
-        ui_->notificationsButton->blockSignals(true);
-        ui_->themesButton->blockSignals(true);
+        QSignalBlocker sbMyProfile(ui_->myProfileButton);
+        QSignalBlocker sbGeneral(ui_->generalButton);
+        QSignalBlocker sbVoip(ui_->voipButton);
+        QSignalBlocker sbNotif(ui_->notificationsButton);
+        QSignalBlocker sbThemes(ui_->themesButton);
 
         ui_->myProfileButton->setChecked(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Profile);
         ui_->myProfileButton->setDisabled(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Profile);
         ui_->myProfileButton->setActive(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Profile);
-        ui_->myProfileButton->setTextColor(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Profile ? "#ffffff" : "#454545");
+        ui_->myProfileButton->setTextColor(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Profile ? qsl("#ffffff") : qsl("#454545"));
 
         ui_->generalButton->setChecked(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_General);
         ui_->generalButton->setDisabled(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_General);
         ui_->generalButton->setActive(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_General);
-        ui_->generalButton->setTextColor(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_General ? "#ffffff" : "#454545");
+        ui_->generalButton->setTextColor(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_General ? qsl("#ffffff") : qsl("#454545"));
 
         ui_->voipButton->setChecked(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_VoiceVideo);
         ui_->voipButton->setDisabled(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_VoiceVideo);
         ui_->voipButton->setActive(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_VoiceVideo);
-        ui_->voipButton->setTextColor(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_VoiceVideo ? "#ffffff" : "#454545");
+        ui_->voipButton->setTextColor(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_VoiceVideo ? qsl("#ffffff") : qsl("#454545"));
 
         ui_->notificationsButton->setChecked(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Notifications);
         ui_->notificationsButton->setDisabled(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Notifications);
         ui_->notificationsButton->setActive(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Notifications);
-        ui_->notificationsButton->setTextColor(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Notifications ? "#ffffff" : "#454545");
+        ui_->notificationsButton->setTextColor(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Notifications ? qsl("#ffffff") : qsl("#454545"));
 
         ui_->themesButton->setChecked(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Themes);
         ui_->themesButton->setDisabled(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Themes);
         ui_->themesButton->setActive(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Themes);
-        ui_->themesButton->setTextColor(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Themes ? "#ffffff" : "#454545");
-        
-        
-        ui_->myProfileButton->blockSignals(false);
-        ui_->generalButton->blockSignals(false);
-        ui_->voipButton->blockSignals(false);
-        ui_->notificationsButton->blockSignals(false);
-        ui_->themesButton->blockSignals(false);
+        ui_->themesButton->setTextColor(currentSettingsItem_ == Utils::CommonSettingsType::CommonSettingsType_Themes ? qsl("#ffffff") : qsl("#454545"));
     }
 
     void SettingsTab::compactModeChanged()

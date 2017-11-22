@@ -20,14 +20,14 @@ namespace voipTools
     {
     public:
 
-		// It is cool solution for this class, but i cannot compile it.
-		//template<typename... T2>
-		//	BoundBox(T2... params)	: __Base(params...) { }
+        // It is cool solution for this class, but i cannot compile it.
+        //template<typename... T2>
+        //BoundBox(T2... params) : __Base(params...) { }
 
         BoundBox(const QColor& borderColor = QColor(0, 255, 0, 255)) :__Base(), borderColor_(borderColor) { }
 
-		template<typename Param1> BoundBox(Param1 par1, const QColor& borderColor = QColor(0, 255, 0, 255))
-			:__Base(par1), borderColor_(borderColor) { }
+        template<typename Param1> BoundBox(Param1 par1, const QColor& borderColor = QColor(0, 255, 0, 255))
+            :__Base(par1), borderColor_(borderColor) { }
 
         template<typename Param1, typename Param2> BoundBox(
             Param1 par1,
@@ -35,21 +35,21 @@ namespace voipTools
             const QColor& borderColor = QColor(0, 255, 0, 255))
             :__Base(par1, par2), borderColor_(borderColor) { }
 
-		template<typename Param1, typename Param2, typename Param3> BoundBox(
-			Param1 par1,
-			Param2 par2,
-			Param3 par3,
+        template<typename Param1, typename Param2, typename Param3> BoundBox(
+            Param1 par1,
+            Param2 par2,
+            Param3 par3,
             const QColor& borderColor = QColor(0, 255, 0, 255))
-			: __Base(par1, par2, par3), borderColor_(borderColor) { }
+            : __Base(par1, par2, par3), borderColor_(borderColor) { }
 
-		template<typename Param1, typename Param2, typename Param3, typename Param4> BoundBox(
-			Param1 par1,
-			Param2 par2,
-			Param3 par3,
-			Param4 par4,
+        template<typename Param1, typename Param2, typename Param3, typename Param4> BoundBox(
+            Param1 par1,
+            Param2 par2,
+            Param3 par3,
+            Param4 par4,
             const QColor& borderColor = QColor(0, 255, 0, 255))
-			: __Base(par1, par2, par3, par4), borderColor_(borderColor) { }
-		
+            : __Base(par1, par2, par3, par4), borderColor_(borderColor) { }
+
         template<typename Param1, typename Param2, typename Param3, typename Param4, typename Param5> BoundBox(
             Param1 par1,
             Param2 par2,

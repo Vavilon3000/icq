@@ -10,7 +10,7 @@ namespace Ui
         const int icon_width = 40;
         const int balloon_size = 20;
     }
-    
+
     class UnreadWidget : public QWidget
     {
         Q_OBJECT
@@ -19,16 +19,16 @@ namespace Ui
         void clicked();
 
     public:
-        UnreadWidget(QWidget* _parent, bool _drawBadgeBorder = true, int32_t _badgeFontSize = 11);
+        UnreadWidget(QWidget* _parent, bool _drawBadgeBorder = true, int32_t _badgeFontSize = 14);
         void setHoverVisible(bool _hoverVisible);
         QPixmap renderToPixmap(unsigned _unreadsCount, bool _hoveredState, bool _pressedState);
 
     protected:
-        virtual void paintEvent(QPaintEvent *);
-        virtual void mousePressEvent(QMouseEvent *);
-        virtual void mouseReleaseEvent(QMouseEvent *);
-        virtual void enterEvent(QEvent *);
-        virtual void leaveEvent(QEvent *);
+        void paintEvent(QPaintEvent *) override;
+        void mousePressEvent(QMouseEvent *) override;
+        void mouseReleaseEvent(QMouseEvent *) override;
+        void enterEvent(QEvent *) override;
+        void leaveEvent(QEvent *) override;
 
     protected Q_SLOTS:
         void setUnreads(unsigned);
@@ -56,6 +56,7 @@ namespace Ui
     private Q_SLOTS:
         void updateIcon();
         void loggedIn();
+        void openNextUnread();
     };
 
 

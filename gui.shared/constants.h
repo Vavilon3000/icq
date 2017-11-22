@@ -36,6 +36,7 @@ const QString send_dump_arg = "-send_dump";
 #define application_user_model_id_agent L"MailRu.Agent.Client"
 
 #define url_command_join_livechat "chat"
+#define url_command_stickerpack_info "s"
 #define url_command_open_profile "people"
 #define url_command_app "app"
 #define url_command_livechats_home "livechats"
@@ -50,8 +51,10 @@ namespace Ui
 {
     enum KeyToSendMessage
     {
-        Enter = 0x0,
-        Shift_Enter = 0x01000020,
-        Ctrl_Enter = 0x01000021
+        Enter       = 0,
+        Enter_Old   = 1,                // deprecated
+        Shift_Enter = Qt::Key_Shift,    // 0x01000020
+        Ctrl_Enter  = Qt::Key_Control,  // 0x01000021 - cmd+enter on mac
+        CtrlMac_Enter = Qt::Key_Meta    // 0x01000022 - ctrl+enter, mac only
     };
 }

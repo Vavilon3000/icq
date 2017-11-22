@@ -7,10 +7,10 @@ namespace core
 {
     namespace tools
     {
-        const std::string from_utf16(const std::wstring& _source_16);
-        const std::wstring from_utf8(const std::string& _source_8);
+        std::string from_utf16(const std::wstring& _source_16);
+        std::wstring from_utf8(const std::string& _source_8);
         inline std::string from_int64(const int64_t _val) { return std::to_string(_val); }
-        const std::string wstring_to_string(const std::wstring& wstr);
+        std::string wstring_to_string(const std::wstring& wstr);
 
         bool is_digit(char _c);
         bool is_latin(char _c);
@@ -57,7 +57,8 @@ namespace core
             }
         }
 
-        bool contains(const std::vector<std::vector<std::string>>& _patterns, const std::string& _word, unsigned fixed_patterns_count, int32_t& priority);
+        std::vector<std::string> get_words(std::string _word);
+        bool contains(const std::vector<std::vector<std::string>>& _patterns, const std::string& _word, unsigned fixed_patterns_count, int32_t& priority, bool starts_with = false);
 
         static int32_t utf8_char_size(char _s)
         {

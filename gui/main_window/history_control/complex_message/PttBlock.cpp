@@ -52,18 +52,18 @@ PttBlock::PttBlock(
     int64_t _prevId)
     : FileSharingBlockBase(_parent, _link, core::file_sharing_content_type::ptt)
     , ctrlButton_(nullptr)
-    , pttLayout_(nullptr)
-    , textButton_(nullptr)
-    , durationSec_(_durationSec)
-    , textRequestId_(-1)
     , decodedTextCtrl_(nullptr)
+    , durationSec_(_durationSec)
     , isDecodedTextCollapsed_(true)
     , isPlayed_(false)
     , isPlaybackScheduled_(false)
     , playbackState_(PlaybackState::Stopped)
-    , playingId_(-1)
     , playbackProgressMsec_(0)
     , playbackProgressAnimation_(nullptr)
+    , playingId_(-1)
+    , pttLayout_(nullptr)
+    , textButton_(nullptr)
+    , textRequestId_(-1)
     , id_(_id)
     , prevId_(_prevId)
 {
@@ -80,7 +80,8 @@ PttBlock::PttBlock(
     setBlockLayout(pttLayout_);
     setLayout(pttLayout_);
 
-    connect(Logic::GetMessagesModel(), SIGNAL(pttPlayed(qint64)), this, SLOT(pttPlayed(qint64)), Qt::QueuedConnection);
+    connect(Logic::GetMessagesModel(), &Logic::MessagesModel::pttPlayed, this, &PttBlock::pttPlayed, Qt::QueuedConnection);
+    setMouseTracking(true);
 }
 
 PttBlock::~PttBlock()
@@ -625,12 +626,12 @@ void PttBlock::initializeDecodedTextCtrl()
     decodedTextCtrl_->setOpenLinks(false);
     decodedTextCtrl_->setOpenExternalLinks(false);
     decodedTextCtrl_->setWordWrapMode(QTextOption::WordWrap);
-    decodedTextCtrl_->setStyleSheet("background: transparent");
+    decodedTextCtrl_->setStyleSheet(qsl("background: transparent"));
     decodedTextCtrl_->setContextMenuPolicy(Qt::NoContextMenu);
     decodedTextCtrl_->setReadOnly(true);
     decodedTextCtrl_->setUndoRedoEnabled(false);
 
-    const auto selectionStyleSheet = QString("background: transparent; selection-background-color: %1;").arg(Utils::getSelectionColor().name(QColor::HexArgb));
+    const auto selectionStyleSheet = qsl("background: transparent; selection-background-color: %1;").arg(Utils::getSelectionColor().name(QColor::HexArgb));
     decodedTextCtrl_->setStyleSheet(selectionStyleSheet);
 
     auto textColor = MessageStyle::getTextColor();
@@ -733,7 +734,7 @@ void PttBlock::startPlayback()
     {
         assert(duration > 0);
 
-        playbackProgressAnimation_ = new QPropertyAnimation(this, "PlaybackProgress");
+        playbackProgressAnimation_ = new QPropertyAnimation(this, QByteArrayLiteral("PlaybackProgress"), this);
         playbackProgressAnimation_->setDuration(duration);
         playbackProgressAnimation_->setLoopCount(1);
         playbackProgressAnimation_->setStartValue(0);
@@ -954,9 +955,9 @@ namespace
 
         const auto seconds = (_seconds % 60);
 
-        return QString("%1:%2")
-            .arg(minutes, 2, 10, QChar('0'))
-            .arg(seconds, 2, 10, QChar('0'));
+        return qsl("%1:%2")
+            .arg(minutes, 2, 10, ql1c('0'))
+            .arg(seconds, 2, 10, ql1c('0'));
     }
 }
 

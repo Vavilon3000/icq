@@ -6,6 +6,7 @@
 #include "../../../controls/TextEmojiWidget.h"
 #include "../../../controls/PictureWidget.h"
 #include "../../../controls/ContactAvatarWidget.h"
+#include "../../../utils/InterConnector.h"
 #include "../../../utils/log/log.h"
 #include "../../../utils/Text2DocConverter.h"
 #include "../../../my_info.h"
@@ -19,6 +20,7 @@
 #include "QuoteBlock.h"
 #include "TextBlock.h"
 #include "../../../gui/controls/TextEditEx.h"
+#include "../../../gui/controls/CommonStyle.h"
 
 UI_COMPLEX_MESSAGE_NS_BEGIN
 
@@ -37,16 +39,15 @@ void QuoteBlockHoverPainter::paintEvent(QPaintEvent * e)
 	QPainter p(this);
 
 	p.setRenderHint(QPainter::Antialiasing);
-	p.setRenderHint(QPainter::TextAntialiasing);
 	p.setRenderHint(QPainter::SmoothPixmapTransform);
 
 	QPen pen(Qt::NoPen);
 	p.setPen(pen);
 
-	QBrush b(QColor(0, 0, 0, 25));
+	static const QBrush b(QColor(0, 0, 0, 25));
 	p.setBrush(b);
 
-	int radius = Utils::scale_value(8);
+	static const auto radius = Utils::scale_value(8);
 	p.drawRoundedRect(rect(), radius, radius);
 }
 
@@ -55,7 +56,7 @@ void QuoteBlockHoverPainter::startAnimation(qreal begin, qreal end_opacity)
 	QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
 	setGraphicsEffect(eff);
 
-	QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
+	QPropertyAnimation *a = new QPropertyAnimation(eff, QByteArrayLiteral("opacity"), eff);
 
 	int duration = abs(begin - end_opacity) * 20;
 	if (duration < 5)
@@ -65,7 +66,7 @@ void QuoteBlockHoverPainter::startAnimation(qreal begin, qreal end_opacity)
 	a->setStartValue(begin);
 	a->setEndValue(end_opacity);
 	a->setEasingCurve(QEasingCurve::InBack);
-	a->start(QPropertyAnimation::DeleteWhenStopped);
+	a->start();
 
 	connect(eff, &QGraphicsOpacityEffect::opacityChanged, this, &QuoteBlockHoverPainter::onOpacityChanged);
 }
@@ -107,7 +108,7 @@ bool QuoteBlockHover::eventFilter(QObject * obj, QEvent * e)
         else
             Painter_->startAnimation(0.0);
     }
-    return false;
+    return QWidget::eventFilter(obj, e);
 }
 
 void QuoteBlockHover::mouseMoveEvent(QMouseEvent * e)
@@ -122,8 +123,8 @@ void QuoteBlockHover::mousePressEvent(QMouseEvent * e)
     if (Text_)
     {
         auto pos = Text_->mapFromGlobal(e->globalPos());
-        QMouseEvent ev = QMouseEvent(QEvent::MouseButtonPress, pos, e->button(), e->buttons(), e->modifiers());
-        Text_->mousePress(&ev);
+        QMouseEvent ev(QEvent::MouseButtonPress, pos, e->button(), e->buttons(), e->modifiers());
+        QApplication::sendEvent(Text_, &ev);
     }
 
 	if ((e->buttons() & Qt::RightButton) ||
@@ -144,29 +145,29 @@ void QuoteBlockHover::mouseReleaseEvent(QMouseEvent * e)
     if (Text_)
     {
         auto pos = Text_->mapFromGlobal(e->globalPos());
-        QMouseEvent ev = QMouseEvent(QEvent::MouseButtonRelease, pos, e->button(), e->buttons(), e->modifiers());
-        Text_->mouseRelease(&ev);
+        QMouseEvent ev(QEvent::MouseButtonRelease, pos, e->button(), e->buttons(), e->modifiers());
+        QApplication::sendEvent(Text_, &ev);
     }
 
 	/// press when below avatar_name
-	int max_y = Utils::scale_value(0); //Change to 35 to create an AvatarClick action (by s.skakov)
+    int max_y = Utils::scale_value(0); //Change to 35 to create an AvatarClick action (by s.skakov)
     if (!Block_->isSelected() && !bAnchorClicked_)
     {
-	    if ((e->buttons() & Qt::LeftButton) || 
-		    (e->button() == Qt::LeftButton))
-	    {
-		    if (e->localPos().y() > max_y)
-		    {
-			    /// press to message
-			    emit openMessage();
-		    }
-		    else
-		    {
-			    /// press to avatar zone
-			    emit openAvatar();
-		    }
-		    e->accept();
-	    }
+        if ((e->buttons() & Qt::LeftButton) ||
+            (e->button() == Qt::LeftButton))
+        {
+            if (e->localPos().y() > max_y)
+            {
+                /// press to message
+                emit openMessage();
+            }
+            else
+            {
+                /// press to avatar zone
+                emit openAvatar();
+            }
+            e->accept();
+        }
         else
             e->ignore();
     }
@@ -186,11 +187,11 @@ void Ui::ComplexMessage::QuoteBlockHover::onAnchorClicked(const QUrl&)
     bAnchorClicked_ = true;
 }
 
-void Ui::ComplexMessage::QuoteBlockHover::onSetTextEditEx(Ui::TextEditEx* text)
+void Ui::ComplexMessage::QuoteBlockHover::onSetTextEditEx(Ui::TextEditEx* _text)
 {
-    Text_ = text;
-    text->installEventFilter(this);
-    connect(text, &Ui::TextEditEx::anchorClicked, this, &QuoteBlockHover::onAnchorClicked);
+    Text_ = _text;
+    Text_->installEventFilter(this);
+    connect(Text_, &Ui::TextEditEx::anchorClicked, this, &QuoteBlockHover::onAnchorClicked, Qt::UniqueConnection);
 }
 
 void Ui::ComplexMessage::QuoteBlockHover::onEventFilterRequest(QWidget* w)
@@ -201,33 +202,29 @@ void Ui::ComplexMessage::QuoteBlockHover::onEventFilterRequest(QWidget* w)
 
 /////////////////////////////////////////////////////////////////////
 QuoteBlock::QuoteBlock(ComplexMessageItem *parent, const Data::Quote& quote)
-    : GenericBlock(parent, quote.senderFriendly_, MenuFlagNone, false)
+    : GenericBlock(parent, quote.senderFriendly_, MenuFlagCopyable, false)
     , Quote_(quote)
-    , Layout_(nullptr)
+    , Layout_(new QuoteBlockLayout())
+    , forwardLabel_(new LabelEx(this))
     , TextCtrl_(nullptr)
-    , ForwardLabel_(nullptr)
     , Selection_(BlockSelectionType::None)
     , Parent_(parent)
     , ReplyBlock_(nullptr)
-    , ForwardIcon_(nullptr)
-	, QuoteHover_(nullptr)
+    , ForwardIcon_(new PictureWidget(this, qsl(":/resources/forwardmsg_100.png")))
 	, QuoteHoverPainter_(nullptr)
+    , QuoteHover_(nullptr)
 	, MessagesCount_(0)
 	, MessageIndex_(0)
 {
-    Layout_ = new QuoteBlockLayout();
     setLayout(Layout_);
     setAttribute(Qt::WA_TransparentForMouseEvents, true);
 
-    ForwardLabel_ = new QLabel(this);
-    ForwardLabel_->setFont(Fonts::appFontScaled(15));
-    QPalette p;
-    p.setColor(QPalette::Foreground, QColor("#579e1c"));
-    ForwardLabel_->setPalette(p);
-    ForwardLabel_->setText(QT_TRANSLATE_NOOP("chat_page", "forwarded messages"));
-    ForwardLabel_->adjustSize();
-    ForwardLabel_->setVisible(needForwardBlock());
-    ForwardIcon_ = new PictureWidget(this, ":/resources/content_forwardmsg_100.png");
+    forwardLabel_->setFont(Fonts::appFontScaled(13));
+    forwardLabel_->setColor(CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT));
+    forwardLabel_->setText(quote.chatName_);
+    forwardLabel_->adjustSize();
+    forwardLabel_->setVisible(needForwardBlock());
+
     ForwardIcon_->setVisible(needForwardBlock());
     ForwardIcon_->setFixedSize(Utils::scale_value(12), Utils::scale_value(12));
 
@@ -262,10 +259,9 @@ QString QuoteBlock::getSelectedText(bool isFullSelect) const
             continue;
 
         if (isFullSelect)
-            result += QString("> %1 (%2): ").arg(Quote_.senderFriendly_, QDateTime::fromTime_t(Quote_.time_).toString("dd.MM.yyyy hh:mm"));
+            result += qsl("> %1 (%2): ").arg(Quote_.senderFriendly_, QDateTime::fromTime_t(Quote_.time_).toString(qsl("dd.MM.yyyy hh:mm")));
 
-        QString source = b->getSelectedText();
-        result += source;
+        result += b->getSelectedText();
         result += QChar::LineFeed;
     }
 
@@ -275,16 +271,13 @@ QString QuoteBlock::getSelectedText(bool isFullSelect) const
 QString QuoteBlock::getSourceText() const
 {
     QString result;
-    int i = 0;
     for (auto b : Blocks_)
     {
-        ++i;
-        result += QString("> %1 (%2): ").arg(Quote_.senderFriendly_, QDateTime::fromTime_t(Quote_.time_).toString("dd.MM.yyyy hh:mm"));
-        QString source = b->getSourceText();
-        result += source;
+        result += qsl("> %1 (%2): ").arg(Quote_.senderFriendly_, QDateTime::fromTime_t(Quote_.time_).toString(qsl("dd.MM.yyyy hh:mm")));
+        result += b->getSourceText();
         result += QChar::LineFeed;
     }
-    
+
     return result;
 }
 
@@ -296,9 +289,7 @@ QString QuoteBlock::formatRecentsText() const
     QString result;
     for (auto b : Blocks_)
     {
-        auto format = QString("> %1 (%2): ").arg(Quote_.senderFriendly_, QDateTime::fromTime_t(Quote_.time_).toString("dd.MM.yyyy hh:mm"));
-        format += b->getSourceText();
-        result += format;
+        result += b->getSourceText();
         result += QChar::LineFeed;
     }
     return result;
@@ -361,7 +352,7 @@ bool QuoteBlock::isSelected() const
         if (b->isSelected() && !b->getSelectedText().isEmpty())
             return true;
     }
-    
+
     return false;
 }
 
@@ -412,7 +403,7 @@ QRect QuoteBlock::setBlockGeometry(const QRect &ltr)
     b.moveTopLeft(GenericBlock::setBlockGeometry(b).bottomLeft());
 
     if (needForwardBlock())
-       b.moveTop(b.y() + ForwardLabel_->height() + Style::Quote::getForwardLabelBottomMargin());
+       b.moveTop(b.y() + forwardLabel_->height() + Style::Quote::getForwardLabelBottomMargin());
 
     int i = 1;
     for (auto block : Blocks_)
@@ -470,9 +461,9 @@ QRect QuoteBlock::setBlockGeometry(const QRect &ltr)
 
 	if (QuoteHover_ && QuoteHoverPainter_)
 	{
-		auto rect = QRect(ltr.left() + Utils::scale_value(6), 
-			ltr.top() + Utils::scale_value(4), 
-			ltr.right() - ltr.left(), 
+		auto rect = QRect(ltr.left() + Utils::scale_value(6),
+			ltr.top() + Utils::scale_value(4),
+			ltr.right() - ltr.left(),
 			quoteOnly() ? r.height() - Utils::scale_value(6) + Style::Quote::getQuoteOffsetBottom() : r.height() - Utils::scale_value(offset_hover));
 
 		QuoteHover_->setGeometry(rect);
@@ -523,17 +514,33 @@ bool QuoteBlock::quoteOnly() const
 
 void QuoteBlock::blockClicked()
 {
-    if (!Quote_.isForward_)
+    if (Quote_.isForward_)
     {
-        Logic::getContactListModel()->setCurrent(Logic::getContactListModel()->selectedContact(), Quote_.msgId_, true,
-			false, nullptr, Quote_.msgId_);
+        if (Logic::getContactListModel()->contains(Quote_.chatId_))
+        {
+            const auto selectedContact = Logic::getContactListModel()->selectedContact();
+            if (selectedContact != Quote_.chatId_)
+                emit Utils::InterConnector::instance().addPageToDialogHistory(selectedContact);
+
+            emit Logic::getContactListModel()->select(Quote_.chatId_, Quote_.msgId_, Quote_.msgId_, Logic::UpdateChatSelection::Yes);
+            if (Quote_.msgId_ > 0)
+                Logic::GetMessagesModel()->emitQuote(Quote_.msgId_);
+        }
+        else if (!Quote_.chatStamp_.isEmpty())
+        {
+            Logic::getContactListModel()->joinLiveChat(Quote_.chatStamp_, false);
+        }
+    }
+    else
+    {
+        Logic::getContactListModel()->setCurrent(Logic::getContactListModel()->selectedContact(), Quote_.msgId_, true, nullptr, Quote_.msgId_);
 
         if (Quote_.msgId_ > 0)
             Logic::GetMessagesModel()->emitQuote(Quote_.msgId_);
     }
 }
 
-void QuoteBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_color)
+void QuoteBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& _quoteColor)
 {
     auto pen = Style::Quote::getQuoteSeparatorPen();
     p.save();
@@ -544,14 +551,14 @@ void QuoteBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_
 	{
 		end.setY(end.y() - Style::Quote::getQuoteOffsetBottom() - Utils::scale_value(4));
 	}
-    
+
     auto begin = rect().topLeft();
     begin.setX(begin.x() + Style::Quote::getLineOffset());
     if (Quote_.isFirstQuote_)
     {
         begin.setY(begin.y() + Style::Quote::getFirstQuoteOffset());
         if (needForwardBlock())
-          begin.setY(begin.y() + ForwardLabel_->height() + Style::Quote::getForwardLabelBottomMargin());
+          begin.setY(begin.y() + forwardLabel_->height() + Style::Quote::getForwardLabelBottomMargin());
     }
 
     p.drawLine(begin, end);
@@ -563,10 +570,10 @@ void QuoteBlock::initialize()
 {
     GenericBlock::initialize();
 
-    TextCtrl_ = new TextEmojiWidget(this, Fonts::appFontScaled(12), QColor("#579e1c"));
+    TextCtrl_ = new TextEmojiWidget(this, Fonts::appFontScaled(12), CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT));
 
     Avatar_ = new ContactAvatarWidget(this, Quote_.senderId_, Quote_.senderFriendly_, Utils::scale_value(20), true);
-    
+
     TextCtrl_->setText(Quote_.senderFriendly_);
     TextCtrl_->show();
     Avatar_->show();
@@ -575,30 +582,30 @@ void QuoteBlock::initialize()
 bool QuoteBlock::replaceBlockWithSourceText(IItemBlock *block)
 {
     auto iter = std::find(Blocks_.begin(), Blocks_.end(), block);
-    
+
     if (iter == Blocks_.end())
     {
         return false;
     }
-    
+
     auto &existingBlock = *iter;
     assert(existingBlock);
-    
+
     auto textBlock = new TextBlock(Parent_, existingBlock->getSourceText());
     emit observeToSize();
-    
+
     textBlock->onVisibilityChanged(true);
     textBlock->onActivityChanged(true);
-    
+
     textBlock->show();
-    
-    connect(textBlock, SIGNAL(clicked()), this, SLOT(blockClicked()), Qt::QueuedConnection);
+
+    connect(textBlock, &Ui::ComplexMessage::TextBlock::clicked, this, &QuoteBlock::blockClicked, Qt::QueuedConnection);
 
     existingBlock->deleteLater();
     existingBlock = textBlock;
 
     textBlock->connectToHover(QuoteHover_);
-    
+
     return true;
 }
 
@@ -620,29 +627,24 @@ bool QuoteBlock::containSharingBlock() const
 
 void QuoteBlock::createQuoteHover(ComplexMessage::ComplexMessageItem* complex_item)
 {
-	if (!needForwardBlock())
-	{
-		QuoteHoverPainter_ = new QuoteBlockHoverPainter((QWidget*)parent());
-		QuoteHoverPainter_->lower();
+    QuoteHoverPainter_ = new QuoteBlockHoverPainter((QWidget*)parent());
+    QuoteHoverPainter_->lower();
 
-		QuoteHover_ = new QuoteBlockHover(QuoteHoverPainter_, (QWidget*)parent(), this);
-		QuoteHover_->raise();
+    QuoteHover_ = new QuoteBlockHover(QuoteHoverPainter_, (QWidget*)parent(), this);
+    QuoteHover_->raise();
 
-		connect(QuoteHover_, &QuoteBlockHover::openMessage, this, &QuoteBlock::blockClicked);
-		connect(QuoteHover_, &QuoteBlockHover::contextMenu, complex_item, &ComplexMessageItem::trackMenu);
-        connect(complex_item, &ComplexMessage::ComplexMessageItem::eventFilterRequest, QuoteHover_, &QuoteBlockHover::onEventFilterRequest);
+    connect(QuoteHover_, &QuoteBlockHover::openMessage, this, &QuoteBlock::blockClicked);
+    connect(QuoteHover_, &QuoteBlockHover::contextMenu, complex_item, &ComplexMessageItem::trackMenu);
+    connect(complex_item, &ComplexMessage::ComplexMessageItem::eventFilterRequest, QuoteHover_, &QuoteBlockHover::onEventFilterRequest);
 
-        for (auto& val : Blocks_)
-        {
-            val->connectToHover(QuoteHover_);
-        }
+    for (auto& val : Blocks_)
+        val->connectToHover(QuoteHover_);
 
-        Parent_->installEventFilter(QuoteHover_);
-        QuoteHover_->setCursor(Qt::PointingHandCursor);
+    Parent_->installEventFilter(QuoteHover_);
+    QuoteHover_->setCursor(Qt::PointingHandCursor);
 
-        connect(complex_item, &ComplexMessage::ComplexMessageItem::setTextEditEx, QuoteHover_, &QuoteBlockHover::onSetTextEditEx);
-        connect(complex_item, &ComplexMessage::ComplexMessageItem::leave, QuoteHover_, &QuoteBlockHover::onLeave);
-	}
+    connect(complex_item, &ComplexMessage::ComplexMessageItem::setTextEditEx, QuoteHover_, &QuoteBlockHover::onSetTextEditEx);
+    connect(complex_item, &ComplexMessage::ComplexMessageItem::leave, QuoteHover_, &QuoteBlockHover::onLeave);
 }
 
 void QuoteBlock::setMessagesCountAndIndex(int count, int index)

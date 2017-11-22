@@ -8,6 +8,8 @@ class QPushButton;
 namespace Ui
 {
     class PictureWidget;
+    class LabelEx;
+    class MentionCompleter;
 
     enum DisableReason
     {
@@ -15,50 +17,59 @@ namespace Ui
         NotAMember = 1,
     };
 
-    class input_edit : public TextEditEx
+    class HistoryTextEdit : public TextEditEx
     {
-
     public:
-        input_edit(QWidget* _parent);
-        virtual bool catchEnter(int _modifiers) override;
+        HistoryTextEdit(QWidget* _parent);
+        virtual bool catchEnter(const int _modifiers) override;
+        virtual bool catchNewLine(const int _modifiers) override;
+    protected:
+        virtual void keyPressEvent(QKeyEvent*) override;
     };
 
     class InputWidget : public QWidget
     {
         Q_OBJECT
 
-Q_SIGNALS:
+    Q_SIGNALS:
+        void mentionSignPressed(const QString& _dialogAimId);
 
         void smilesMenuSignal();
-        void sendMessage(QString);
+        void sendMessage(const QString&);
         void editFocusOut();
         void ctrlFPressedInInputWidget();
         void needUpdateSizes();
         void sizeChanged();
+        void inputTyped();
 
     public Q_SLOTS:
-        void quote(QList<Data::Quote>);
-        void contactSelected(QString);
+        void quote(const QVector<Data::Quote>&);
+        void contactSelected(const QString&);
+        void insert_emoji(int32_t _main, int32_t _ext);
+        void send_sticker(int32_t _set_id, int32_t _sticker_id);
+        void smilesMenuHidden();
+
+        void insertMention(const QString& _aimId, const QString& _friendly);
 
     private Q_SLOTS:
-
-        void edit_content_changed();
+        void editContentChanged();
+        void cursorPositionChanged();
+        void enterPressed();
         void send();
         void attach_file();
         void stats_attach_file();
-        void clear_quote(const QString&);
-        void clear_files(const QString&);
+        void clearQuotes(const QString&);
+        void clearFiles(const QString&);
+        void clearMentions(const QString&);
         void clear();
         void updateSizes();
 
-        void insert_emoji(int32_t _main, int32_t _ext);
-        void send_sticker(int32_t _set_id, int32_t _sticker_id);
         void resize_to(int _height);
-        
+
         void typed();
 
-        void stats_message_enter();
-        void stats_message_send();
+        void statsMessageEnter();
+        void statsMessageSend();
 
         void onFilesCancel();
         void disableActionClicked(const QString&);
@@ -67,7 +78,7 @@ Q_SIGNALS:
     public:
 
         InputWidget(QWidget* parent, int height = -1, const QString& styleSheet = QString(), bool messageOnly = false);
-        ~InputWidget();
+
         void hide();
         void hideNoClear();
 
@@ -89,16 +100,21 @@ Q_SIGNALS:
         void initQuotes(const QString&);
         void initFiles(const QString&);
         QPixmap getFilePreview(const QString& contact);
-        QString getFileSendText(const QString& contact);
+        QString getFileSendText(const QString& contact) const;
+
+        bool isAllAttachmentsEmpty(const QString& contact) const;
+
+        bool shouldOfferMentions() const;
+        MentionCompleter* getMentionCompleter();
 
     private:
 
-        QPushButton* smiles_button_;	
+        QPushButton* smiles_button_;
         QPushButton* send_button_;
         QPushButton* file_button_;
         QPropertyAnimation* anim_height_;
 
-        input_edit* text_edit_;
+        HistoryTextEdit* text_edit_;
         QString contact_;
         QString predefined_;
 
@@ -110,12 +126,14 @@ Q_SIGNALS:
         QWidget* input_disabled_block_;
         QPushButton* cancel_quote_;
         QPushButton* cancel_files_;
-        QMap<QString, QList<Data::Quote>> quotes_;
+        QMap<QString, QVector<Data::Quote>> quotes_;
         QMap<QString, QStringList> files_to_send_;
         PictureWidget* file_preview_;
-        QLabel* files_label_;
-        QLabel* disable_label_;
+        LabelEx* files_label_;
+        LabelEx* disable_label_;
         QMap<QString, QPixmap> image_buffer_;
+
+        QMap<QString, Data::MentionMap> mentions_;
 
         int active_height_;
         int need_height_;
@@ -123,6 +141,7 @@ Q_SIGNALS:
         int default_height_;
         bool is_initializing_;
         bool message_only_;
+        int mentionSignIndex_;
         QMap<QString, DisableReason>  disabled_;
 
     protected:

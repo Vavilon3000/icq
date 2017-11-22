@@ -2,6 +2,9 @@
 
 namespace Ui
 {
+    //////////////////////////////////////////////////////////////////////////
+    // TransparentAnimation
+    //////////////////////////////////////////////////////////////////////////
     class TransparentAnimation : public QObject
     {
         Q_OBJECT
@@ -25,6 +28,17 @@ namespace Ui
         QTimer*                      timer_;
     };
 
+    enum class ScrollBarType
+    {
+        vertical = 0,
+        horizontal = 1
+    };
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // TransparentScrollButton
+    //////////////////////////////////////////////////////////////////////////
     class TransparentScrollButton : public QWidget
     {
         Q_OBJECT
@@ -41,33 +55,94 @@ namespace Ui
         TransparentScrollButton(QWidget *parent);
         virtual ~TransparentScrollButton();
 
-        void mouseMoveEvent(QMouseEvent *);
-        void mousePressEvent(QMouseEvent *);
+        virtual void hoverOn() = 0;
+        virtual void hoverOff() = 0;
 
-        void hoverOn();
-        void hoverOff();
+    signals:
+        void moved(QPoint);
+
+    protected:
+        void mouseMoveEvent(QMouseEvent *) override;
+        void mousePressEvent(QMouseEvent *) override;
+        void paintEvent(QPaintEvent *event) override;
+
+        QPropertyAnimation* maxSizeAnimation_;
+        QPropertyAnimation* minSizeAnimation_;
+
+        void setHovered(const bool _hovered);
+
+    private:
+
+        TransparentAnimation* transparentAnimation_;
+
+        bool isHovered_;
+    };
+
+
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // TransparentScrollButtonV
+    //////////////////////////////////////////////////////////////////////////
+    class TransparentScrollButtonV : public TransparentScrollButton
+    {
+        Q_OBJECT
+
+    public:
 
         int getMinHeight();
         int getMinWidth();
         int getMaxWidth();
 
-    signals:
-        void moved(QPoint);
+        TransparentScrollButtonV(QWidget* _parent);
+
+        virtual void hoverOn() override;
+        virtual void hoverOff() override;
+
 
     private:
-        QPropertyAnimation*          maxSizeAnimation_;
-        QPropertyAnimation*          minSizeAnimation_;
-        int                          minScrollButtonWidth_;
-        int                          maxScrollButtonWidth_;
-        int                          minScrollButtonHeight_;
-        TransparentAnimation*        transparentAnimation_;
-        bool                         isHovered_;
 
-        void paintEvent(QPaintEvent *event);
+        int minScrollButtonWidth_;
+        int maxScrollButtonWidth_;
+        int minScrollButtonHeight_;
     };
+
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // TransparentScrollButtonH
+    //////////////////////////////////////////////////////////////////////////
+    class TransparentScrollButtonH : public TransparentScrollButton
+    {
+        Q_OBJECT
+
+    public:
+        TransparentScrollButtonH(QWidget *parent);
+
+        int getMinWidth();
+        int getMinHeight();
+        int getMaxHeight();
+
+        virtual void hoverOn() override;
+        virtual void hoverOff() override;
+
+    private:
+
+        int minScrollButtonHeight_;
+        int maxScrollButtonHeight_;
+        int minScrollButtonWidth_;
+    };
+
+
 
     class AbstractWidgetWithScrollBar;
 
+
+    //////////////////////////////////////////////////////////////////////////
+    // TransparentScrollBar
+    //////////////////////////////////////////////////////////////////////////
     class TransparentScrollBar : public QWidget
     {
         Q_OBJECT
@@ -80,37 +155,118 @@ namespace Ui
         void fadeOut();
         void setScrollArea(QAbstractScrollArea* _view);
         void setParentWidget(QWidget* _view);
-        void setDefaultScrollBar(QScrollBar* _scrollBar);
-        void setGetContentHeightFunc(std::function<int()> _getContentHeight);
-        
-        void init();
+        void setGetContentSizeFunc(std::function<QSize()> _getContentSize);
+
+        QPointer<TransparentScrollButton> getScrollButton() const;
+
+        virtual void init();
 
     public slots:
+
         void updatePos();
+
+    protected:
+        bool eventFilter(QObject *obj, QEvent *event) override;
+        void paintEvent(QPaintEvent *event) override;
+        void resizeEvent(QResizeEvent *event) override;
+        void mousePressEvent(QMouseEvent *event) override;
+
+        virtual double calcButtonHeight() = 0;
+        virtual double calcButtonWidth() = 0;
+        virtual double calcScrollBarRatio() = 0;
+        virtual void updatePosition() = 0;
+        virtual QPointer<TransparentScrollButton> createScrollButton(QWidget* _parent) = 0;
+        virtual void setDefaultScrollBar(QAbstractScrollArea* _view) = 0;
+        virtual void onResize(QResizeEvent* _e) = 0;
+        virtual void moveToGlobalPos(QPoint _moveTo) = 0;
+
+        QScrollBar* getDefaultScrollBar() const;
+
+
+        QPointer<QWidget> view_;
+        std::function<QSize()> getContentSize_;
+        QScrollBar* scrollBar_;
 
     private slots:
         void onScrollBtnMoved(QPoint);
 
     private:
-        bool eventFilter(QObject *obj, QEvent *event);
-        void onResize(QResizeEvent *e);
-        void paintEvent(QPaintEvent *event);
-        void resizeEvent(QResizeEvent *event);
-        void mousePressEvent(QMouseEvent *event);
 
-        void moveToGlobalPos(QPoint moveTo);
-        double calcButtonHeight();
-        double calcScrollBarRatio();
 
-        QScrollBar* getDefaultScrollBar() const;
+        TransparentAnimation* transparentAnimation_;
 
-        QPointer<QWidget>                     view_;
-        QPointer<TransparentScrollButton>     scrollButton_;
-        TransparentAnimation*                 transparentAnimation_;
-        QScrollBar*                           scrollBar_;
-        std::function<int()>                  getContentHeight_;
+        QPointer<TransparentScrollButton> scrollButton_;
     };
 
+
+
+
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // TransparentScrollBarV
+    //////////////////////////////////////////////////////////////////////////
+    class TransparentScrollBarV : public TransparentScrollBar
+    {
+        Q_OBJECT
+
+    public:
+
+        virtual void init() override;
+
+    protected:
+
+        virtual double calcButtonHeight() override;
+        virtual double calcButtonWidth() override;
+        virtual double calcScrollBarRatio() override;
+        virtual void updatePosition() override;
+        virtual void setDefaultScrollBar(QAbstractScrollArea* _view) override;
+        virtual QPointer<TransparentScrollButton> createScrollButton(QWidget* _parent) override;
+        virtual void onResize(QResizeEvent* _e) override;
+        virtual void moveToGlobalPos(QPoint _moveTo) override;
+    private:
+
+    };
+
+
+
+
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // TransparentScrollBarH
+    //////////////////////////////////////////////////////////////////////////
+    class TransparentScrollBarH : public TransparentScrollBar
+    {
+        Q_OBJECT
+
+    public:
+
+        virtual void init() override;
+
+    protected:
+
+        virtual double calcButtonHeight() override;
+        virtual double calcButtonWidth() override;
+        virtual double calcScrollBarRatio() override;
+        virtual void updatePosition() override;
+        virtual void setDefaultScrollBar(QAbstractScrollArea* _view) override;
+        virtual QPointer<TransparentScrollButton> createScrollButton(QWidget* _parent) override;
+        virtual void onResize(QResizeEvent* _e) override;
+        virtual void moveToGlobalPos(QPoint _moveTo) override;
+    };
+
+
+
+
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // AbstractWidgetWithScrollBar
+    //////////////////////////////////////////////////////////////////////////
     class AbstractWidgetWithScrollBar
     {
     public:
@@ -118,31 +274,58 @@ namespace Ui
         virtual ~AbstractWidgetWithScrollBar() {};
 
         virtual QSize contentSize() const = 0;
-        virtual TransparentScrollBar* getScrollBar() const;
-        virtual void setScrollBar(TransparentScrollBar* _scrollBar);
+
+        virtual TransparentScrollBarV* getScrollBarV() const;
+        virtual void setScrollBarV(TransparentScrollBarV* _scrollBar);
+
+        virtual TransparentScrollBarH* getScrollBarH() const;
+        virtual void setScrollBarH(TransparentScrollBarH* _scrollBar);
 
     protected:
         virtual void mouseMoveEvent(QMouseEvent *event);
         virtual void wheelEvent(QWheelEvent *event);
         virtual void updateGeometries();
+        virtual void fadeIn();
 
     private:
-        TransparentScrollBar*    scrollBar_;
+        TransparentScrollBarV* scrollBarV_;
+        TransparentScrollBarH* scrollBarH_;
     };
 
+
+
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // FocusableListView
+    //////////////////////////////////////////////////////////////////////////
     class FocusableListView: public QListView
     {
     public:
-        FocusableListView(QWidget *_parent = 0);
-        ~FocusableListView();
+        FocusableListView(QWidget *_parent = nullptr);
+
+        void setSelectByMouseHover(const bool _enabled);
+        bool getSelectByMouseHover() const;
 
     protected:
         virtual void enterEvent(QEvent *_e) override;
         virtual void leaveEvent(QEvent *_e) override;
-        virtual QItemSelectionModel::SelectionFlags selectionCommand(const QModelIndex &index,
-                                                                 const QEvent *event = 0) const override;
+        virtual void mouseMoveEvent(QMouseEvent *_e) override;
+        virtual QItemSelectionModel::SelectionFlags selectionCommand(const QModelIndex &index, const QEvent *event = 0) const override;
+
+        bool selectByMouseHoverEnabled_;
     };
 
+
+
+
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // ListViewWithTrScrollBar
+    //////////////////////////////////////////////////////////////////////////
     class ListViewWithTrScrollBar : public FocusableListView, public AbstractWidgetWithScrollBar
     {
         Q_OBJECT
@@ -152,7 +335,7 @@ namespace Ui
         virtual ~ListViewWithTrScrollBar();
 
         virtual QSize contentSize() const override;
-        virtual void setScrollBar(TransparentScrollBar* _scrollBar) override;
+        virtual void setScrollBarV(TransparentScrollBarV* _scrollBar) override;
 
     protected:
         virtual void mouseMoveEvent(QMouseEvent *event) override;
@@ -160,6 +343,15 @@ namespace Ui
         virtual void updateGeometries() override;
     };
 
+
+
+
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // MouseMoveEventFilterForTrScrollBar
+    //////////////////////////////////////////////////////////////////////////
     class MouseMoveEventFilterForTrScrollBar : public QObject
     {
         Q_OBJECT
@@ -174,6 +366,16 @@ namespace Ui
         TransparentScrollBar* scrollbar_;
     };
 
+
+
+
+
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // ScrollAreaWithTrScrollBar
+    //////////////////////////////////////////////////////////////////////////
     class ScrollAreaWithTrScrollBar : public QScrollArea, public AbstractWidgetWithScrollBar
     {
         Q_OBJECT
@@ -186,8 +388,11 @@ namespace Ui
         virtual ~ScrollAreaWithTrScrollBar();
 
         virtual QSize contentSize() const override;
-        virtual void setScrollBar(TransparentScrollBar* _scrollBar) override;
+        virtual void setScrollBarV(TransparentScrollBarV* _scrollBar) override;
+        virtual void setScrollBarH(TransparentScrollBarH* _scrollBar) override;
         void setWidget(QWidget* widget);
+
+        virtual void fadeIn() override;
 
     protected:
         virtual void mouseMoveEvent(QMouseEvent *event) override;
@@ -198,6 +403,15 @@ namespace Ui
         bool eventFilter(QObject *obj, QEvent *event) override;
     };
 
+
+
+
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // TextEditExWithTrScrollBar
+    //////////////////////////////////////////////////////////////////////////
     class TextEditExWithTrScrollBar : public QTextBrowser, public AbstractWidgetWithScrollBar
     {
         Q_OBJECT
@@ -207,7 +421,7 @@ namespace Ui
         virtual ~TextEditExWithTrScrollBar();
 
         virtual QSize contentSize() const override;
-        virtual void setScrollBar(TransparentScrollBar* _scrollBar) override;
+        virtual void setScrollBarV(TransparentScrollBarV* _scrollBar) override;
 
     protected:
         virtual void mouseMoveEvent(QMouseEvent *event) override;
@@ -215,7 +429,8 @@ namespace Ui
         void updateGeometry();
     };
 
-    ScrollAreaWithTrScrollBar* CreateScrollAreaAndSetTrScrollBar(QWidget* parent);
+    ScrollAreaWithTrScrollBar* CreateScrollAreaAndSetTrScrollBarV(QWidget* parent);
+    ScrollAreaWithTrScrollBar* CreateScrollAreaAndSetTrScrollBarH(QWidget* parent);
     ListViewWithTrScrollBar* CreateFocusableViewAndSetTrScrollBar(QWidget* parent);
     QTextBrowser* CreateTextEditExWithTrScrollBar(QWidget* parent);
 }

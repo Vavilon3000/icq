@@ -13,7 +13,7 @@ get_file_meta_info::get_file_meta_info(
     const wim_packet_params& _params,
     const web_file_info& _info)
     :	wim_packet(_params),
-    info_(new web_file_info(_info))
+    info_(std::make_unique<web_file_info>(_info))
 {
 }
 
@@ -73,15 +73,15 @@ int32_t get_file_meta_info::parse_response(std::shared_ptr<core::tools::binary_s
 
         auto iter_dlink = iter_flist0->FindMember("dlink");
         if (iter_dlink != iter_flist0->MemberEnd() && iter_dlink->value.IsString())
-            info_->set_file_dlink(iter_dlink->value.GetString());
+            info_->set_file_dlink(rapidjson_get_string(iter_dlink->value));
 
         auto iter_mime = iter_flist0->FindMember("mime");
         if (iter_mime != iter_flist0->MemberEnd() && iter_mime->value.IsString())
-            info_->set_mime(iter_mime->value.GetString());
+            info_->set_mime(rapidjson_get_string(iter_mime->value));
 
         auto iter_md5 = iter_flist0->FindMember("md5");
         if (iter_md5 != iter_flist0->MemberEnd() && iter_md5->value.IsString())
-            info_->set_md5(iter_md5->value.GetString());
+            info_->set_md5(rapidjson_get_string(iter_md5->value));
 
         auto iter_file_size = iter_flist0->FindMember("filesize");
         if (iter_file_size != iter_flist0->MemberEnd() && iter_file_size->value.IsString())
@@ -89,25 +89,25 @@ int32_t get_file_meta_info::parse_response(std::shared_ptr<core::tools::binary_s
 
         auto iter_file_name = iter_flist0->FindMember("filename");
         if (iter_file_name != iter_flist0->MemberEnd() && iter_file_name->value.IsString())
-            info_->set_file_name_short(iter_file_name->value.GetString());
+            info_->set_file_name_short(rapidjson_get_string(iter_file_name->value));
 
         auto iter_iphone = iter_flist0->FindMember("iphone");
         if (iter_iphone != iter_flist0->MemberEnd() && iter_iphone->value.IsString())
-            info_->set_file_preview_2k(iter_iphone->value.GetString());
+            info_->set_file_preview_2k(rapidjson_get_string(iter_iphone->value));
 
         auto iter_file_preview800 = iter_flist0->FindMember("static800");
         if (iter_file_preview800 != iter_flist0->MemberEnd() && iter_file_preview800->value.IsString())
-            info_->set_file_preview(iter_file_preview800->value.GetString());
+            info_->set_file_preview(rapidjson_get_string(iter_file_preview800->value));
         else
         {
             auto iter_file_preview600 = iter_flist0->FindMember("static600");
             if (iter_file_preview600 != iter_flist0->MemberEnd() && iter_file_preview600->value.IsString())
-                info_->set_file_preview(iter_file_preview600->value.GetString());
+                info_->set_file_preview(rapidjson_get_string(iter_file_preview600->value));
             else
             {
                 auto iter_file_preview194 = iter_flist0->FindMember("static194");
                 if (iter_file_preview194 != iter_flist0->MemberEnd() && iter_file_preview194->value.IsString())
-                    info_->set_file_preview(iter_file_preview194->value.GetString());
+                    info_->set_file_preview(rapidjson_get_string(iter_file_preview194->value));
             }
         }
     }

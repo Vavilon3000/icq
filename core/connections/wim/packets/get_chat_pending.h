@@ -28,7 +28,7 @@ namespace core
             std::list<chat_member_info>					result_;
 
             get_chat_pending(
-                const wim_packet_params& _params, 
+                wim_packet_params _params,
                 const std::string& _aimId);
 
             virtual ~get_chat_pending();

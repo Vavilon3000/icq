@@ -27,17 +27,15 @@ namespace Logic
         , FavoritesCount_(0)
         , FavoritesVisible_(true)
         , FavoritesHeadVisible_(true)
-        , SnapsVisible_(false)
 	{
         FavoritesVisible_ = Ui::get_gui_settings()->get_value(settings_favorites_visible, true);
-		connect(GetAvatarStorage(), SIGNAL(avatarChanged(QString)), this, SLOT(contactChanged(QString)), Qt::QueuedConnection);
-		connect(Ui::GetDispatcher(), SIGNAL(activeDialogHide(QString)), this, SLOT(activeDialogHide(QString)), Qt::QueuedConnection);
-		connect(Ui::GetDispatcher(), &Ui::core_dispatcher::dlgStates, this, &RecentsModel::dlgStates, Qt::QueuedConnection);
-		connect(Logic::getContactListModel(), SIGNAL(contactChanged(QString)), this, SLOT(contactChanged(QString)), Qt::QueuedConnection);
-        connect(Ui::GetDispatcher(), SIGNAL(favorites(QStringList)), this, SLOT(favorites(QStringList)), Qt::QueuedConnection);
-        connect(Logic::getContactListModel(), SIGNAL(contact_removed(QString)), this, SLOT(contactRemoved(QString)), Qt::QueuedConnection);
-		Timer_->setSingleShot(true);
-		connect(Timer_, SIGNAL(timeout()), this, SLOT(sortDialogs()), Qt::QueuedConnection);
+        connect(GetAvatarStorage(), &Logic::AvatarStorage::avatarChanged, this, &RecentsModel::contactChanged, Qt::QueuedConnection);
+        connect(Ui::GetDispatcher(), &Ui::core_dispatcher::activeDialogHide, this, &RecentsModel::activeDialogHide, Qt::QueuedConnection);
+        connect(Ui::GetDispatcher(), &Ui::core_dispatcher::dlgStates, this, &RecentsModel::dlgStates, Qt::QueuedConnection);
+        connect(Logic::getContactListModel(), &Logic::ContactListModel::contactChanged, this, &RecentsModel::contactChanged, Qt::QueuedConnection);
+        connect(Logic::getContactListModel(), &Logic::ContactListModel::contact_removed, this, &RecentsModel::contactRemoved, Qt::QueuedConnection);
+        Timer_->setSingleShot(true);
+        connect(Timer_, &QTimer::timeout, this, &RecentsModel::sortDialogs);
 	}
 
 	int RecentsModel::rowCount(const QModelIndex &) const
@@ -49,9 +47,6 @@ namespace Logic
         if (!FavoritesVisible_)
             count -= FavoritesCount_;
 
-        if (SnapsVisible_)
-            ++count;
-
         return count;
 	}
 
@@ -61,40 +56,26 @@ namespace Logic
 			return QVariant();
 
 		int cur = i.row();
-		if (cur >= (int)rowCount(i))
+		if (cur >= rowCount(i))
 			return QVariant();
 
-        if (SnapsVisible_)
-        {
-            if (cur == 0)
-            {
-                Data::DlgState st;
-                st.AimId_ = "snaps";
-                return QVariant::fromValue(st);
-            }
-            else
-            {
-                --cur;
-            }
-        }
-
-        if (cur == getUnknownHeaderIndex())
+        if (cur == getUnknownsButtonIndex())
         {
             Data::DlgState st;
-            st.AimId_ = "unknowns";
+            st.AimId_ = qsl("~unknowns~");
             return QVariant::fromValue(st);
         }
         else if (cur == getFavoritesHeaderIndex())
         {
             Data::DlgState st;
-            st.AimId_ = "favorites";
+            st.AimId_ = qsl("~favorites~");
             st.SetText(QT_TRANSLATE_NOOP("contact_list", "FAVORITES"));
             return QVariant::fromValue(st);
         }
         else if (cur == getRecentsHeaderIndex())
         {
             Data::DlgState st;
-            st.AimId_ = "recents";
+            st.AimId_ = qsl("~recents~");
             st.SetText(QT_TRANSLATE_NOOP("contact_list", "RECENTS"));
             return QVariant::fromValue(st);
         }
@@ -104,7 +85,7 @@ namespace Logic
         if (cur >= (int) Dialogs_.size())
             return QVariant();
 
-		Data::DlgState cont = Dialogs_[cur];
+		const Data::DlgState& cont = Dialogs_[cur];
 
         if (Testing::isAccessibleRole(r))
             return cont.AimId_;
@@ -119,20 +100,21 @@ namespace Logic
 		return QAbstractItemModel::flags(i) | Qt::ItemIsEnabled;
 	}
 
-	void RecentsModel::contactChanged(QString aimId)
-	{
-		int i = Indexes_[aimId];
-		if (i != -1)
-		{
-			emit dataChanged(index(i), index(i));
-		}
-	}
+    void RecentsModel::contactChanged(const QString& aimId)
+    {
+        int i = Indexes_[aimId];
+        if (i != -1)
+        {
+            const auto idx = index(i);
+            emit dataChanged(idx, idx);
+        }
+    }
 
-	void RecentsModel::activeDialogHide(QString aimId)
+	void RecentsModel::activeDialogHide(const QString& aimId)
 	{
 		Data::DlgState state;
 		state.AimId_ = aimId;
-		std::vector<Data::DlgState>::iterator iter = std::find(Dialogs_.begin(), Dialogs_.end(), state);
+		auto iter = std::find(Dialogs_.begin(), Dialogs_.end(), state);
 		if (iter != Dialogs_.end())
         {
             if (iter->FavoriteTime_ != -1)
@@ -143,7 +125,7 @@ namespace Logic
             Indexes_[iter->AimId_] = -1;
             Dialogs_.erase(iter);
             if (Logic::getContactListModel()->selectedContact() == aimId)
-                Logic::getContactListModel()->setCurrent("", -1, true);
+                Logic::getContactListModel()->setCurrent(QString(), -1, true);
             if (Dialogs_.empty() && !Logic::getUnknownsModel()->itemsCount())
                 emit Utils::InterConnector::instance().showNoRecentsYet();
 
@@ -151,13 +133,15 @@ namespace Logic
 		}
 	}
 
-	void RecentsModel::dlgStates(std::shared_ptr<QList<Data::DlgState>> _states)
+	void RecentsModel::dlgStates(const QVector<Data::DlgState>& _states)
 	{
         bool syncSort = false;
-
-        for (auto _dlgState : *_states)
+        for (const auto& _dlgState : _states)
         {
             const auto contactItem = Logic::getContactListModel()->getContactItem(_dlgState.AimId_);
+
+            if (!contactItem)
+                Logic::getContactListModel()->add(_dlgState.AimId_, _dlgState.Friendly_);
 
             if (!_dlgState.Official_ && !_dlgState.Chat_ && (!contactItem || (contactItem && contactItem->is_not_auth())))
                 continue;
@@ -200,7 +184,8 @@ namespace Logic
                         Timer_->start(SORT_TIMEOUT);
 
                     int dist = (int)std::distance(Dialogs_.begin(), iter);
-                    emit dataChanged(index(dist), index(dist));
+                    const auto idx = index(dist);
+                    emit dataChanged(idx, idx);
                 }
             }
             else if (!_dlgState.GetText().isEmpty() || _dlgState.FavoriteTime_ != -1)
@@ -246,7 +231,7 @@ namespace Logic
         emit dlgStatesHandled(_states);
 	}
 
-    void RecentsModel::unknownToRecents(Data::DlgState dlgState)
+    void RecentsModel::unknownToRecents(const Data::DlgState& dlgState)
     {
         auto iter = std::find(Dialogs_.begin(), Dialogs_.end(), dlgState);
         if (iter == Dialogs_.end() && (!dlgState.GetText().isEmpty() || dlgState.FavoriteTime_ != -1))
@@ -282,7 +267,7 @@ namespace Logic
 
 	void RecentsModel::sortDialogs()
 	{
-		std::sort(Dialogs_.begin(), Dialogs_.end(), [this](Data::DlgState first, Data::DlgState second)
+		std::sort(Dialogs_.begin(), Dialogs_.end(), [](const Data::DlgState& first, const Data::DlgState& second)
         {
             if (first.FavoriteTime_ == -1 && second.FavoriteTime_ == -1)
                 return first.Time_ > second.Time_;
@@ -301,7 +286,7 @@ namespace Logic
 
 		Indexes_.clear();
 		int i = 0;
-		for (auto iter : Dialogs_)
+		for (const auto& iter : Dialogs_)
 		{
 			Indexes_[iter.AimId_] = i;
 			++i;
@@ -311,7 +296,7 @@ namespace Logic
 		emit orderChanged();
 	}
 
-    void RecentsModel::contactRemoved(QString _aimId)
+    void RecentsModel::contactRemoved(const QString& _aimId)
     {
         activeDialogHide(_aimId);
     }
@@ -323,9 +308,8 @@ namespace Logic
 
 	Data::DlgState RecentsModel::getDlgState(const QString& aimId, bool fromDialog)
 	{
-		QString contact = aimId.isEmpty() ? getContactListModel()->selectedContact() : aimId;
 		Data::DlgState state;
-        auto iter = std::find_if(Dialogs_.begin(), Dialogs_.end(), [&aimId](const Data::DlgState &item) { return (item.AimId_ == aimId); });
+        auto iter = std::find_if(Dialogs_.begin(), Dialogs_.end(), [&aimId](const Data::DlgState &item) { return item.AimId_ == aimId; });
 		if (iter != Dialogs_.end())
 			state = *iter;
 
@@ -360,10 +344,11 @@ namespace Logic
 			Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
 			collection.set_value_as_qstring("contact", state.AimId_);
 			collection.set_value_as_int64("message", iter->LastMsgId_);
-			Ui::GetDispatcher()->post_message_to_core("dlg_state/set_last_read", collection.get());
+			Ui::GetDispatcher()->post_message_to_core(qsl("dlg_state/set_last_read"), collection.get());
 
 			int ind = (int)std::distance(Dialogs_.begin(), iter);
-			emit dataChanged(index(ind), index(ind));
+            const auto idx = index(ind);
+			emit dataChanged(idx, idx);
 			emit updated();
 		}
 	}
@@ -377,10 +362,11 @@ namespace Logic
 				Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
 				collection.set_value_as_qstring("contact", iter->AimId_);
 				collection.set_value_as_int64("message", iter->LastMsgId_);
-				Ui::GetDispatcher()->post_message_to_core("dlg_state/set_last_read", collection.get());
+				Ui::GetDispatcher()->post_message_to_core(qsl("dlg_state/set_last_read"), collection.get());
 
 				int ind = (int)std::distance(Dialogs_.begin(), iter);
-				emit dataChanged(index(ind), index(ind));
+                const auto idx = index(ind);
+				emit dataChanged(idx, idx);
 				emit updated();
 			}
 		}
@@ -391,7 +377,7 @@ namespace Logic
         Utils::InterConnector::instance().getMainWindow()->closeGallery();
 		Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
 		collection.set_value_as_qstring("contact", aimId);
-		Ui::GetDispatcher()->post_message_to_core("dialogs/hide", collection.get());
+		Ui::GetDispatcher()->post_message_to_core(qsl("dialogs/hide"), collection.get());
 	}
 
 	void RecentsModel::muteChat(const QString& aimId, bool mute)
@@ -399,7 +385,7 @@ namespace Logic
 		Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
 		collection.set_value_as_qstring("contact", aimId);
 		collection.set_value_as_bool("mute", mute);
-		Ui::GetDispatcher()->post_message_to_core("dialogs/mute", collection.get());
+		Ui::GetDispatcher()->post_message_to_core(qsl("dialogs/mute"), collection.get());
 	}
 
     bool RecentsModel::isFavorite(const QString& aimid) const
@@ -416,18 +402,12 @@ namespace Logic
     bool RecentsModel::isServiceItem(const QModelIndex& i) const
     {
         auto row = i.row();
-        if (SnapsVisible_)
-            --row;
-
-        return row == getUnknownHeaderIndex() || row == getFavoritesHeaderIndex() || row == getRecentsHeaderIndex();
+        return row == getUnknownsButtonIndex() || row == getFavoritesHeaderIndex() || row == getRecentsHeaderIndex();
     }
 
     bool RecentsModel::isFavoritesGroupButton(const QModelIndex& i) const
     {
         int r = i.row();
-        if (SnapsVisible_)
-            --r;
-
         return r == getFavoritesHeaderIndex();
     }
 
@@ -436,19 +416,27 @@ namespace Logic
         return FavoritesVisible_;
     }
 
+    quint16 RecentsModel::getFavoritesCount() const
+    {
+        return FavoritesCount_;
+    }
+
     bool RecentsModel::isUnknownsButton(const QModelIndex& i) const
     {
         int r = i.row();
-        if (SnapsVisible_)
-            --r;
-
-        return r == getUnknownHeaderIndex();
+        return r == getUnknownsButtonIndex();
     }
 
-	QModelIndex RecentsModel::contactIndex(const QString& aimId)
+    bool RecentsModel::isRecentsHeader(const QModelIndex& i) const
+    {
+        int r = i.row();
+        return r == getRecentsHeaderIndex();
+    }
+
+	QModelIndex RecentsModel::contactIndex(const QString& aimId) const
 	{
 		int i = 0;
-		for (auto iter : Dialogs_)
+		for (const auto& iter : Dialogs_)
 		{
 			if (iter.AimId_ == aimId)
             {
@@ -476,16 +464,13 @@ namespace Logic
             }
 
             int result = i + getSizeOfUnknownBlock();
-            if (SnapsVisible_)
-                ++result;
-
 		    return index(result);
         }
 
 		return QModelIndex();
 	}
 
-    QString RecentsModel::firstContact()
+    QString RecentsModel::firstContact() const
     {
         if (!Dialogs_.empty())
         {
@@ -508,7 +493,7 @@ namespace Logic
     int RecentsModel::recentsUnreads() const
     {
         int result = 0;
-        for (auto iter : Dialogs_)
+        for (const auto& iter : Dialogs_)
         {
             if (!Logic::getContactListModel()->isMuted(iter.AimId_) && iter.FavoriteTime_ == -1)
                 result += iter.UnreadCount_;
@@ -519,7 +504,7 @@ namespace Logic
     int RecentsModel::favoritesUnreads() const
     {
         int result = 0;
-        for (auto iter : Dialogs_)
+        for (const auto& iter : Dialogs_)
         {
             if (!Logic::getContactListModel()->isMuted(iter.AimId_) && iter.FavoriteTime_ != -1)
                 result += iter.UnreadCount_;
@@ -527,9 +512,9 @@ namespace Logic
         return result;
     }
 
-    QString RecentsModel::nextUnreadAimId()
+    QString RecentsModel::nextUnreadAimId() const
     {
-        for (auto iter : Dialogs_)
+        for (const auto& iter : Dialogs_)
         {
             if (!Logic::getContactListModel()->isMuted(iter.AimId_) &&
                 iter.UnreadCount_ > 0)
@@ -538,42 +523,36 @@ namespace Logic
             }
         }
 
-        return "";
+        return QString();
     }
 
-    QString RecentsModel::nextAimId(QString aimId)
+    QString RecentsModel::nextAimId(const QString& aimId) const
     {
-        for (int i = 0; i < (int) Dialogs_.size(); i++)
+        for (size_t i = 0; i < Dialogs_.size(); i++)
         {
-            Data::DlgState iter = Dialogs_.at(i);
-            if (iter.AimId_ == aimId &&
-                i < (int) Dialogs_.size() - 1)
-            {
+            const Data::DlgState& iter = Dialogs_.at(i);
+            if (iter.AimId_ == aimId && i < Dialogs_.size() - 1)
                 return Dialogs_.at(i + 1).AimId_;
-            }
         }
 
-        return "";
+        return QString();
     }
 
-    QString RecentsModel::prevAimId(QString aimId)
+    QString RecentsModel::prevAimId(const QString& aimId) const
     {
-        for (int i = 0; i < (int) Dialogs_.size(); i++)
+        for (size_t i = 0; i < Dialogs_.size(); i++)
         {
-            Data::DlgState iter = Dialogs_.at(i);
-            if (iter.AimId_ == aimId &&
-                i > 0)
-            {
+            const Data::DlgState& iter = Dialogs_.at(i);
+            if (iter.AimId_ == aimId && i > 0)
                 return Dialogs_.at(i - 1).AimId_;
-            }
         }
 
-        return "";
+        return QString();
     }
 
     int RecentsModel::correctIndex(int i) const
     {
-        if (i == getUnknownHeaderIndex() || i == getFavoritesHeaderIndex() || i == getRecentsHeaderIndex())
+        if (i == getUnknownsButtonIndex() || i == getFavoritesHeaderIndex() || i == getRecentsHeaderIndex())
             return i;
 
         if (FavoritesCount_ != 0)
@@ -598,7 +577,7 @@ namespace Logic
         return FavoritesVisible_ ? FavoritesCount_ : 0;
     }
 
-    int RecentsModel::getUnknownHeaderIndex() const
+    int RecentsModel::getUnknownsButtonIndex() const
     {
         return Logic::getUnknownsModel()->itemsCount() > 0 ? 0 : -1;
     }
@@ -631,35 +610,25 @@ namespace Logic
         FavoritesHeadVisible_ = _isVisible;
     }
 
-    bool RecentsModel::isServiceAimId(const QString& _aimId)
+    bool RecentsModel::isServiceAimId(const QString& _aimId) const
     {
-        return _aimId == "unknowns" || _aimId == "favorites" || _aimId == "recents";
+        return _aimId.startsWith(ql1c('~')) && _aimId.endsWith(ql1c('~'));
     }
 
     std::vector<QString> RecentsModel::getSortedRecentsContacts() const
     {
         std::vector<QString> result;
-
+        result.reserve(Dialogs_.size());
         for (const auto& item : Dialogs_)
-        {
             result.push_back(item.AimId_);
-        }
 
         return result;
-    }
-
-    void RecentsModel::setSnapsVisible(bool _visible)
-    {
-        SnapsVisible_ = _visible;
-        emit dataChanged(index(0), index(rowCount()));
     }
 
     RecentsModel* getRecentsModel()
     {
         if (!g_recents_model)
-        {
-            g_recents_model.reset(new RecentsModel(0));
-        }
+            g_recents_model = std::make_unique<RecentsModel>(nullptr);
 
         return g_recents_model.get();
     }

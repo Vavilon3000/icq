@@ -52,11 +52,6 @@ QFont LinkPreviewBlockBlankLayout::getTitleFont() const
     return QFont();
 }
 
-bool LinkPreviewBlockBlankLayout::isAnnotationVisible() const
-{
-    return true;
-}
-
 QSize LinkPreviewBlockBlankLayout::setBlockGeometryInternal(const QRect &geometry)
 {
     assert(geometry.height() >= 0);

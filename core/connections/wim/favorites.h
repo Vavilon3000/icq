@@ -15,11 +15,11 @@ namespace core
             favorite();
             favorite(const std::string& _aimid, const int64_t _time);
 
-            std::string get_aimid() const { return aimid_; }
+            const std::string& get_aimid() const { return aimid_; }
             int64_t get_time() const { return time_; }
 
             int32_t unserialize(const rapidjson::Value& _node);
-            void serialize(rapidjson::Value& _node, rapidjson_allocator& _a);
+            void serialize(rapidjson::Value& _node, rapidjson_allocator& _a) const;
         };
 
         class favorites

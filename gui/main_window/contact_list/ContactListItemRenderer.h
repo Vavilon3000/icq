@@ -5,7 +5,7 @@
 
 namespace ContactList
 {
-	void RenderServiceContact(QPainter& _painter, const bool _isHovered, const bool _isActive, QString _name, Data::ContactType _type, int _leftMargin, const ViewParams& _viewParams);
+	void RenderServiceContact(QPainter& _painter, const bool _isHovered, const bool _isActive, const QString& _name, Data::ContactType _type, int _leftMargin, const ViewParams& _viewParams);
 
 	void RenderContactItem(QPainter& _painter, VisualDataBase _item, ViewParams _viewParams);
 

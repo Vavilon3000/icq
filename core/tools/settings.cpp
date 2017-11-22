@@ -17,8 +17,8 @@ void core::tools::settings::serialize(binary_stream& bstream) const
 {
     tlvpack pack;
 
-    for (auto iter = values_.begin(); iter != values_.end(); iter++)
-        pack.push_child(iter->second);
+    for (const auto& x : values_)
+        pack.push_child(x.second);
 
     pack.serialize(bstream);
 }
@@ -51,6 +51,5 @@ template <>
 
 bool core::tools::settings::value_exists(uint32_t _value_key) const
 {
-    auto iter = values_.find(_value_key);
-    return iter != values_.end();
+    return values_.find(_value_key) != values_.end();
 }

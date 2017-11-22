@@ -72,9 +72,9 @@ namespace installer
                     QLabel* label_privacy_link = new QLabel(this);
                     label_privacy_link->setObjectName("start_page_privacy_link");
                     if (build::is_icq())
-                        label_privacy_link->setText(QString("<a href=\"https://www.icq.com/legal/privacypolicy/\" style=\"color: #579e1c;\">") + QT_TR_NOOP("Privacy Policy") + "</a>");
+                        label_privacy_link->setText(QString("<a href=\"https://www.icq.com/legal/privacypolicy/\" style=\"color: #57b359;\">") + QT_TR_NOOP("Privacy Policy") + "</a>");
                     else
-                        label_privacy_link->setText(QString("<a href=\"https://help.mail.ru/mail-help/UA\" style=\"color: #579e1c;\">") + QT_TR_NOOP("Privacy Policy") + "</a>");
+                        label_privacy_link->setText(QString("<a href=\"https://help.mail.ru/mail-help/UA\" style=\"color: #57b359;\">") + QT_TR_NOOP("Privacy Policy") + "</a>");
                     label_privacy_link->setTextInteractionFlags(Qt::LinksAccessibleByMouse);
                     label_privacy_link->setOpenExternalLinks(true);
                     privacy_layout->addWidget(label_privacy_link);
@@ -90,7 +90,7 @@ namespace installer
                     button_install->setContentsMargins(40, 0, 40, 0);
                     button_install->setFixedHeight(dpi::scale(40));
                     button_install->setObjectName("custom_button");
-                    button_install->setText(QT_TR_NOOP("Install"));
+                    button_install->setText(QT_TR_NOOP("INSTALL"));
                     button_install->setCursor(QCursor(Qt::PointingHandCursor));
                     button_layout->addWidget(button_install);
 

@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.4)
+include(CheckFunctionExists)
 
 project(icq)
 
@@ -21,6 +22,14 @@ if(NOT ICQ_FINAL_BUILD)
 else()
     add_definitions(-DICQ_FINAL_BUILD)
     message(STATUS "build type: final")
+endif()
+
+if(NOT WIN32)
+    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
+    CHECK_FUNCTION_EXISTS(secure_getenv HAVE_SECURE_GETENV)
+    if(HAVE_SECURE_GETENV)
+        add_definitions(-DHAVE_SECURE_GETENV=1)
+    endif()
 endif()
 
 if(NOT ICQ_QT_DYNAMIC)
@@ -54,7 +63,7 @@ message(STATUS "libraries output: " ${ICQ_LIB_DIR})
 
 set(ICQ_CORELIB_STATIC_LINKING ON)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(MSVC)
@@ -67,6 +76,8 @@ if(MSVC)
         add_definitions(/Oi /GL)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
     endif()
+	add_definitions(/MP)
+    set(CMAKE_HAVE_PTHREAD_H OFF)
     add_definitions(-D_UNICODE)
     add_definitions(-D_VARIADIC_MAX=6)
     add_definitions(/Zm500)
@@ -94,6 +105,8 @@ elseif(APPLE)
     add_definitions(-fasm-blocks)
     add_definitions(-stdlib=libc++)
     add_definitions(-mmacosx-version-min=10.8)
+    add_definitions(-Werror=reorder)
+    add_definitions(-Werror=inconsistent-missing-override)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libc++")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++")
 elseif(UNIX)
@@ -114,7 +127,6 @@ elseif(UNIX)
         message(STATUS "Linux x32")
     endif()
     add_definitions(-fPIC)
-    add_definitions(-DSTRIP_VOIP)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARCH_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${ARCH_FLAGS} -static-libgcc -static-libstdc++")
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} ${ARCH_FLAGS} -static-libgcc -static-libstdc++")
@@ -232,6 +244,10 @@ if(MSVC)
     set(ZLIB_ROOT "${ICQ_ZLIB}")
     find_package(ZLIB)
     include_directories(${ZLIB_INCLUDE_DIRS})
+elseif(LINUX)
+    set(ICQ_ZLIB "${ICQ_EXTERNAL}/zlib")
+    set(ZLIB_INCLUDE_DIRS "${ICQ_ZLIB}/include")
+    include_directories(${ZLIB_INCLUDE_DIRS})
 endif()
 
 
@@ -298,6 +314,13 @@ if(MSVC)
 elseif(APPLE)
     set(ICQ_VOIP "${ICQ_ROOT}/core/Voip/libvoip/lib.mac")
     set(VOIP_LIBRARIES "${ICQ_VOIP}/libvoip_x64.a" "${ICQ_VOIP}/libippcore_l.a" "${ICQ_VOIP}/libippvc_l.a")
+elseif(LINUX)
+    set(ICQ_VOIP "${ICQ_ROOT}/core/Voip/libvoip/lib.linux")
+    if(LINUX32)
+        set(VOIP_LIBRARIES "${ICQ_VOIP}/libvoip_x86.a" "${ICQ_VOIP}/libippcore_l_x86.a" "${ICQ_VOIP}/libippvc_l_x86.a")
+    else()
+        set(VOIP_LIBRARIES "${ICQ_VOIP}/libvoip_x64.a" "${ICQ_VOIP}/libippcore_l.a" "${ICQ_VOIP}/libippvc_l.a")
+    endif()
 endif()
 
 
@@ -311,6 +334,10 @@ if(LINUX)
         set(ICQ_QT_LIB_DIR "${ICQ_QT_ROOT}/x64/lib")
     endif()
     set(ICQ_QT_BIN_DIR "${ICQ_QT_ROOT}/bin")
+    EXEC_PROGRAM("chmod +x ${ICQ_QT_BIN_DIR}/lrelease")
+    EXEC_PROGRAM("chmod +x ${ICQ_QT_BIN_DIR}/rcc")
+    EXEC_PROGRAM("chmod +x ${ICQ_QT_BIN_DIR}/uic")
+    EXEC_PROGRAM("chmod +x ${ICQ_QT_BIN_DIR}/moc")
 else()
     set(ICQ_QT_ROOT "${ICQ_EXTERNAL_PLATFORM}/Qt")
     set(ICQ_QT_INCLUDE_DIR "${ICQ_QT_ROOT}/include")
@@ -383,7 +410,6 @@ else()
             optimized ${ICQ_QT_LIB_DIR}/qico.lib debug ${ICQ_QT_LIB_DIR}/qicod.lib
             optimized ${ICQ_QT_LIB_DIR}/qtaudio_windows.lib debug ${ICQ_QT_LIB_DIR}/qtaudio_windowsd.lib
             optimized ${ICQ_QT_LIB_DIR}/qtiff.lib debug ${ICQ_QT_LIB_DIR}/qtiffd.lib
-            optimized ${ICQ_QT_LIB_DIR}/qjp2.lib debug ${ICQ_QT_LIB_DIR}/qjp2d.lib
             optimized ${ICQ_QT_LIB_DIR}/Qt5OpenGL.lib debug ${ICQ_QT_LIB_DIR}/Qt5OpenGLd.lib
             optimized ${ICQ_QT_LIB_DIR}/qtpcre.lib debug ${ICQ_QT_LIB_DIR}/qtpcred.lib
             optimized ${ICQ_QT_LIB_DIR}/qtfreetype.lib debug ${ICQ_QT_LIB_DIR}/qtfreetyped.lib
@@ -493,7 +519,7 @@ function(use_precompiled_header_mac output pch_h ${ARGN})
         endforeach()
     endif()
     add_custom_command(OUTPUT ${_pch_bin}
-        COMMAND ${CMAKE_CXX_COMPILER} ${_build_flags} ${_paths} ${_definitions} -mmacosx-version-min=10.8 -std=gnu++11 -x c++-header ${pch_h} -o ${_pch_bin}
+        COMMAND ${CMAKE_CXX_COMPILER} ${_build_flags} ${_paths} ${_definitions} -mmacosx-version-min=10.8 -std=gnu++14 -x c++-header ${pch_h} -o ${_pch_bin}
         DEPENDS ${pch_h} VERBATIM)
     foreach(_source IN ITEMS ${ARGN})
         set_source_files_properties(${_source} PROPERTIES
@@ -520,13 +546,19 @@ function(use_precompiled_header_linux output pch_h ${ARGN})
             list(APPEND _build_flags "${it}")
         endforeach()
     endif()
+    if(ICQ_DEBUG)
+        string(REPLACE " " ";" _cmake_flags ${CMAKE_CXX_FLAGS_DEBUG})
+        foreach(it IN ITEMS ${_cmake_flags})
+            list(APPEND _build_flags "${it}")
+        endforeach()
+    endif()
 
     add_custom_command(OUTPUT ${_pch_bin}
-        COMMAND ${CMAKE_CXX_COMPILER} ${_build_flags} ${_paths} ${_definitions} -std=c++0x ${ARCH_FLAGS} -fPIC  -x c++-header -o ${_pch_bin} ${pch_h}
+        COMMAND ${CMAKE_CXX_COMPILER} ${_build_flags} ${_paths} ${_definitions} -std=c++14 ${ARCH_FLAGS} -fPIC  -x c++-header -o ${_pch_bin} ${pch_h}
         DEPENDS ${pch_h} VERBATIM)
     foreach(_source IN ITEMS ${ARGN})
         set_source_files_properties(${_source} PROPERTIES
-            COMPILE_FLAGS "-std=c++0x ${ARCH_FLAGS} -Winvalid-pch"
+            COMPILE_FLAGS "-std=c++14 ${ARCH_FLAGS} -Winvalid-pch"
             OBJECT_DEPENDS "${_pch_bin}")
     endforeach()
     set(${output} ${_pch_bin} PARENT_SCOPE)

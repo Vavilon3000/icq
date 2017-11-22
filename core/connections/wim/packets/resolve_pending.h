@@ -26,7 +26,7 @@ namespace core
 
         public:
 
-            resolve_pending(const wim_packet_params& _params, const std::string& _aimId, const std::vector<std::string>& _contacts, bool _approve);
+            resolve_pending(wim_packet_params _params, const std::string& _aimId, const std::vector<std::string>& _contacts, bool _approve);
             virtual ~resolve_pending();
         };
 

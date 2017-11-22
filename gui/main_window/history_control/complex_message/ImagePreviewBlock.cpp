@@ -30,7 +30,7 @@
 
 UI_COMPLEX_MESSAGE_NS_BEGIN
 
-const QString SELECTION_STYLE = QString("background: transparent; selection-background-color: %1;").arg(Utils::rgbaStringFromColor(Utils::getSelectionColor()));
+const QString SELECTION_STYLE = qsl("background: transparent; selection-background-color: %1;").arg(Utils::rgbaStringFromColor(Utils::getSelectionColor()));
 
 ImagePreviewBlock::ImagePreviewBlock(ComplexMessageItem *parent, const QString& aimId, const QString &imageUri, const QString &imageType)
     : GenericBlock(
@@ -38,27 +38,24 @@ ImagePreviewBlock::ImagePreviewBlock(ComplexMessageItem *parent, const QString& 
           imageUri,
           (MenuFlags)(MenuFlagFileCopyable | MenuFlagLinkCopyable | MenuFlagOpenInBrowser),
           true)
+    , Layout_(nullptr)
     , AimId_(aimId)
     , ImageUri_(imageUri)
     , ImageType_(imageType)
-    , Layout_(nullptr)
     , PreviewDownloadSeq_(-1)
     , PressedOverPreview_(false)
     , FullImageDownloadSeq_(-1)
+    , IsGifPlaying_(false)
     , IsSelected_(false)
+    , Selection_(BlockSelectionType::None)
     , ActionButton_(nullptr)
     , CopyFile_(false)
-    , IsGifPlaying_(false)
-    , FileSize_(-1)
-    , SnapId_(0)
-    , SnapMetainfoRequestId_(-1)
     , MaxPreviewWidth_(0)
     , IsVisible_(false)
     , IsInPreloadDistance_(true)
     , ref_(new bool(false))
     , TextOpacity_(1.0)
     , TextFontSize_(-1)
-    , Selection_(BlockSelectionType::None)
 {
     assert(!ImageUri_.isEmpty());
     assert(!ImageType_.isEmpty());
@@ -70,8 +67,12 @@ ImagePreviewBlock::ImagePreviewBlock(ComplexMessageItem *parent, const QString& 
 
     QuoteAnimation_.setSemiTransparent();
 
-    link_ = createTextEditControl(imageUri);
-    link_->show();
+    if (MessageStyle::isShowLinksInImagePreview())
+    {
+        link_ = createTextEditControl(imageUri);
+        link_->show();
+    }
+    setMouseTracking(true);
 }
 
 ImagePreviewBlock::~ImagePreviewBlock()
@@ -82,7 +83,7 @@ TextEditEx* ImagePreviewBlock::createTextEditControl(const QString& _text)
 {
     assert(!_text.isEmpty());
 
-    blockSignals(true);
+    QSignalBlocker sb(this);
     setUpdatesEnabled(false);
 
     QPalette p;
@@ -90,7 +91,7 @@ TextEditEx* ImagePreviewBlock::createTextEditControl(const QString& _text)
 
     auto textControl = new Ui::TextEditEx(
         this,
-        MessageStyle::getTextFont(TextFontSize_),
+        MessageStyle::getTextFont(MessageStyle::getImagePreviewLinkFontSize()),
         p,
         false,
         false);
@@ -106,23 +107,21 @@ TextEditEx* ImagePreviewBlock::createTextEditControl(const QString& _text)
     textControl->setOpenLinks(true);
     textControl->setOpenExternalLinks(true);
     textControl->setWordWrapMode(QTextOption::WordWrap);
-    textControl->setStyleSheet("background: transparent");
+    textControl->setStyleSheet(qsl("background: transparent"));
     textControl->setContextMenuPolicy(Qt::NoContextMenu);
     textControl->setReadOnly(true);
     textControl->setUndoRedoEnabled(false);
 
     setTextEditTheme(textControl);
 
-    textControl->verticalScrollBar()->blockSignals(true);
+    {
+        QSignalBlocker textControlBlocker(textControl->verticalScrollBar());
 
-    Logic::Text4Edit(ImageUri_, *textControl, Logic::Text2DocHtmlMode::Escape, true, true);
-
-    textControl->document()->setDocumentMargin(0);
-
-    textControl->verticalScrollBar()->blockSignals(false);
+        Logic::Text4Edit(ImageUri_, *textControl, Logic::Text2DocHtmlMode::Escape, true, true);
+        textControl->document()->setDocumentMargin(0);
+    }
 
     setUpdatesEnabled(true);
-    blockSignals(false);
 
     return textControl;
 }
@@ -148,52 +147,86 @@ void ImagePreviewBlock::selectByPos(const QPoint& from, const QPoint& to, const 
     assert(selection < BlockSelectionType::Max);
     assert(Selection_ > BlockSelectionType::Min);
     assert(Selection_ < BlockSelectionType::Max);
-    
-    if (!link_)
+
+    if (MessageStyle::isShowLinksInImagePreview())
     {
-        return;
+        if (!link_)
+            return;
+
+        Selection_ = selection;
+
+        const auto selectAll = (selection == BlockSelectionType::Full);
+        if (selectAll)
+        {
+            link_->selectWholeText();
+            return;
+        }
+
+        const auto selectFromBeginning = (selection == BlockSelectionType::FromBeginning);
+        if (selectFromBeginning)
+        {
+            link_->selectFromBeginning(to);
+            return;
+        }
+
+        const auto selectTillEnd = (selection == BlockSelectionType::TillEnd);
+        if (selectTillEnd)
+        {
+            link_->selectTillEnd(from);
+            return;
+        }
+
+        link_->selectByPos(from, to);
     }
-
-    Selection_ = selection;
-
-    const auto selectAll = (selection == BlockSelectionType::Full);
-    if (selectAll)
+    else
     {
-        link_->selectWholeText();
-        return;
-    }
+        const QRect globalWidgetRect(
+            mapToGlobal(rect().topLeft()),
+            mapToGlobal(rect().bottomRight()));
 
-    const auto selectFromBeginning = (selection == BlockSelectionType::FromBeginning);
-    if (selectFromBeginning)
-    {
-        link_->selectFromBeginning(to);
-        return;
-    }
+        auto selectionArea(globalWidgetRect);
+        selectionArea.setTop(from.y());
+        selectionArea.setBottom(to.y());
+        selectionArea = selectionArea.normalized();
 
-    const auto selectTillEnd = (selection == BlockSelectionType::TillEnd);
-    if (selectTillEnd)
-    {
-        link_->selectTillEnd(from);
-        return;
-    }
+        const auto selectionOverlap = globalWidgetRect.intersected(selectionArea);
+        assert(selectionOverlap.height() >= 0);
 
-    link_->selectByPos(from, to);
+        const auto widgetHeight = std::max(globalWidgetRect.height(), 1);
+        const auto overlappedHeight = selectionOverlap.height();
+        const auto overlapRatePercents = ((overlappedHeight * 100) / widgetHeight);
+        assert(overlapRatePercents >= 0);
+
+        const auto isSelected = (overlapRatePercents > 45);
+
+        if (isSelected != IsSelected_)
+        {
+            IsSelected_ = isSelected;
+
+            update();
+        }
+    }
 }
 
 void ImagePreviewBlock::clearSelection()
 {
-//     if (!IsSelected_)
-//     {
-//         return;
-//     }
+    if (MessageStyle::isShowLinksInImagePreview())
+    {
+        link_->clearSelection();
 
-    link_->clearSelection();
+        Selection_ = BlockSelectionType::None;
+    }
+    else
+    {
+        if (!IsSelected_)
+        {
+            return;
+        }
 
-    Selection_ = BlockSelectionType::None;
+        IsSelected_ = false;
 
-//    IsSelected_ = false;
-
-//    update();
+        update();
+    }
 }
 
 bool ImagePreviewBlock::hasActionButton() const
@@ -229,18 +262,32 @@ QSize ImagePreviewBlock::getPreviewSize() const
 
 QString ImagePreviewBlock::getSelectedText(bool isFullSelect) const
 {
-    assert(!ImageUri_.isEmpty());
-
-    switch (Selection_)
+    if (MessageStyle::isShowLinksInImagePreview())
     {
-    case BlockSelectionType::Full:
-        return ImageUri_;
+        assert(!ImageUri_.isEmpty());
 
-    case BlockSelectionType::TillEnd:
-        return (link_->selection()/* + TrailingSpaces_*/);
+        switch (Selection_)
+        {
+        case BlockSelectionType::Full:
+            return ImageUri_;
+
+        case BlockSelectionType::TillEnd:
+            return (link_->selection()/* + TrailingSpaces_*/);
+        }
+
+        return link_->selection();
     }
+    else
+    {
+        assert(!ImageUri_.isEmpty());
 
-    return link_->selection();
+        if (IsSelected_)
+        {
+            return getSourceText();
+        }
+
+        return QString();
+    }
 }
 
 void ImagePreviewBlock::hideActionButton()
@@ -272,6 +319,8 @@ void ImagePreviewBlock::onVisibilityChanged(const bool isVisible)
     IsVisible_ = isVisible;
 
     GenericBlock::onVisibilityChanged(isVisible);
+    if (ActionButton_)
+        ActionButton_->onVisibilityChanged(isVisible);
 
     if (isVisible && (PreviewDownloadSeq_ > 0))
     {
@@ -438,8 +487,6 @@ void ImagePreviewBlock::initialize()
 
     connectSignals();
 
-    requestSnapMetainfo();
-
     assert(PreviewDownloadSeq_ == -1);
     PreviewDownloadSeq_ = Ui::GetDispatcher()->downloadImage(
         ImageUri_,
@@ -447,7 +494,8 @@ void ImagePreviewBlock::initialize()
         QString(),
         true,
         Style::Preview::getImageWidthMax(),
-        0);
+        0,
+        true);
 }
 
 void ImagePreviewBlock::mouseMoveEvent(QMouseEvent *event)
@@ -540,13 +588,16 @@ void ImagePreviewBlock::onMenuCopyFile()
     auto filename = urlParser.fileName();
     if (filename.isEmpty())
     {
-        static const QRegularExpression re("[{}-]");
+        static const QRegularExpression re(
+            qsl("[{}-]"),
+            QRegularExpression::UseUnicodePropertiesOption | QRegularExpression::OptimizeOnFirstUsageOption
+        );
 
         filename = QUuid::createUuid().toString();
         filename.remove(re);
     }
 
-    const auto dstPath = (QDir::temp().absolutePath() + "/" + filename);
+    const QString dstPath = QDir::temp().absolutePath() % ql1c('/') % filename;
     downloadFullImage(dstPath);
 }
 
@@ -571,13 +622,9 @@ void ImagePreviewBlock::onMenuSaveFileAs()
         if (!ref)
             return;
 
-        QString dir = dir_result;
-        const auto addTrailingSlash = (!dir.endsWith('\\') && !dir.endsWith('/'));
-        if (addTrailingSlash)
-        {
-            dir += "/";
-        }
-        dir += file;
+        const auto addTrailingSlash = !dir_result.endsWith(ql1c('\\')) && !dir_result.endsWith(ql1c('/'));
+        const auto slash = ql1s(addTrailingSlash ? "/" : "");
+        const QString dir = dir_result % slash % file;
         QFile::remove(dir);
 
         if (isFullImageDownloading())
@@ -673,13 +720,6 @@ void ImagePreviewBlock::connectSignals()
         this,
         &ImagePreviewBlock::onImageDownloadError,
         (Qt::ConnectionType)(Qt::QueuedConnection | Qt::UniqueConnection));
-
-    QObject::connect(
-        GetDispatcher(),
-        &core_dispatcher::snapMetainfoDownloaded,
-        this,
-        &ImagePreviewBlock::onSnapMetainfoDownloaded,
-        (Qt::ConnectionType)(Qt::QueuedConnection | Qt::UniqueConnection));
 }
 
 void ImagePreviewBlock::downloadFullImage(const QString &destination)
@@ -689,7 +729,7 @@ void ImagePreviewBlock::downloadFullImage(const QString &destination)
     const auto &imageUri = (DownloadUri_.isEmpty() ? ImageUri_ : DownloadUri_);
     assert(!imageUri.isEmpty());
 
-    FullImageDownloadSeq_ = Ui::GetDispatcher()->downloadImage(imageUri, getChatAimid(), destination, false, 0, 0);
+    FullImageDownloadSeq_ = Ui::GetDispatcher()->downloadImage(imageUri, getChatAimid(), destination, false, 0, 0, true);
 
     if (!shouldDisplayProgressAnimation())
     {
@@ -827,7 +867,7 @@ bool ImagePreviewBlock::isGifPreview() const
         return false;
     }
 
-    return ((ImageType_ == "gif") || (ImageType_ == "snap/gif"));
+    return ImageType_ == ql1s("gif");
 }
 
 bool ImagePreviewBlock::isOverImage(const QPoint &pos) const
@@ -847,11 +887,6 @@ bool ImagePreviewBlock::isVideoPreview() const
     if (ImageType_.isEmpty())
     {
         return false;
-    }
-
-    if (ImageType_ == "snap/video")
-    {
-        return true;
     }
 
     return Utils::is_video_extension(ImageType_);
@@ -956,12 +991,6 @@ void ImagePreviewBlock::onLeftMouseClick(const QPoint &globalPos)
 {
     schedulePreviewerOpening(globalPos);
 
-    const auto hasSnapId = (SnapId_ > 0);
-    if (hasSnapId)
-    {
-        GetDispatcher()->read_snap(getSenderAimid(), SnapId_, false);
-    }
-
     if (isGifPreview())
     {
         onGifLeftMouseClick();
@@ -1007,7 +1036,6 @@ void ImagePreviewBlock::playGif(const QString &localPath, const bool _byUser)
     assert(!localPath.isEmpty());
 
     const auto isFileExists = QFile::exists(localPath);
-    //assert(isFileExists);
 
     if (isGifPlaying() || !isFileExists)
     {
@@ -1030,12 +1058,10 @@ void ImagePreviewBlock::playGif(const QString &localPath, const bool _byUser)
 
         onGifPlaybackStatusChanged(isGifPlaying());
 
-        const auto gifSize = Utils::unscale_value(previewRect.size());
-
         const bool play = IsVisible_;
 
         setGifPlaying(play);
-        
+
         videoPlayer_->start(play);
 
         if (play)
@@ -1045,7 +1071,7 @@ void ImagePreviewBlock::playGif(const QString &localPath, const bool _byUser)
         return;
     }
 
-    load_task_ = std::unique_ptr<Utils::LoadMovieToFFMpegPlayerFromFileTask>(new Utils::LoadMovieToFFMpegPlayerFromFileTask(localPath, isGifPreview(), this));
+    load_task_ = std::make_unique<Utils::LoadMovieToFFMpegPlayerFromFileTask>(localPath, isGifPreview(), this);
 
     QObject::connect(
         load_task_.get(),
@@ -1073,7 +1099,7 @@ void ImagePreviewBlock::playGif(const QString &localPath, const bool _byUser)
             int32_t volume = Ui::get_gui_settings()->get_value<int32_t>(setting_mplayer_volume, 100);
 
             const auto &imageRect = Layout_->getPreviewRect();
-            
+
             videoPlayer_->setParent(this);
             videoPlayer_->start(IsVisible_);
 
@@ -1114,26 +1140,6 @@ void ImagePreviewBlock::preloadFullImageIfNeeded()
     }
 
     downloadFullImage(QString());
-}
-
-void ImagePreviewBlock::requestSnapMetainfo()
-{
-    assert(SnapMetainfoRequestId_ == -1);
-
-    const auto fileSharingId = extractIdFromFileSharingUri(ImageUri_);
-    if (fileSharingId.isEmpty())
-    {
-        return;
-    }
-
-    const auto fileSharingType = extractContentTypeFromFileSharingId(fileSharingId);
-
-    if (!is_snap_file_sharing_content_type(fileSharingType))
-    {
-        return;
-    }
-
-    SnapMetainfoRequestId_ = GetDispatcher()->download_snap_metainfo(getChatAimid(), fileSharingId);
 }
 
 void ImagePreviewBlock::schedulePreviewerOpening(const QPoint &globalPos)
@@ -1300,28 +1306,6 @@ void ImagePreviewBlock::onImageMetaDownloaded(int64_t seq, Data::LinkMetadata me
     }
 
     DownloadUri_ = meta.getDownloadUri();
-
-    assert(FileSize_ == -1);
-    FileSize_ = meta.getFileSize();
-}
-
-void ImagePreviewBlock::onSnapMetainfoDownloaded(int64_t _seq, bool _success, uint64_t _snap_id)
-{
-    assert(_seq > 0);
-    assert(!_success || (_snap_id > 0));
-
-    if (SnapMetainfoRequestId_ != _seq)
-    {
-        return;
-    }
-
-    if (_success)
-    {
-        assert(SnapId_ == 0);
-        SnapId_ = _snap_id;
-    }
-
-    SnapMetainfoRequestId_ = -1;
 }
 
 void ImagePreviewBlock::onPaused()

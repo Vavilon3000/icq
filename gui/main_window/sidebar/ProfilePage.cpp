@@ -16,7 +16,6 @@
 #include "../../controls/CustomButton.h"
 #include "../../controls/ContactAvatarWidget.h"
 #include "../../controls/TextEditEx.h"
-#include "../../controls/LabelEx.h"
 #include "../../controls/TextEmojiWidget.h"
 #include "../../controls/FlatMenu.h"
 #include "../../controls/CommonStyle.h"
@@ -36,14 +35,11 @@ namespace
     const int big_button_size = 48;
     const int back_button_spacing = 8;
     const int members_count = 5;
-    const int ignore_margins = 16;
-    const int ignore_spacing = 7;
-    const int buttons_spacing = 16;
+    const int buttons_spacing = 32;
     const int buttons_top_margin = 24;
-    const int buttons_margin = 16;
-    const int button_height = 44;
+    const int buttons_margin = 12;
+    const int button_height = 40;
     const int button_offset = 28;
-    const int line_vertical_margin = 4;
     const int avatar_botton_spacing = 10;
     const int name_margin = 18;
     const int edit_top_margin = 14;
@@ -62,20 +58,18 @@ namespace Ui
         {
             auto vLayout = Utils::emptyVLayout();
             vLayout->setContentsMargins(0, 0, 0, Utils::scale_value(HOR_PADDING));
-            header_ = new QLabel(this);
-            QPalette p;
-            p.setColor(QPalette::Foreground, QColor("#767676"));
+            header_ = new LabelEx(this);
+            header_->setColor(CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT));
             header_->setFont(Fonts::appFontScaled(14));
-            header_->setPalette(p);
             vLayout->addWidget(header_);
-            info_ = new TextEmojiWidget(this, Fonts::appFontScaled(18), CommonStyle::getTextCommonColor());
-            connect(info_, SIGNAL(rightClicked()), this, SLOT(menuRequested()), Qt::QueuedConnection);
+            info_ = new TextEmojiWidget(this, Fonts::appFontScaled(18), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY));
+            connect(info_, &TextEmojiWidget::rightClicked, this, &InfoPlate::menuRequested, Qt::QueuedConnection);
             info_->setSelectable(true);
             vLayout->addWidget(info_);
-            phoneInfo_ = new QLabel(this);
+            phoneInfo_ = new LabelEx(this);
             phoneInfo_->setWordWrap(true);
             phoneInfo_->setFont(Fonts::appFontScaled(14));
-            phoneInfo_->setPalette(p);
+            phoneInfo_->setColor(CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT));
             vLayout->addWidget(phoneInfo_);
             phoneInfo_->hide();
             rootLayout->addLayout(vLayout);
@@ -89,8 +83,10 @@ namespace Ui
     void InfoPlate::menuRequested()
     {
         ContextMenu* menu = new ContextMenu(this);
-        menu->addActionWithIcon(QIcon(Utils::parse_image_name(":/resources/context_menu/copy_100.png")), QT_TRANSLATE_NOOP("context_menu", "Copy"), QVariant());
+        menu->addActionWithIcon(QIcon(Utils::parse_image_name(qsl(":/context_menu/copy_100"))), QT_TRANSLATE_NOOP("context_menu", "Copy"), QVariant());
         connect(menu, &ContextMenu::triggered, this, &InfoPlate::menu, Qt::QueuedConnection);
+        connect(menu, &ContextMenu::triggered, menu, &ContextMenu::deleteLater, Qt::QueuedConnection);
+        connect(menu, &ContextMenu::aboutToHide, menu, &ContextMenu::deleteLater, Qt::QueuedConnection);
         menu->popup(QCursor::pos());
     }
 
@@ -105,9 +101,9 @@ namespace Ui
         info_->setSelectable(!value);
         if (value)
         {
-            info_->setText(QT_TRANSLATE_NOOP("sidebar", "Attach phone"), CommonStyle::getLinkColor());
+            info_->setText(QT_TRANSLATE_NOOP("sidebar", "Attach phone"), CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT));
             info_->adjustSize();
-            connect(info_, &TextEmojiWidget::clicked, []()
+            connect(info_, &TextEmojiWidget::clicked, this, []()
             {
                 emit Utils::InterConnector::instance().generalSettingsShow((int)Utils::CommonSettingsType::CommonSettingsType_AttachPhone);
             });
@@ -117,7 +113,7 @@ namespace Ui
         else
         {
             setInfo(infoStr_);
-            disconnect(info_, SIGNAL(clicked()));
+            disconnect(info_, &TextEmojiWidget::clicked, this, nullptr);
             phoneInfo_->setText(QT_TRANSLATE_NOOP("sidebar", "Only visible for those, who has it in the phone book"));
             phoneInfo_->show();
         }
@@ -136,7 +132,7 @@ namespace Ui
         if (!infoStr_.startsWith(prefix))
             infoStr_ = prefix + infoStr_;
 
-        info_->setText(infoStr_, CommonStyle::getTextCommonColor());
+        info_->setText(infoStr_, QColor(qsl("#454545")));
         info_->adjustSize();
         phoneInfo_->hide();
     }
@@ -146,17 +142,17 @@ namespace Ui
         if (attachPhone_)
             return;
 
-        QFontMetrics m(Fonts::appFontScaled(14));
+        QFontMetrics m(Fonts::appFontScaled(16));
         QString result = m.elidedText(infoStr_, Qt::ElideRight, width);
         info_->setText(result);
         info_->setSourceText(infoStr_);
     }
 
-    QString InfoPlate::getInfoText()
+    QString InfoPlate::getInfoText() const
     {
-        return (info_ ? info_->text() : "");
+        return info_ ? info_->text() : QString();
     }
-    
+
     ProfilePage::ProfilePage(QWidget* parent)
         : SidebarPage(parent)
         , info_(std::make_shared<Data::ChatInfo>())
@@ -174,64 +170,98 @@ namespace Ui
         style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
         QWidget::paintEvent(_e);
         p.fillRect(rect(), CommonStyle::getFrameColor());
-        p.setPen(QPen(QColor("#d7d7d7"), Utils::scale_value(1)));
-        p.drawLine(contentsRect().topLeft(), contentsRect().bottomLeft());
     }
 
     void ProfilePage::updateWidth()
     {
-        Line_->setLineWidth(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
+        const auto w = width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING);
+        Line_->setLineWidth(w);
         if (myInfo_ && width() >= Utils::scale_value(596))
         {
-            name_->adjustHeight(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING) - editLabel_->width());
+            name_->adjustHeight(w - editLabel_->width());
         }
         else if (width() >= Utils::scale_value(596))
         {
-            nameEdit_->adjustHeight(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-            descriptionEdit_->adjustHeight(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
+            nameEdit_->adjustHeight(w);
+            descriptionEdit_->adjustHeight(w);
             saveButtonSpace_->setFixedWidth(width_ - Utils::scale_value(LEFT_MARGIN + HOR_PADDING + Utils::scale_value(8)) - saveButton_->width());
         }
         else
         {
-            name_->adjustHeight(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-            nameEdit_->adjustHeight(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-            descriptionEdit_->adjustHeight(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-            saveButtonSpace_->setFixedWidth(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING) - saveButton_->width());
+            name_->adjustHeight(w);
+            nameEdit_->adjustHeight(w);
+            descriptionEdit_->adjustHeight(w);
+            saveButtonSpace_->setFixedWidth(w - saveButton_->width());
         }
 
-        ignoreWidget_->setFixedWidth(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-        uin_->elideText(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-        phone_->elideText(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-        firstName_->elideText(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-        lastName_->elideText(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-        nickName_->elideText(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-        birthday_->elideText(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-        city_->elideText(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
-        country_->elideText(width_ - Utils::scale_value(LEFT_MARGIN + 2 * HOR_PADDING));
+        ignoreWidget_->setFixedWidth(w);
+        uin_->elideText(w);
+        phone_->elideText(w);
+        firstName_->elideText(w);
+        lastName_->elideText(w);
+        nickName_->elideText(w);
+        birthday_->elideText(w);
+        city_->elideText(w);
+        country_->elideText(w);
 
-        renameContact_->setFixedWidth(width_ - Utils::scale_value(2 * HOR_PADDING));
-        ignoreListButton->setFixedWidth(width_ - Utils::scale_value(2 * HOR_PADDING));
-        attachOldAcc->setFixedWidth(width_ - Utils::scale_value(2 * HOR_PADDING));
+        const auto btnWidth = width_ - Utils::scale_value(2 * HOR_PADDING);
+        renameContact_->setFixedWidth(btnWidth);
+        ignoreListButton->setFixedWidth(btnWidth);
+        attachOldAcc->setFixedWidth(btnWidth);
+        shareLink_->setFixedWidth(btnWidth);
         avatar_->update();
     }
 
     void ProfilePage::touchScrollStateChanged(QScroller::State st)
     {
-        name_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        nameEdit_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        descriptionEdit_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        uin_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        phone_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        firstName_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        lastName_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        nickName_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        birthday_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        city_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        country_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        renameContact_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        ignoreListButton->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        attachOldAcc->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
-        avatar_->setAttribute(Qt::WA_TransparentForMouseEvents, st != QScroller::Inactive);
+        const bool isOn = st != QScroller::Inactive;
+        name_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        nameEdit_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        descriptionEdit_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        uin_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        phone_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        firstName_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        lastName_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        nickName_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        birthday_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        city_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        country_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        renameContact_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        ignoreListButton->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        attachOldAcc->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        avatar_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+        shareLink_->setAttribute(Qt::WA_TransparentForMouseEvents, isOn);
+    }
+
+    void ProfilePage::copyLinkClicked()
+    {
+        if (currentAimId_.isEmpty())
+            return;
+
+        const QString link = ql1s("https://icq.com/") % currentAimId_;
+
+        Ui::SelectContactsWidget shareDialog(
+            nullptr,
+            Logic::MembersWidgetRegim::SHARE_LINK,
+            QT_TRANSLATE_NOOP("popup_window", "Share link"),
+            QT_TRANSLATE_NOOP("popup_window", "COPY LINK"),
+            Ui::MainPage::instance(),
+            true);
+
+        const auto action = shareDialog.show();
+        if (action == QDialog::Accepted)
+        {
+            const auto contact = shareDialog.getSelectedContact();
+            if (!contact.isEmpty())
+            {
+                Logic::getContactListModel()->setCurrent(contact, -1, true);
+                Ui::GetDispatcher()->sendMessageToContact(contact, link);
+            }
+            else
+                QApplication::clipboard()->setText(link);
+
+            emit Utils::InterConnector::instance().closeAnySemitransparentWindow();
+        }
     }
 
     void ProfilePage::initFor(const QString& aimId)
@@ -240,7 +270,7 @@ namespace Ui
         bool newContact = (currentAimId_ != fixedAimId);
         currentAimId_ = fixedAimId;
         myInfo_ = (MyInfo()->aimId() == currentAimId_ && aimId.isEmpty());
-        
+
         QString oldName = Logic::getContactListModel()->getDisplayName(fixedAimId);
         if (!newContact && myInfo_)
         {
@@ -250,19 +280,14 @@ namespace Ui
                 oldName = nickName_->getInfoText();
             }
         }
-        
+
         Logic::GetAvatarStorage()->ForceRequest(currentAimId_, Utils::scale_value(avatar_size));
 
         avatar_->UpdateParams(currentAimId_, Logic::getContactListModel()->getDisplayName(currentAimId_));
         avatar_->update();
 
-        statusButton_->setStyle(QApplication::style());
-        statusLabel_->setStyle(QApplication::style());
-        statusLabel_->setCursor(myInfo_ ? Qt::PointingHandCursor : Qt::ArrowCursor);
-        statusButton_->setVisible(myInfo_);
-
         core::coll_helper helper(GetDispatcher()->create_collection(), true);
-        GetDispatcher()->post_message_to_core("load_flags", helper.get());
+        GetDispatcher()->post_message_to_core(qsl("load_flags"), helper.get());
 
         attachOldAcc->setVisible(myInfo_ && connectOldVisible_);
         backButton_->setVisible(!myInfo_);
@@ -296,19 +321,19 @@ namespace Ui
             Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
             collection.set_value_as_qstring("aimid", currentAimId_);
             collection.set_value_as_int("limit", Logic::ChatMembersModel::get_limit(members_count));
-            Ui::GetDispatcher()->post_message_to_core("chats/info/get", collection.get());
+            Ui::GetDispatcher()->post_message_to_core(qsl("chats/info/get"), collection.get());
         }
 
         updateStatus();
 
-        bool isIgnored = Logic::getIgnoreModel()->getMemberItem(currentAimId_) != 0;
+        bool isIgnored = Logic::getIgnoreModel()->getMemberItem(currentAimId_) != nullptr;
         ignoreWidget_->setVisible(isIgnored);
         buttonWidget_->setVisible(!isIgnored && !isChat && currentAimId_ != MyInfo()->aimId());
         buttonsMargin_->setVisible(!isIgnored && !isChat);
 
         auto cont = Logic::getContactListModel()->getContactItem(currentAimId_);
 
-        bool isNotAuth = Logic::getContactListModel()->isNotAuth(currentAimId_) || cont == 0;
+        bool isNotAuth = Logic::getContactListModel()->isNotAuth(currentAimId_) || cont == nullptr;
         chatButton_->setVisible(!isNotAuth);
         addButton_->setVisible(isNotAuth);
         callButton_->setEnabled(!isNotAuth);
@@ -318,7 +343,6 @@ namespace Ui
         videoCall_button_->setVisible(!platform::is_linux());
 
         ignoreListButton->setVisible(myInfo_);
-        nameMargin_->setVisible(isChat);
         renameContact_->setVisible(!isChat && !isNotAuth && !isIgnored && !myInfo_);
 
         Line_->setVisible((!isChat && !isNotAuth && !isIgnored && !myInfo_) || myInfo_);
@@ -337,17 +361,17 @@ namespace Ui
             if (myInfo_)
             {
                 if (!MyInfo()->phoneNumber().isEmpty())
-                    phone_->setInfo(MyInfo()->phoneNumber(), "+");
+                    phone_->setInfo(MyInfo()->phoneNumber(), qsl("+"));
 
                 phone_->setAttachPhone(MyInfo()->phoneNumber().isEmpty());
                 phone_->show();
             }
             else
             {
-                Logic::phone_list list = _profile->get_phones();
+                const auto& list = _profile->get_phones();
                 if (!list.empty())
                 {
-                    phone_->setInfo(list.front().get_phone(), "+");
+                    phone_->setInfo(list.front().get_phone(), qsl("+"));
                     phone_->show();
                     renameContact_->hide();
                     Line_->hide();
@@ -379,17 +403,15 @@ namespace Ui
                     name_->setPlainText(QString());
                     QTextCursor cursorName = name_->textCursor();
                     Logic::Text2Doc(nn, cursorName, Logic::Text2DocHtmlMode::Pass, false);
-                    Logic::GetAvatarStorage()->UpdateAvatar(currentAimId_, false);
+                    Logic::GetAvatarStorage()->updateAvatar(currentAimId_, false);
                     avatar_->UpdateParams(currentAimId_, nn);
                     avatar_->update();
                 }
             }
             else if (Logic::getContactListModel()->getDisplayName(currentAimId_) == currentAimId_)
             {
-                QString name = fn;
-                if (!name.isEmpty())
-                    name += " ";
-                name += ln;
+                const auto space = ql1s(fn.isEmpty() ? "" : " ");
+                const QString name = fn % space % ln;
                 if (!name.isEmpty())
                 {
                     name_->setPlainText(QString());
@@ -419,8 +441,7 @@ namespace Ui
             auto countryCode = _profile->get_home_address().get_country().toLower();
             if (!countryCode.isEmpty())
             {
-                auto countries = countries::get();
-                for (auto country : countries)
+                for (const auto& country : countries::get())
                 {
                     if (country.iso_code_ == countryCode)
                     {
@@ -437,34 +458,34 @@ namespace Ui
         updateWidth();
 
         if (myInfo_)
-            connect(MyInfo(), SIGNAL(received()), this, SLOT(changed()), Qt::UniqueConnection);
+            connect(MyInfo(), &Ui::my_info::received, this, &ProfilePage::changed, Qt::UniqueConnection);
         else
-            disconnect(MyInfo(), SIGNAL(received()), this, SLOT(changed()));
+            disconnect(MyInfo(), &Ui::my_info::received, this, &ProfilePage::changed);
     }
 
     void ProfilePage::init()
     {
-        setStyleSheet(Utils::LoadStyle(":/main_window/sidebar/Sidebar.qss"));
-        connect(Ui::GetDispatcher(), SIGNAL(chatInfo(qint64, std::shared_ptr<Data::ChatInfo>)), this, SLOT(chatInfo(qint64, std::shared_ptr<Data::ChatInfo>)), Qt::QueuedConnection);
-        connect(GetDispatcher(), SIGNAL(recvFlags(int)), this, SLOT(recvFlags(int)));
+        setStyleSheet(Utils::LoadStyle(qsl(":/qss/sidebar")));
+        connect(Ui::GetDispatcher(), &Ui::core_dispatcher::chatInfo, this, &ProfilePage::chatInfo, Qt::QueuedConnection);
+        connect(GetDispatcher(), &Ui::core_dispatcher::recvFlags, this, &ProfilePage::recvFlags);
 
         auto layout = Utils::emptyVLayout(this);
-        auto area = CreateScrollAreaAndSetTrScrollBar(this);
+        auto area = CreateScrollAreaAndSetTrScrollBarV(this);
         area->horizontalScrollBar()->setDisabled(true);
         layout->addWidget(area);
 
         area->setContentsMargins(0, 0, 0, 0);
         mainWidget_ = new QWidget(area);
-        mainWidget_->setStyleSheet("background: transparent;");
+        mainWidget_->setStyleSheet(qsl("background: transparent;"));
         area->setWidget(mainWidget_);
         area->setWidgetResizable(true);
         area->setFrameStyle(QFrame::NoFrame);
-        area->setStyleSheet("background: transparent;");
+        area->setStyleSheet(qsl("background: transparent;"));
 
         Utils::grabTouchWidget(area->viewport(), true);
         Utils::grabTouchWidget(mainWidget_);
 
-        connect(QScroller::scroller(area->viewport()), SIGNAL(stateChanged(QScroller::State)), this, SLOT(touchScrollStateChanged(QScroller::State)), Qt::QueuedConnection);
+        connect(QScroller::scroller(area->viewport()), &QScroller::stateChanged, this, &ProfilePage::touchScrollStateChanged, Qt::QueuedConnection);
 
         auto vLayoutMain = Utils::emptyVLayout(mainWidget_);
         vLayoutMain->setContentsMargins(0, Utils::scale_value(HOR_PADDING), 0, 0);
@@ -488,9 +509,9 @@ namespace Ui
             {
                 mainBackButtonLayout_ = Utils::emptyVLayout();
                 mainBackButtonLayout_->setAlignment(Qt::AlignTop);
-                backButton_ = new CustomButton(mainWidget_, ":/resources/basic_elements/contr_back_100.png");
-                backButton_->setHoverImage(":/resources/basic_elements/contr_back_100_hover.png");
-                backButton_->setFixedSize(Utils::scale_value(button_size), Utils::scale_value(button_size));
+                backButton_ = new CustomButton(mainWidget_, qsl(":/controls/back_100"));
+                backButton_->setHoverImage(qsl(":/controls/back_100_hover"));
+                backButton_->setFixedSize(Utils::scale_value(28), Utils::scale_value(24));
                 backButton_->setCursor(QCursor(Qt::PointingHandCursor));
                 Utils::grabTouchWidget(backButton_);
                 mainBackButtonLayout_->addWidget(backButton_);
@@ -508,8 +529,8 @@ namespace Ui
                 mainSaveButtonLayout_->addWidget(saveButtonSpace_);
                 auto subSaveButtonLayout = Utils::emptyVLayout();
                 saveButton_ = new QPushButton(mainWidget_);
-                Utils::ApplyStyle(saveButton_, Ui::CommonStyle::getGreenButtonStyle());
-                saveButton_->setText(QT_TRANSLATE_NOOP("sidebar", "Save"));
+                Utils::ApplyStyle(saveButton_, CommonStyle::getGreenButtonStyle());
+                saveButton_->setText(QT_TRANSLATE_NOOP("sidebar", "SAVE"));
                 saveButton_->setCursor(Qt::PointingHandCursor);
                 saveButton_->adjustSize();
                 Utils::grabTouchWidget(saveButton_);
@@ -539,7 +560,7 @@ namespace Ui
             {
                 nameLayout_ = Utils::emptyHLayout();
                 nameLayout_->setContentsMargins(Utils::scale_value(LEFT_MARGIN), 0, Utils::scale_value(HOR_PADDING), 0);
-                name_ = new TextEditEx(mainWidget_, Fonts::appFontScaled(24), CommonStyle::getTextCommonColor(), false, false);
+                name_ = new TextEditEx(mainWidget_, Fonts::appFontScaled(18, Fonts::FontWeight::Medium), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), false, false);
                 name_->setFrameStyle(QFrame::NoFrame);
                 name_->setContentsMargins(0, 0, 0, 0);
                 name_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -553,9 +574,7 @@ namespace Ui
                 editLabel_ = new LabelEx(mainWidget_);
                 editLabel_->setText(QT_TRANSLATE_NOOP("sidebar", "Edit"));
                 editLabel_->setProperty("edit", true);
-                QPalette p;
-                p.setColor(QPalette::Foreground, CommonStyle::getLinkColor());
-                editLabel_->setPalette(p);
+                editLabel_->setColor(CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT));
                 editLabel_->setFont(Fonts::appFontScaled(14));
                 editLabel_->setCursor(Qt::PointingHandCursor);
                 editLabel_->adjustSize();
@@ -566,59 +585,16 @@ namespace Ui
                 nameLayout_->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Preferred));
                 rootLayout->addLayout(nameLayout_);
             }
-
-            nameMargin_ = new QWidget(mainWidget_);
-            nameMargin_->setFixedHeight(Utils::scale_value(name_margin));
-            Utils::grabTouchWidget(nameMargin_);
-            rootLayout->addWidget(nameMargin_);
-
             {
                 auto horLayoutIn = Utils::emptyHLayout();
                 horLayoutIn->setContentsMargins(Utils::scale_value(LEFT_MARGIN), 0, 0, 0);
-                statusWidget_ = new QWidget(mainWidget_);
-                Utils::grabTouchWidget(statusWidget_);
-                statusWidget_->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed));
-                auto statusLayout_ = Utils::emptyHLayout(statusWidget_);
 
-                statusButton_ = new QPushButton(statusWidget_);
-                statusButton_->setObjectName("statusButton");
-                statusButton_->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed));
-                statusButton_->setMinimumSize(QSize(Utils::scale_value(36), Utils::scale_value(36)));
-                statusButton_->setMaximumSize(QSize(Utils::scale_value(36), Utils::scale_value(36)));
-                statusButton_->setFlat(true);
-                statusButton_->setIconSize(QSize(Utils::scale_value(24), Utils::scale_value(24)));
-                statusButton_->setFocusPolicy(Qt::NoFocus);
-                statusButton_->setCursor(Qt::CursorShape::PointingHandCursor);
-
-                statusMenu_ = new FlatMenu(statusButton_);
-                statusMenu_->setObjectName("statusMenu");
-                statusMenu_->addAction(
-                    QIcon(Utils::parse_image_name(build::is_icq()
-                        ? ":/resources/statuses/status_online_100.png"
-                        : ":/resources/statuses/status_online_agent_100.png")),
-                    QT_TRANSLATE_NOOP("sidebar", "Online"), this, SLOT(menuStateOnline()));
-                statusMenu_->addAction(
-                    QIcon(Utils::parse_image_name(build::is_icq()
-                        ? ":/resources/statuses/status_dnd_100.png"
-                        : ":/resources/statuses/status_dnd_agent_100.png")),
-                    QT_TRANSLATE_NOOP("sidebar", "Do not disturb"), this, SLOT(menuStateDoNotDisturb()));
-                statusMenu_->addAction(
-                    QIcon(Utils::parse_image_name(build::is_icq()
-                        ? ":/resources/statuses/status_invisible_100.png"
-                        : ":/resources/statuses/status_invisible_agent_100.png")),
-                    QT_TRANSLATE_NOOP("sidebar", "Invisible"), this, SLOT(menuStateInvisible()));
-
-                statusLabel_ = new LabelEx(statusWidget_);
-                statusLabel_->setObjectName("statusLabel");
-                statusLayout_->addWidget(statusLabel_);
-
-                statusLayout_->addWidget(statusButton_);
-                statusButton_->setMenu(statusMenu_);
+                statusLabel_ = new LabelEx(mainWidget_);
+                statusLabel_->setFont(Fonts::appFontScaled(14));
+                statusLabel_->setColor(CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT));
 
                 Utils::grabTouchWidget(statusLabel_);
-                Utils::grabTouchWidget(statusMenu_);
-                Utils::grabTouchWidget(statusWidget_);
-                horLayoutIn->addWidget(statusWidget_);
+                horLayoutIn->addWidget(statusLabel_);
                 horLayoutIn->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Preferred));
                 rootLayout->addLayout(horLayoutIn);
             }
@@ -633,32 +609,29 @@ namespace Ui
                 auto horLayoutIn = Utils::emptyHLayout();
                 horLayoutIn->setContentsMargins(Utils::scale_value(LEFT_MARGIN), 0, Utils::scale_value(HOR_PADDING), 0);
                 ignoreWidget_ = new QWidget(mainWidget_);
-                ignoreWidget_->setStyleSheet("background: #fbdbd9;");
+                ignoreWidget_->setStyleSheet(qsl("background-color: #fbdbd9;"));
                 {
                     auto ignoreLayout = Utils::emptyVLayout(ignoreWidget_);
                     {
                         auto vLayout = new QVBoxLayout();
-                        vLayout->setSpacing(Utils::scale_value(ignore_spacing));
-                        vLayout->setContentsMargins(Utils::scale_value(back_button_spacing), Utils::scale_value(ignore_margins), Utils::scale_value(back_button_spacing), Utils::scale_value(ignore_margins));
-                        auto label = new QLabel(ignoreWidget_);
-                        label->setWordWrap(true);
-                        label->setFont(Fonts::appFontScaled(16));
-                        QPalette p;
-                        p.setColor(QPalette::Foreground, CommonStyle::getTextCommonColor());
-                        label->setPalette(p);
-                        label->setText(QT_TRANSLATE_NOOP("sidebar", "This contact is in the ignore list"));
-                        vLayout->addWidget(label);
-                        ignoreLabel_ = new LabelEx(ignoreWidget_);
-                        ignoreLabel_->setFont(Fonts::appFontScaled(16));
-                        p.setColor(QPalette::Foreground, Ui::CommonStyle::getRedLinkColor());
-                        ignoreLabel_->setPalette(p);
-                        ignoreLabel_->setText(QT_TRANSLATE_NOOP("sidebar", "Delete"));
-                        ignoreLabel_->setCursor(QCursor(Qt::PointingHandCursor));
-                        vLayout->addWidget(ignoreLabel_);
+                        vLayout->setSpacing(Utils::scale_value(4));
+                        vLayout->setContentsMargins(Utils::scale_value(back_button_spacing), Utils::scale_value(buttons_margin), Utils::scale_value(back_button_spacing), Utils::scale_value(buttons_margin));
+                        auto ignoreText = new LabelEx(ignoreWidget_);
+                        ignoreText->setWordWrap(true);
+                        ignoreText->setFont(Fonts::appFontScaled(16));
+                        ignoreText->setColor(CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY));
+                        ignoreText->setText(QT_TRANSLATE_NOOP("sidebar", "This contact is in the ignore list"));
+                        vLayout->addWidget(ignoreText);
+                        ignoreDelete_ = new LabelEx(ignoreWidget_);
+                        ignoreDelete_->setFont(Fonts::appFontScaled(16));
+                        ignoreDelete_->setColor(CommonStyle::getColor(CommonStyle::Color::TEXT_RED));
+                        ignoreDelete_->setText(QT_TRANSLATE_NOOP("sidebar", "Delete"));
+                        ignoreDelete_->setCursor(QCursor(Qt::PointingHandCursor));
+                        vLayout->addWidget(ignoreDelete_);
                         ignoreLayout->addLayout(vLayout);
                     }
                 }
-                Utils::grabTouchWidget(ignoreLabel_);
+                Utils::grabTouchWidget(ignoreDelete_);
                 Utils::grabTouchWidget(ignoreWidget_);
                 horLayoutIn->addWidget(ignoreWidget_);
                 horLayoutIn->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::Expanding));
@@ -670,29 +643,29 @@ namespace Ui
                 auto hLayout = new QHBoxLayout(buttonWidget_);
                 hLayout->setContentsMargins(Utils::scale_value(LEFT_MARGIN), 0, 0, Utils::scale_value(buttons_margin));
                 hLayout->setSpacing(Utils::scale_value(buttons_spacing));
-                addButton_ = new CustomButton(mainWidget_, ":/resources/contr_addpeople_big_100.png");
-                addButton_->setHoverImage(":/resources/contr_addpeople_big_100_hover.png");
+                addButton_ = new CustomButton(mainWidget_, qsl(":/resources/profile_page/addpeople_100.png"));
+                addButton_->setHoverImage(qsl(":/resources/profile_page/addpeople_100_hover.png"));
                 addButton_->setFixedSize(Utils::scale_value(big_button_size), Utils::scale_value(big_button_size));
                 addButton_->setCursor(QCursor(Qt::PointingHandCursor));
                 hLayout->addWidget(addButton_);
 
-                chatButton_ = new CustomButton(mainWidget_, ":/resources/contr_writemsg_big_100.png");
-                chatButton_->setHoverImage(":/resources/contr_writemsg_big_100_hover.png");
+                chatButton_ = new CustomButton(mainWidget_, qsl(":/resources/profile_page/writemsg_100.png"));
+                chatButton_->setHoverImage(qsl(":/resources/profile_page/writemsg_100_hover.png"));
                 chatButton_->setFixedSize(Utils::scale_value(big_button_size), Utils::scale_value(big_button_size));
                 chatButton_->setCursor(QCursor(Qt::PointingHandCursor));
                 hLayout->addWidget(chatButton_);
 
-                callButton_ = new CustomButton(mainWidget_, ":/resources/contr_call_big_100.png");
-                callButton_->setHoverImage(":/resources/contr_call_big_100_hover.png");
+                callButton_ = new CustomButton(mainWidget_, qsl(":/resources/profile_page/call_big_100.png"));
+                callButton_->setHoverImage(qsl(":/resources/profile_page/call_big_100_hover.png"));
                 callButton_->setFixedSize(Utils::scale_value(big_button_size), Utils::scale_value(big_button_size));
-                callButton_->setDisabledImage(":/resources/contr_call_bigdisable_100.png");
+                callButton_->setDisabledImage(qsl(":/resources/profile_page/call_bigdisable_100.png"));
                 callButton_->setCursor(QCursor(Qt::PointingHandCursor));
                 hLayout->addWidget(callButton_);
 
-                videoCall_button_ = new CustomButton(mainWidget_, ":/resources/contr_videocall_big_100.png");
-                videoCall_button_->setHoverImage(":/resources/contr_videocall_big_100_hover.png");
+                videoCall_button_ = new CustomButton(mainWidget_, qsl(":/resources/profile_page/videocall_big_100.png"));
+                videoCall_button_->setHoverImage(qsl(":/resources/profile_page/videocall_big_100_hover.png"));
                 videoCall_button_->setFixedSize(Utils::scale_value(big_button_size), Utils::scale_value(big_button_size));
-                videoCall_button_->setDisabledImage(":/resources/contr_videocall_bigdisable_100.png");
+                videoCall_button_->setDisabledImage(qsl(":/resources/profile_page/videocall_bigdisable_100.png"));
                 videoCall_button_->setCursor(QCursor(Qt::PointingHandCursor));
                 hLayout->addWidget(videoCall_button_);
 
@@ -704,6 +677,11 @@ namespace Ui
             Utils::grabTouchWidget(videoCall_button_);
             Utils::grabTouchWidget(buttonWidget_);
             rootLayout->addWidget(buttonWidget_);
+
+            shareLink_ = new ActionButton(mainWidget_, qsl(":/resources/i_share_100.png"), QT_TRANSLATE_NOOP("sidebar", "Share contact"), Utils::scale_value(button_height), 0, Utils::scale_value(HOR_PADDING));
+            shareLink_->setCursor(QCursor(Qt::PointingHandCursor));
+            Utils::grabTouchWidget(shareLink_);
+            rootLayout->addWidget(shareLink_);
 
             uin_ = new InfoPlate(mainWidget_, Utils::scale_value(LEFT_MARGIN));
             uin_->setHeader(build::is_icq() ?
@@ -746,10 +724,11 @@ namespace Ui
                 auto hLayout = Utils::emptyHLayout();
                 hLayout->setContentsMargins(Utils::scale_value(LEFT_MARGIN), 0, 0, 0);
                 hLayout->setAlignment(Qt::AlignLeft);
-                auto label = new LabelEx(chatEditWidget_);
-                label->setObjectName("editor");
-                label->setText(QT_TRANSLATE_NOOP("sidebar", "NAME"));
-                hLayout->addWidget(label);
+                auto labelName = new LabelEx(chatEditWidget_);
+                labelName->setText(QT_TRANSLATE_NOOP("sidebar", "NAME"));
+                labelName->setFont(Fonts::appFontScaled(12, Fonts::FontWeight::Medium));
+                labelName->setColor(CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT));
+                hLayout->addWidget(labelName);
                 vLayout->addLayout(hLayout);
             }
 
@@ -757,8 +736,8 @@ namespace Ui
                 auto hLayout = Utils::emptyHLayout();
                 hLayout->setContentsMargins(Utils::scale_value(LEFT_MARGIN), 0, 0, 0);
                 hLayout->setAlignment(Qt::AlignLeft);
-                nameEdit_ = new Ui::TextEditEx(chatEditWidget_, Fonts::appFontScaled(18), Ui::CommonStyle::getTextCommonColor(), true, true);
-                Utils::ApplyStyle(nameEdit_, Ui::CommonStyle::getTextEditStyle());
+                nameEdit_ = new Ui::TextEditEx(chatEditWidget_, Fonts::appFontScaled(18), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), true, true);
+                Utils::ApplyStyle(nameEdit_, CommonStyle::getTextEditStyle());
                 nameEdit_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
                 nameEdit_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
                 nameEdit_->setTextInteractionFlags(Qt::TextEditable | Qt::TextEditorInteraction);
@@ -776,10 +755,11 @@ namespace Ui
                 auto hLayout = Utils::emptyHLayout();
                 hLayout->setContentsMargins(Utils::scale_value(LEFT_MARGIN), 0, 0, 0);
                 hLayout->setAlignment(Qt::AlignLeft);
-                auto label = new LabelEx(chatEditWidget_);
-                label->setObjectName("editor");
-                label->setText(QT_TRANSLATE_NOOP("sidebar", "DESCRIPTION"));
-                hLayout->addWidget(label);
+                auto labelDescription = new LabelEx(chatEditWidget_);
+                labelDescription->setText(QT_TRANSLATE_NOOP("sidebar", "DESCRIPTION"));
+                labelDescription->setFont(Fonts::appFontScaled(12, Fonts::FontWeight::Medium));
+                labelDescription->setColor(CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT));
+                hLayout->addWidget(labelDescription);
                 vLayout->addLayout(hLayout);
             }
 
@@ -787,8 +767,8 @@ namespace Ui
                 auto hLayout = Utils::emptyHLayout();
                 hLayout->setContentsMargins(Utils::scale_value(LEFT_MARGIN), 0, 0, 0);
                 hLayout->setAlignment(Qt::AlignLeft);
-                descriptionEdit_ = new Ui::TextEditEx(chatEditWidget_, Fonts::appFontScaled(18), Ui::CommonStyle::getTextCommonColor(), true, true);
-                Utils::ApplyStyle(descriptionEdit_, Ui::CommonStyle::getTextEditStyle());
+                descriptionEdit_ = new Ui::TextEditEx(chatEditWidget_, Fonts::appFontScaled(18), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), true, true);
+                Utils::ApplyStyle(descriptionEdit_, CommonStyle::getTextEditStyle());
                 descriptionEdit_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
                 descriptionEdit_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
                 descriptionEdit_->setTextInteractionFlags(Qt::TextEditable | Qt::TextEditorInteraction);
@@ -805,23 +785,23 @@ namespace Ui
             Utils::grabTouchWidget(chatEditWidget_);
             rootLayout->addWidget(chatEditWidget_);
 
-            Line_ = new LineWidget(mainWidget_, Utils::scale_value(LEFT_MARGIN), Utils::scale_value(line_vertical_margin), Utils::scale_value(HOR_PADDING), Utils::scale_value(line_vertical_margin));
+            Line_ = new LineWidget(mainWidget_, Utils::scale_value(LEFT_MARGIN), 0, Utils::scale_value(HOR_PADDING), 0);
             Utils::grabTouchWidget(Line_);
             rootLayout->addWidget(Line_);
 
-            renameContact_ = new ActionButton(mainWidget_, ":/resources/profile_rename_100.png", QT_TRANSLATE_NOOP("sidebar", "Rename"), Utils::scale_value(button_height), 0, Utils::scale_value(HOR_PADDING));
+            renameContact_ = new ActionButton(mainWidget_, qsl(":/resources/profile_page/profile_rename_100.png"), QT_TRANSLATE_NOOP("sidebar", "Rename"), Utils::scale_value(button_height), 0, Utils::scale_value(HOR_PADDING));
             renameContact_->setCursor(QCursor(Qt::PointingHandCursor));
             Utils::grabTouchWidget(renameContact_);
             rootLayout->addWidget(renameContact_);
 
-            ignoreListButton = new ActionButton(mainWidget_, ":/resources/i_ignore_100.png", QT_TRANSLATE_NOOP("sidebar", "Ignored contacts"), Utils::scale_value(button_height), 0, Utils::scale_value(HOR_PADDING));
-            ignoreListButton->setColor("#d0021b;");
+            ignoreListButton = new ActionButton(mainWidget_, qsl(":/resources/i_ignore_100.png"), QT_TRANSLATE_NOOP("sidebar", "Ignored contacts"), Utils::scale_value(button_height), 0, Utils::scale_value(HOR_PADDING));
+            ignoreListButton->setColor(CommonStyle::getColor(CommonStyle::Color::TEXT_RED).name());
             ignoreListButton->setCursor(QCursor(Qt::PointingHandCursor));
             Utils::grabTouchWidget(ignoreListButton);
             rootLayout->addWidget(ignoreListButton);
 
-            attachOldAcc = new ActionButton(mainWidget_, ":/resources/profile_oldaccount_100.png", QT_TRANSLATE_NOOP("sidebar", "Connect to ICQ account"), Utils::scale_value(button_height), 0, Utils::scale_value(HOR_PADDING));
-            attachOldAcc->setStyleSheet("color: #579e1c;");
+            attachOldAcc = new ActionButton(mainWidget_, qsl(":/resources/profile_page/profile_oldaccount_100.png"), QT_TRANSLATE_NOOP("sidebar", "Connect to ICQ account"), Utils::scale_value(button_height), 0, Utils::scale_value(HOR_PADDING));
+            attachOldAcc->setColor(CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT).name());
             attachOldAcc->setCursor(QCursor(Qt::PointingHandCursor));
             Utils::grabTouchWidget(attachOldAcc);
             rootLayout->addWidget(attachOldAcc);
@@ -832,32 +812,33 @@ namespace Ui
 
         }
 
-        connect(ignoreLabel_, SIGNAL(clicked()), this, SLOT(removeFromIgnore()), Qt::QueuedConnection);
-        connect(Logic::getContactListModel(), SIGNAL(contactChanged(QString)), this, SLOT(contactChanged(QString)), Qt::QueuedConnection);
-        connect(Logic::getContactListModel(), SIGNAL(contact_removed(QString)), this, SLOT(contactRemoved(QString)), Qt::QueuedConnection);
+        connect(ignoreDelete_, &Ui::LabelEx::clicked, this, &ProfilePage::removeFromIgnore, Qt::QueuedConnection);
+        connect(Logic::getContactListModel(), &Logic::ContactListModel::contactChanged, this, &ProfilePage::contactChanged, Qt::QueuedConnection);
+        connect(Logic::getContactListModel(), &Logic::ContactListModel::contact_removed, this, &ProfilePage::contactRemoved, Qt::QueuedConnection);
 
-        connect(addButton_, SIGNAL(clicked()), this, SLOT(addClicked()), Qt::QueuedConnection);
-        connect(chatButton_, SIGNAL(clicked()), this, SLOT(chatClicked()), Qt::QueuedConnection);
-        connect(callButton_, SIGNAL(clicked()), this, SLOT(callClicked()), Qt::QueuedConnection);
-        connect(videoCall_button_, SIGNAL(clicked()), this, SLOT(videoClicked()), Qt::QueuedConnection);
-        connect(backButton_, SIGNAL(clicked()), this, SLOT(back()), Qt::QueuedConnection);
+        connect(addButton_, &Ui::CustomButton::clicked, this, &ProfilePage::addClicked, Qt::QueuedConnection);
+        connect(chatButton_, &Ui::CustomButton::clicked, this, &ProfilePage::chatClicked, Qt::QueuedConnection);
+        connect(callButton_, &Ui::CustomButton::clicked, this, &ProfilePage::callClicked, Qt::QueuedConnection);
+        connect(videoCall_button_, &Ui::CustomButton::clicked, this, &ProfilePage::videoClicked, Qt::QueuedConnection);
+        connect(backButton_, &Ui::CustomButton::clicked, this, &ProfilePage::back, Qt::QueuedConnection);
 
-        connect(renameContact_, SIGNAL(clicked()), this, SLOT(rename()), Qt::QueuedConnection);
-        connect(ignoreListButton, SIGNAL(clicked()), this, SLOT(ignoreList()), Qt::QueuedConnection);
-        connect(attachOldAcc, SIGNAL(clicked()), this, SLOT(attachOld()), Qt::QueuedConnection);
-        connect(editLabel_, SIGNAL(clicked()), this, SLOT(editClicked()), Qt::QueuedConnection);
-        connect(statusLabel_, SIGNAL(clicked()), this, SLOT(statusClicked()), Qt::QueuedConnection);
-        connect(saveButton_, SIGNAL(clicked()), this, SLOT(saveClicked()), Qt::QueuedConnection);
+        connect(shareLink_, &ActionButton::clicked, this, &ProfilePage::copyLinkClicked, Qt::QueuedConnection);
+
+        connect(renameContact_, &ActionButton::clicked, this, &ProfilePage::rename, Qt::QueuedConnection);
+        connect(ignoreListButton, &ActionButton::clicked, this, &ProfilePage::ignoreList, Qt::QueuedConnection);
+        connect(attachOldAcc, &ActionButton::clicked, this, &ProfilePage::attachOld, Qt::QueuedConnection);
+        connect(editLabel_, &Ui::LabelEx::clicked, this, &ProfilePage::editClicked, Qt::QueuedConnection);
+        connect(saveButton_, &QPushButton::clicked, this, &ProfilePage::saveClicked, Qt::QueuedConnection);
 
         connect(avatar_, &Ui::ContactAvatarWidget::afterAvatarChanged, this, &Ui::ProfilePage::avatarChanged, Qt::QueuedConnection);
     }
 
-    void ProfilePage::chatInfo(qint64, std::shared_ptr<Data::ChatInfo> info)
+    void ProfilePage::chatInfo(qint64, const std::shared_ptr<Data::ChatInfo>& info)
     {
         if (info->AimId_ == currentAimId_)
         {
             info_ = info;
-            if (info_->YourRole_ == "admin" || info_->Controlled_ == false)
+            if (info_->Controlled_ == false || info_->YourRole_ == ql1s("admin"))
             {
                 avatar_->SetMode(ContactAvatarWidget::Mode::MyProfile);
                 if (QApplication::focusWidget() != nameEdit_)
@@ -881,13 +862,13 @@ namespace Ui
         deleteMemberDialog(Logic::getIgnoreModel(), currentAimId_, Logic::IGNORE_LIST, this);
     }
 
-    void ProfilePage::contactChanged(QString aimId)
+    void ProfilePage::contactChanged(const QString& aimId)
     {
         if (aimId == currentAimId_)
-            initFor(MyInfo()->aimId() == aimId ? "" : aimId);
+            initFor(MyInfo()->aimId() == aimId ? QString() : aimId);
     }
 
-    void ProfilePage::contactRemoved(QString aimId)
+    void ProfilePage::contactRemoved(const QString& aimId)
     {
         if (aimId == currentAimId_)
             Utils::InterConnector::instance().setSidebarVisible(false);
@@ -895,12 +876,12 @@ namespace Ui
 
     void ProfilePage::changed()
     {
-        initFor("");
+        initFor(QString());
     }
 
     void ProfilePage::updateStatus()
     {
-        statusWidget_->hide();
+        statusLabel_->hide();
         if (Logic::getContactListModel()->isChat(currentAimId_))
             return;
 
@@ -914,32 +895,38 @@ namespace Ui
             state = Logic::getContactListModel()->getStatusString(currentAimId_);
         }
 
-        QPalette p;
-        p.setColor(QPalette::Foreground, QColor("#579e1c"));
-        statusLabel_->setPalette(p);
         statusLabel_->setText(state);
-        statusLabel_->adjustSize();
 
         if (!state.isEmpty())
         {
-            statusWidget_->show();
+            statusLabel_->show();
         }
     }
 
     void ProfilePage::addClicked()
     {
+        emit Utils::InterConnector::instance().closeAnySemitransparentWindow();
+
         Logic::getContactListModel()->addContactToCL(currentAimId_);
         GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::add_user_profile_page);
     }
 
     void ProfilePage::chatClicked()
     {
-        Logic::getContactListModel()->setCurrent(currentAimId_, -1, true, true);
+        emit Utils::InterConnector::instance().closeAnySemitransparentWindow();
+
+        const auto selectedContact = Logic::getContactListModel()->selectedContact();
+        if (selectedContact != currentAimId_)
+            emit Utils::InterConnector::instance().addPageToDialogHistory(selectedContact);
+
+        Logic::getContactListModel()->setCurrent(currentAimId_, -1, true);
         GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::profile_write_message);
     }
 
     void ProfilePage::callClicked()
     {
+        emit Utils::InterConnector::instance().closeAnySemitransparentWindow();
+
         Ui::GetDispatcher()->getVoipController().setStartA(currentAimId_.toUtf8(), false);
         if (MainPage* mainPage = MainPage::instance()) {
             mainPage->raiseVideoWindow();
@@ -949,6 +936,8 @@ namespace Ui
 
     void ProfilePage::videoClicked()
     {
+        emit Utils::InterConnector::instance().closeAnySemitransparentWindow();
+
         Ui::GetDispatcher()->getVoipController().setStartV(currentAimId_.toUtf8(), false);
         if (MainPage* mainPage = MainPage::instance()) {
             mainPage->raiseVideoWindow();
@@ -979,7 +968,7 @@ namespace Ui
         auto result = Utils::NameEditor(
             this,
             Logic::getContactListModel()->getDisplayName(currentAimId_),
-            QT_TRANSLATE_NOOP("sidebar","Save"),
+            QT_TRANSLATE_NOOP("sidebar","SAVE"),
             isChat ? QT_TRANSLATE_NOOP("sidebar", "Chat name") : QT_TRANSLATE_NOOP("sidebar", "Contact name"),
             result_chat_name);
 
@@ -1019,34 +1008,19 @@ namespace Ui
         updateWidth();
     }
 
-    void ProfilePage::menuStateOnline()
-    {
-        setState(core::profile_state::online);
-    }
-    void ProfilePage::menuStateDoNotDisturb()
-    {
-        setState(core::profile_state::dnd);
-    }
-
-    void ProfilePage::menuStateInvisible()
-    {
-        setState(core::profile_state::invisible);
-    }
-
     void ProfilePage::ignoreList()
     {
         GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::ignorelist_open);
         QVector<QString> temp;
         Logic::updateIgnoredModel(temp);
-        Logic::getSearchMemberModel()->setChatMembersModel(Logic::getIgnoreModel());
 
         SelectContactsWidget select_members_dialog_(
             Logic::getIgnoreModel(),
             Logic::MembersWidgetRegim::IGNORE_LIST,
             QT_TRANSLATE_NOOP("popup_window", "Ignored contacts"),
-            QT_TRANSLATE_NOOP("popup_window", "Done"), QString(),
+            QT_TRANSLATE_NOOP("popup_window", "DONE"),
             this);
-        auto connectId = connect(GetDispatcher(), SIGNAL(recvPermitDeny(bool)), &select_members_dialog_, SLOT(UpdateViewForIgnoreList(bool)), Qt::QueuedConnection);
+        connect(GetDispatcher(), &core_dispatcher::recvPermitDeny, &select_members_dialog_, &SelectContactsWidget::UpdateViewForIgnoreList, Qt::QueuedConnection);
 
         Logic::ContactListModel::getIgnoreList();
         select_members_dialog_.setView(false);
@@ -1057,18 +1031,16 @@ namespace Ui
     {
         if (build::is_icq())
         {
-            auto url = QString("https://icq.com/people/%1/edit").arg(currentAimId_);
+            const auto url = qsl("https://icq.com/people/%1/edit").arg(currentAimId_);
             core::coll_helper helper(GetDispatcher()->create_collection(), true);
             helper.set_value_as_string("url", url.toStdString());
-            GetDispatcher()->post_message_to_core("sign_url", helper.get());
+            GetDispatcher()->post_message_to_core(qsl("sign_url"), helper.get());
             GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::myprofile_edit);
 
-            GetDispatcher()->disconnect(SIGNAL(signedUrl(QString)));
-            connect(GetDispatcher(), &core_dispatcher::signedUrl, [](QString url)
+            disconnect(GetDispatcher(), &core_dispatcher::signedUrl, nullptr, nullptr);
+            connect(GetDispatcher(), &core_dispatcher::signedUrl, this, [](const QString& url)
             {
-                Utils::InterConnector::instance().unsetUrlHandler();
                 QDesktopServices::openUrl(url);
-                Utils::InterConnector::instance().setUrlHandler();
             });
         }
         else
@@ -1077,19 +1049,13 @@ namespace Ui
 
             collection.set_value_as_qstring("email", currentAimId_);
 
-            Ui::GetDispatcher()->post_message_to_core("mrim/get_key", collection.get(), this, [this](core::icollection* _collection)
+            Ui::GetDispatcher()->post_message_to_core(qsl("mrim/get_key"), collection.get(), this, [this](core::icollection* _collection)
             {
-                const QString profileUrl = "https://e.mail.ru/settings/userinfo";
+                const QString profileUrl = qsl("https://e.mail.ru/settings/userinfo");
 
-                Utils::openAgentUrl(profileUrl, profileUrl, currentAimId_, Ui::gui_coll_helper(_collection, false).get_value_as_string("key"));
+                Utils::openAgentUrl(profileUrl, profileUrl, currentAimId_, QString::fromUtf8(Ui::gui_coll_helper(_collection, false).get_value_as_string("key")));
             });
         }
-    }
-
-    void ProfilePage::statusClicked()
-    {
-        if (myInfo_)
-            statusMenu_->popup(QCursor::pos());
     }
 
     void ProfilePage::saveClicked()
@@ -1104,7 +1070,7 @@ namespace Ui
                     Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
                     collection.set_value_as_qstring("aimid", currentAimId_);
                     collection.set_value_as_qstring("name", name);
-                    Ui::GetDispatcher()->post_message_to_core("chats/mod/name", collection.get());
+                    Ui::GetDispatcher()->post_message_to_core(qsl("chats/mod/name"), collection.get());
                 }
                 else
                 {
@@ -1117,7 +1083,7 @@ namespace Ui
                 Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
                 collection.set_value_as_qstring("aimid", currentAimId_);
                 collection.set_value_as_qstring("about", desc);
-                Ui::GetDispatcher()->post_message_to_core("chats/mod/about", collection.get());
+                Ui::GetDispatcher()->post_message_to_core(qsl("chats/mod/about"), collection.get());
             }
         }
         back();
@@ -1132,22 +1098,6 @@ namespace Ui
     {
         connectOldVisible_ = flags & 0x1000;
         attachOldAcc->setVisible(myInfo_ && connectOldVisible_);
-    }
-
-    void ProfilePage::setState(const core::profile_state _state)
-    {
-        assert(_state > core::profile_state::min);
-        assert(_state < core::profile_state::max);
-
-        Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
-
-        std::stringstream stream;
-        stream << _state;
-
-        collection.set_value_as_string("state", stream.str());
-        collection.set_value_as_string("aimid", MyInfo()->aimId().toStdString());
-        Ui::GetDispatcher()->post_message_to_core("set_state", collection.get());
-        GetDispatcher()->post_stats_to_core(stateToStatisticsEvent(_state));
     }
 
     void ProfilePage::avatarChanged()

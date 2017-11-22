@@ -6,7 +6,7 @@ using namespace core;
 using namespace tools;
 
 fast_binary_stream::fast_binary_stream()
-    :	size_(0), cursor_(0)
+    : size_(0), cursor_(0)
 {
 }
 
@@ -28,10 +28,8 @@ void fast_binary_stream::copy(const fast_binary_stream& _stream)
     size_ = _stream.size_;
     cursor_ = _stream.cursor_;
 
-    for (auto iter = _stream.data_.begin(); iter != _stream.data_.end(); iter++)
-    {
-        data_.push_back(data_buffer_pointer(new data_buffer(*iter->get())));
-    }
+    for (const auto& x : _stream.data_)
+        data_.push_back(std::make_shared<data_buffer>(*x));
 }
 
 fast_binary_stream::~fast_binary_stream()
@@ -52,12 +50,12 @@ void fast_binary_stream::seek(uint32_t _pos)
     cursor_ = _pos;
 }
 
-void fast_binary_stream::write(char* _lpData, uint32_t _size)
+void fast_binary_stream::write(const char* _lpData, uint32_t _size)
 {
     if (!_size || !_lpData)
         return;
 
-    data_.push_back(data_buffer_pointer(new data_buffer(_lpData, _lpData + _size)));
+    data_.push_back(std::make_shared<data_buffer>(_lpData, _lpData + _size));
 
     size_ += _size;
 }
@@ -83,12 +81,12 @@ char* fast_binary_stream::read(uint32_t _size)
             break;
 
         skip_size += ptr_data->size();
-        iter_l++;
+        ++iter_l;
     }
 
     uint32_t pos_in_block = cursor_ - skip_size;
 
-    for (; iter_l != data_.end(); iter_l++)
+    for (; iter_l != data_.end(); ++iter_l)
     {
         data_buffer_pointer ptr_data = (*iter_l);
 
@@ -115,7 +113,7 @@ char* fast_binary_stream::read(uint32_t _size)
 fast_binary_stream::data_buffer_pointer fast_binary_stream::get_return_data_buffer(uint32_t _size)
 {
     if (!return_buffer_)
-        return_buffer_.reset(new data_buffer(_size));
+        return_buffer_ = std::make_shared<data_buffer>(_size);
 
     if (return_buffer_->size() < _size)
         return_buffer_->resize(_size);
@@ -142,19 +140,17 @@ bool fast_binary_stream::save_2_file(const std::wstring& _file_name) const
             return false;
     }
 
-    std::wstring temp_file_name = _file_name + L".tmp";
+    const std::wstring temp_file_name = _file_name + L".tmp";
 
     {
         auto outfile = tools::system::open_file_for_write(temp_file_name, std::ofstream::binary | std::ofstream::trunc);
         if (!outfile.is_open())
             return false;
 
-        auto_scope end_scope_call([&outfile]	{ outfile.close(); });
+        auto_scope end_scope_call([&outfile] { outfile.close(); });
 
-        for (auto iter_l = data_.begin(); iter_l != data_.end(); iter_l++)
+        for (const auto& ptr_data : data_)
         {
-            data_buffer_pointer ptr_data = (*iter_l);
-
             outfile.write((const char*) &ptr_data->operator [](0), ptr_data->size());
 
             if (!outfile.good())
@@ -177,7 +173,7 @@ bool fast_binary_stream::load_from_file(const std::wstring& _file_name)
     if (!infile.is_open())
         return false;
 
-    auto_scope end_scope_call([&infile]	{ infile.close(); });
+    auto_scope end_scope_call([&infile] { infile.close(); });
 
     const int32_t mem_block_size = 1024*64;
 

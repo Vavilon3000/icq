@@ -14,17 +14,17 @@ namespace HistoryControl
     {
         IsOutgoing_ = info.get_value_as_bool("outgoing");
 
-        UploadingProcessId_ = info.get_value_as_string("uploading_id", "");
+        UploadingProcessId_ = QString::fromUtf8(info.get_value_as_string("uploading_id", ""));
 
         if (info.is_value_exist("local_path"))
         {
             assert(!info.is_value_exist("uri"));
             assert(IsOutgoing_);
-            LocalPath_ = info.get_value_as_string("local_path");
+            LocalPath_ = QString::fromUtf8(info.get_value_as_string("local_path"));
         }
         else
         {
-            Uri_ = info.get_value_as_string("uri");
+            Uri_ = QString::fromUtf8(info.get_value_as_string("uri"));
             assert(!Uri_.isEmpty());
         }
 
@@ -39,8 +39,7 @@ namespace HistoryControl
         const auto height = info.get_value_as_int("height");
         assert(width > 0);
         assert(height > 0);
-
-        Size_.reset(new QSize(width, height));
+        Size_ = std::make_unique<QSize>(width, height);
     }
 
     const QString& FileSharingInfo::GetUri() const
@@ -98,26 +97,18 @@ namespace HistoryControl
 
     QString FileSharingInfo::ToLogString() const
     {
-        QString logStr;
-        logStr.reserve(512);
-
-        logStr += "\toutgoing=<";
-        logStr += logutils::yn(IsOutgoing_);
-        logStr += ">\n";
-
-        logStr += "\tlocal_path=<";
-        logStr += LocalPath_;
-        logStr += ">\n";
-
-        logStr += "\tuploading_id=<";
-        logStr += UploadingProcessId_;
-        logStr += ">\n";
-
-        logStr += "\turi=<";
-        logStr += Uri_;
-        logStr += ">";
-
-        return logStr;
+        return ql1s("\toutgoing=<")
+        % ql1s(logutils::yn(IsOutgoing_))
+        % ql1s(">\n")
+        % ql1s("\tlocal_path=<")
+        % LocalPath_
+        % ql1s(">\n")
+        % ql1s("\tuploading_id=<")
+        % UploadingProcessId_
+        % ql1s(">\n")
+        % ql1s("\turi=<")
+        % Uri_
+        % ql1c('>');
     }
 
     core::file_sharing_content_type FileSharingInfo::getContentType() const

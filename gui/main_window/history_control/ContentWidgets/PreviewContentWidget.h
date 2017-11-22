@@ -18,11 +18,11 @@ namespace HistoryControl
     public:
         PreviewContentWidget(QWidget *parent, const bool isOutgoing, const QString &text, const bool previewsEnabled, QString _aimId);
 
-        const QRect& getLastPreviewGeometry() const;
+        QRect getLastPreviewGeometry() override;
 
         virtual bool hasTextBubble() const override;
 
-        virtual void render(QPainter &p, const QColor& quate_color) override final;
+        virtual void render(QPainter &p, const QColor& _quoteColor) override final;
 
         virtual void select(const bool value) override;
 
@@ -34,9 +34,9 @@ namespace HistoryControl
 
         virtual void onActivityChanged(const bool isActive) {}
 
-        virtual void onVisibilityChanged(const bool isVisible) {}
+        virtual void onVisibilityChanged(const bool isVisible) override{}
 
-        virtual void onDistanceToViewportChanged(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect) {}
+        virtual void onDistanceToViewportChanged(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect) override {}
 
         QSharedPointer<Ui::DialogPlayer> videoPlayer_;
 

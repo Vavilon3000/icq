@@ -13,7 +13,6 @@
 #include "types/link_metadata.h"
 #include "types/message.h"
 #include "types/typing.h"
-#include "types/snap.h"
 
 namespace voip_manager
 {
@@ -44,6 +43,11 @@ namespace Utils
     struct ProxySettings;
 }
 
+namespace stickers
+{
+    enum class sticker_size;
+}
+
 namespace Ui
 {
     typedef std::function<void(int64_t, core::coll_helper&)> message_function;
@@ -53,9 +57,9 @@ namespace Ui
         _message_string, \
         std::bind(&core_dispatcher::_callback, this, std::placeholders::_1, std::placeholders::_2));
 
-    namespace stickers
+    namespace Stickers
     {
-        enum class sticker_size;
+        class Set;
     }
 
     class gui_signal : public QObject
@@ -64,8 +68,7 @@ namespace Ui
     public:
 
 Q_SIGNALS:
-        void received(const QString, const qint64, core::icollection*);
-
+        void received(const QString&, const qint64, core::icollection*);
     };
 
     class gui_connector : public gui_signal, public core::iconnector
@@ -91,6 +94,7 @@ Q_SIGNALS:
         Requested,
         FromServer,
         DlgState,
+        Intro,
         Pending,
         Init,
         MessageStatus,
@@ -106,82 +110,93 @@ Q_SIGNALS:
 
 Q_SIGNALS:
         void needLogin(const bool _is_auth_error);
-        void contactList(std::shared_ptr<Data::ContactList>, QString);
+        void contactList(const std::shared_ptr<Data::ContactList>&, const QString&);
         void im_created();
         void loginComplete();
-        void getImagesResult(Data::ImageListPtr images);
-        void messageBuddies(std::shared_ptr<Data::MessageBuddies>, QString, Ui::MessagesBuddiesOpt, bool, qint64, int64_t last_msg_id);
+        void getImagesResult(const Data::ImageListPtr& images);
+        void messageBuddies(const Data::MessageBuddies&, const QString&, Ui::MessagesBuddiesOpt, bool, qint64, int64_t last_msg_id);
+        void messageIdsFromServer(const QVector<qint64>&, const QString&, qint64);
         void getSmsResult(int64_t, int _errCode, int _codeLength);
         void loginResult(int64_t, int code);
         void loginResultAttachUin(int64_t, int _code);
         void loginResultAttachPhone(int64_t, int _code);
         void avatarLoaded(const QString&, QPixmap*, int);
         void avatarUpdated(const QString &);
-        
-        void presense(Data::Buddy*);
-        void searchResult(QStringList);
-        void dlgStates(std::shared_ptr<QList<Data::DlgState>>);
-        void searchedMessage(Data::DlgState);
-        void searchedContacts(QList<Data::DlgState>, qint64);
+
+        void presense(const std::shared_ptr<Data::Buddy>&);
+        void outgoingMsgCount(const QString& _aimid, const int _count);
+        void searchResult(const QStringList&);
+        void dlgStates(const QVector<Data::DlgState>&);
+        void searchedMessage(const Data::DlgState&);
+        void searchedContacts(const QVector<Data::DlgState>&, qint64);
         void emptySearchResults(qint64);
-        void activeDialogHide(QString);
+        void activeDialogHide(const QString&);
         void guiSettings();
         void coreLogins(const bool _has_valid_login);
         void themeSettings();
-        void chatInfo(qint64, std::shared_ptr<Data::ChatInfo>);
-        void chatBlocked(QList<Data::ChatMemberInfo>);
-        void chatPending(QList<Data::ChatMemberInfo>);
+        void chatInfo(qint64, const std::shared_ptr<Data::ChatInfo>&);
+        void chatBlocked(const QVector<Data::ChatMemberInfo>&);
+        void chatPending(const QVector<Data::ChatMemberInfo>&);
         void chatInfoFailed(qint64, core::group_chat_info_errors);
         void myInfo();
         void login_new_user();
-        void messagesDeleted(QString, QList<int64_t>);
-        void messagesDeletedUpTo(QString, int64_t);
-        void messagesModified(QString, std::shared_ptr<Data::MessageBuddies>);
+        void messagesDeleted(const QString&, const QVector<int64_t>&);
+        void messagesDeletedUpTo(const QString&, int64_t);
+        void messagesModified(const QString&, const Data::MessageBuddies&);
+        void mentionMe(const QString& _contact, Data::MessageBuddySptr _mention);
 
-        void typingStatus(Logic::TypingFires _typing, bool _isTyping);
+        void typingStatus(const Logic::TypingFires& _typing, bool _isTyping);
 
-        void messagesReceived(QString, QVector< QString >);
+        void messagesReceived(const QString&, const QVector<QString>&);
 
-        void contactRemoved(QString);
-        void openChat(QString _aimid);
+        void contactRemoved(const QString&);
+        void openChat(const QString& _aimid);
 
         void feedbackSent(bool);
 
         // sticker signals
         void onStickers();
-        void onSticker(qint32 _setId, qint32 _stickerId);
+        void onSticker(
+            const qint32 _error,
+            const qint32 _setId,
+            const qint32 _stickerId);
+        void onStore();
+
+        void onSetBigIcon(const qint32 _error, const qint32 _setId);
+
+        void onStickerpackInfo(const bool _result, const std::shared_ptr<Ui::Stickers::Set>& _set);
 
         void onThemesMeta();
         void onThemesMetaError();
         void onTheme(int,bool);
 
         // remote files signals
-        void imageDownloaded(qint64 _seq, QString _rawUri, QPixmap _image, QString _localPath);
-        void imageMetaDownloaded(qint64 _seq, Data::LinkMetadata _meta);
+        void imageDownloaded(qint64 _seq, const QString& _rawUri, const QPixmap& _image, const QString& _localPath);
+        void imageMetaDownloaded(qint64 _seq, const Data::LinkMetadata& _meta);
         void imageDownloadingProgress(qint64 _seq, int64_t _bytesTotal, int64_t _bytesTransferred, int32_t _pctTransferred);
-        void imageDownloadError(int64_t _seq, QString _rawUri);
+        void imageDownloadError(int64_t _seq, const QString& _rawUri);
 
-        void fileSharingError(qint64 _seq, QString _rawUri, qint32 _errorCode);
+        void fileSharingError(qint64 _seq, const QString& _rawUri, qint32 _errorCode);
 
-        void fileSharingFileDownloaded(qint64 _seq, QString _rawUri, QString _localPath);
-        void fileSharingFileDownloading(qint64 _seq, QString _rawUri, qint64 _bytesTransferred, qint64 _bytesTotal);
+        void fileSharingFileDownloaded(qint64 _seq, const QString& _rawUri, const QString& _localPath);
+        void fileSharingFileDownloading(qint64 _seq, const QString& _rawUri, qint64 _bytesTransferred, qint64 _bytesTotal);
 
-        void fileSharingFileMetainfoDownloaded(qint64 _seq, QString _fileName, QString _downloadUri, qint64 _size);
-        void fileSharingPreviewMetainfoDownloaded(qint64 _seq, QString _miniPreviewUri, QString _fullPreviewUri);
+        void fileSharingFileMetainfoDownloaded(qint64 _seq, const QString& _fileName, const QString& _downloadUri, qint64 _size);
+        void fileSharingPreviewMetainfoDownloaded(qint64 _seq, const QString& _miniPreviewUri, const QString& _fullPreviewUri);
 
-        void fileSharingLocalCopyCheckCompleted(qint64 _seq, bool _success, QString _localPath);
+        void fileSharingLocalCopyCheckCompleted(qint64 _seq, bool _success, const QString& _localPath);
 
-        void fileSharingUploadingProgress(QString _uploadingId, qint64 _bytesTransferred);
-        void fileSharingUploadingResult(QString _seq, bool _success, QString localPath, QString _uri, int _contentType, bool _isFileTooBig);
+        void fileSharingUploadingProgress(const QString& _uploadingId, qint64 _bytesTransferred);
+        void fileSharingUploadingResult(const QString& _seq, bool _success, const QString& localPath, const QString& _uri, int _contentType, bool _isFileTooBig);
 
-        void linkMetainfoMetaDownloaded(int64_t _seq, bool _success, Data::LinkMetadata _meta);
-        void linkMetainfoImageDownloaded(int64_t _seq, bool _success, QPixmap _image);
-        void linkMetainfoFaviconDownloaded(int64_t _seq, bool _success, QPixmap _image);
+        void linkMetainfoMetaDownloaded(int64_t _seq, bool _success, const Data::LinkMetadata& _meta);
+        void linkMetainfoImageDownloaded(int64_t _seq, bool _success, const QPixmap& _image);
+        void linkMetainfoFaviconDownloaded(int64_t _seq, bool _success, const QPixmap& _image);
 
-        void signedUrl(QString);
-        void speechToText(qint64 _seq, int _error, QString _text, int _comeback);
+        void signedUrl(const QString&);
+        void speechToText(qint64 _seq, int _error, const QString& _text, int _comeback);
 
-        void chatsHome(QList<Data::ChatInfo>, QString, bool, bool);
+        void chatsHome(const QVector<Data::ChatInfo>&, const QString&, bool, bool);
         void chatsHomeError(int);
 
         void recvPermitDeny(bool);
@@ -194,12 +209,10 @@ Q_SIGNALS:
         void blockMemberResult(int);
         void pendingListResult(int);
 
-        void phoneInfoResult(qint64, Data::PhoneInfo);
-        void snapMetainfoDownloaded(int64_t _seq, bool _success, uint64_t _snapId, int64_t _expireUtc, QString _authorUin, QString _authorName);
-        void snapPreviewInfoDownloaded(qint64 _snapId, QString _mini_preview, QString _ttl_id, bool _found);
+        void phoneInfoResult(qint64, const Data::PhoneInfo&);
 
         // masks
-        void maskListLoaded(QList<QString> maskList);
+        void maskListLoaded(const QList<QString>& maskList);
         void maskPreviewLoaded(int64_t _seq, const QString& _localPath);
         void maskModelLoaded();
         void maskLoaded(int64_t _seq, const QString& _localPath);
@@ -208,17 +221,14 @@ Q_SIGNALS:
 
         void appConfig();
 
-        void mailStatus(QString, unsigned, bool);
-        void newMail(QString, QString, QString, QString);
-        void mrimKey(qint64, QString);
+        void mailStatus(const QString&, unsigned, bool);
+        void newMail(const QString&, const QString&, const QString&, const QString&);
+        void mrimKey(qint64, const QString&);
 
-        void historyUpdate(QString, qint64);
-        void userSnaps(Logic::UserSnapsInfo, bool);
-        void userSnapsState(Logic::SnapState);
-        void userSnapsStorage(QList<Logic::UserSnapsInfo>, bool);
+        void historyUpdate(const QString&, qint64);
 
     public Q_SLOTS:
-        void received(const QString, const qint64, core::icollection*);
+        void received(const QString&, const qint64, core::icollection*);
 
     public:
         core_dispatcher();
@@ -245,6 +255,12 @@ Q_SIGNALS:
         qint64 abortSharedFileUploading(const QString &contact, const QString& _localPath, const QString& _uploadingProcessId);
 
         qint64 getSticker(const qint32 _setId, const qint32 _stickerId, const core::sticker_size _size);
+        qint64 getSetIconBig(const qint32 _setId);
+        qint64 getStickersPackInfo(const qint32 _setId, const std::string& _storeId);
+        qint64 addStickersPack(const qint32 _setId, const QString& _storeId);
+        qint64 removeStickersPack(const qint32 _setId, const QString& _storeId);
+        qint64 getStickersStore();
+
         qint64 getTheme(const qint32 _themeId);
 
         int64_t downloadImage(
@@ -254,7 +270,8 @@ Q_SIGNALS:
             const bool _isPreview,
             const int32_t _maxPreviewWidth,
             const int32_t _maxPreviewHeight,
-            bool _raisePriority = false);
+            const bool _externalResource,
+            const bool _raisePriority = false);
 
         void cancelImageDownloading(const QString& _url);
 
@@ -274,10 +291,6 @@ Q_SIGNALS:
         qint64 contactSwitched(const QString &_contactAimid);
 
         void sendMessageToContact(const QString& _contact, const QString& _text);
-
-        void read_snap(const QString& _contact, const uint64_t _snapId, const bool _markPrevSnapsRead, bool _refreshStorage = false);
-
-        int64_t download_snap_metainfo(const QString& _contact, const QString& _ttlId, bool _raise = false);
 
         int64_t pttToText(const QString& _pttLink, const QString& _locale);
 
@@ -299,6 +312,7 @@ Q_SIGNALS:
         void onAvatarsGetResult(const int64_t _seq, core::coll_helper _params);
         void onAvatarsPresenceUpdated(const int64_t _seq, core::coll_helper _params);
         void onContactPresence(const int64_t _seq, core::coll_helper _params);
+        void onContactOutgoingMsgCount(const int64_t _seq, core::coll_helper _params);
         void onGuiSettings(const int64_t _seq, core::coll_helper _params);
         void onCoreLogins(const int64_t _seq, core::coll_helper _params);
         void onThemeSettings(const int64_t _seq, core::coll_helper _params);
@@ -324,6 +338,9 @@ Q_SIGNALS:
         void onThemesMetaGetResult(const int64_t _seq, core::coll_helper _params);
         void onThemesMetaGetError(const int64_t _seq, core::coll_helper _params);
         void onStickersStickerGetResult(const int64_t _seq, core::coll_helper _params);
+        void onStickersGetSetBigIconResult(const int64_t _seq, core::coll_helper _params);
+        void onStickersPackInfo(const int64_t _seq, core::coll_helper _params);
+        void onStickersStore(const int64_t _seq, core::coll_helper _params);
         void onThemesThemeGetResult(const int64_t _seq, core::coll_helper _params);
         void onChatsInfoGetResult(const int64_t _seq, core::coll_helper _params);
         void onChatsBlockedResult(const int64_t _seq, core::coll_helper _params);
@@ -369,7 +386,6 @@ Q_SIGNALS:
         void onChatsBlockResult(const int64_t _seq, core::coll_helper _params);
         void onChatsPendingResolveResult(const int64_t _seq, core::coll_helper _params);
         void onPhoneinfoResult(const int64_t _seq, core::coll_helper _params);
-        void onSnapGetMetainfoResult(const int64_t _seq, const core::coll_helper & _params);
         void onContactRemovedFromIgnore(const int64_t _seq, core::coll_helper _params);
         void onMasksGetIdListResult(const int64_t _seq, core::coll_helper _params);
         void onMasksPreviewResult(const int64_t _seq, core::coll_helper _params);
@@ -380,12 +396,7 @@ Q_SIGNALS:
         void onMailStatus(const int64_t _seq, core::coll_helper _params);
         void onMailNew(const int64_t _seq, core::coll_helper _params);
         void getMrimKeyResult(const int64_t _seq, core::coll_helper _params);
-        void onNeedShowPromoLoaded(const int64_t _seq, core::coll_helper _params);
-
-        void onUserSnaps(const int64_t _seq, core::coll_helper _params);
-        void onUserSnapsState(const int64_t _seq, core::coll_helper _params);
-        void onUserSnapsStorage(const int64_t _seq, core::coll_helper _params);
-
+        void onMentionsMeReceived(const int64_t _seq, core::coll_helper _params);
 
     private:
 
@@ -393,11 +404,11 @@ Q_SIGNALS:
         {
             message_processed_callback callback_;
 
-            QDateTime date_;
+            qint64 date_;
 
             const QObject* object_;
 
-            callback_info(const message_processed_callback& _callback, const QDateTime& _date, const QObject* _object)
+            callback_info(const message_processed_callback& _callback, qint64 _date, const QObject* _object)
                 :   callback_(_callback), date_(_date), object_(_object)
             {
             }
@@ -425,7 +436,7 @@ Q_SIGNALS:
 
         std::unordered_map<int64_t, callback_info> callbacks_;
 
-        QDateTime lastTimeCallbacksCleanedUp_;
+        qint64 lastTimeCallbacksCleanedUp_;
 
         bool isStatsEnabled_;
         bool isImCreated_;

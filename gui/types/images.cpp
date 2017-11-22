@@ -23,10 +23,12 @@ bool Data::Image::isNull() const
 
 Data::ImageListPtr Data::UnserializeImages(const core::coll_helper& _helper)
 {
-    auto images = ImageListPtr(new ImageList());
+    auto images = std::make_shared<ImageList>();
 
     auto array = _helper.get_value_as_array("images");
-    for (int i = 0, size = array->size(); i < size; ++i)
+    const int size = array->size();
+    images->reserve(size);
+    for (int i = 0; i < size; ++i)
     {
         core::coll_helper value(array->get_at(i)->get_as_collection(), false);
         const auto& msgid = value.get_value_as_int64("msgid");

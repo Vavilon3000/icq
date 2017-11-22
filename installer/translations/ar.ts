@@ -24,20 +24,20 @@
         <translation>ICQ</translation>
     </message>
     <message>
-        <source>Back</source>
-        <translation>رجوع</translation>
-    </message>
-    <message>
-        <source>Next</source>
-        <translation>التالي</translation>
-    </message>
-    <message>
         <source>Choose ICQ account</source>
         <translation>اختر حساب ICQ</translation>
     </message>
     <message>
         <source>Skip step</source>
         <translation>تخطي الخطوة</translation>
+    </message>
+    <message>
+        <source>BACK</source>
+        <translation>رجوع</translation>
+    </message>
+    <message>
+        <source>NEXT</source>
+        <translation>التالي</translation>
     </message>
 </context>
 <context>
@@ -52,7 +52,7 @@
     </message>
     <message>
         <source>Error code: </source>
-        <translation>كود الخطأ:</translation>
+        <translation>كود الخطأ: </translation>
     </message>
     <message>
         <source>Write to developer</source>
@@ -108,16 +108,16 @@
         <translation>سياسة الخصوصية</translation>
     </message>
     <message>
-        <source>Install</source>
-        <translation>تنصيب</translation>
-    </message>
-    <message>
         <source>Welcome to Mail.Ru Agent</source>
         <translation>مرحبًا بك في Mail.Ru Agent</translation>
     </message>
     <message>
         <source>This will install Mail.Ru Agent on your computer</source>
         <translation>سيعمل ذلك على تثبيت Mail.Ru Agent على جهاز الكمبيوتر</translation>
+    </message>
+    <message>
+        <source>INSTALL</source>
+        <translation>تنصيب</translation>
     </message>
 </context>
 <context>

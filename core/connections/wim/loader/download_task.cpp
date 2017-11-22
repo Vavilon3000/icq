@@ -23,11 +23,11 @@ download_task::download_task(
     const std::wstring& _previews_folder,
     const std::wstring& _filename)
     : fs_loader_task(_id, _params)
+    , info_(std::make_unique<web_file_info>())
     , files_folder_(_files_folder)
     , previews_folder_(_previews_folder)
     , filename_(_filename)
 {
-    info_.reset(new web_file_info());
     info_->set_file_url(_file_url);
 }
 
@@ -47,7 +47,7 @@ std::shared_ptr<download_progress_handler> download_task::get_handler()
     return handler_;
 }
 
-std::shared_ptr<web_file_info> download_task::make_info()
+std::shared_ptr<web_file_info> download_task::make_info() const
 {
     return std::make_shared<web_file_info>(*info_);
 }
@@ -56,7 +56,7 @@ std::wstring download_task::get_info_file_name() const
 {
     std::string url = info_->get_file_url();
 
-    return previews_folder_ + L"/" + core::tools::from_utf8(core::tools::md5(url.c_str(), (uint32_t)url.size()));
+    return previews_folder_ + L'/' + core::tools::from_utf8(core::tools::md5(url.c_str(), (uint32_t)url.size()));
 }
 
 loader_errors download_task::on_finish()
@@ -83,9 +83,9 @@ int32_t download_task::copy_if_needed()
     std::wstring default_filename = core::tools::system::get_file_name(info_->get_file_name());
     if (!core::tools::system::compare_dirs(core::tools::system::get_file_directory(info_->get_file_name()), files_folder_) || (!filename_.empty() && filename_ != default_filename))
     {
-        std::wstring filename = filename_.empty() ? default_filename : filename_;
+        const std::wstring& filename = filename_.empty() ? default_filename : filename_;
         const auto is_complete = boost::filesystem::path(filename_).is_complete(); // check if filename is complete
-        core::tools::system::copy_file(info_->get_file_name(), is_complete ? filename : files_folder_ + L"/" + filename);
+        core::tools::system::copy_file(info_->get_file_name(), is_complete ? filename : files_folder_ + L'/' + filename);
     }
 
     return 0;
@@ -188,7 +188,7 @@ bool download_task::get_file_id(const std::string& _file_url, std::string& _file
 {
     _file_id = core::tools::trim_right<std::string>(_file_url, "/");
 
-    size_t endpos = _file_id.rfind("/");
+    size_t endpos = _file_id.rfind('/');
 
     if (std::string::npos != endpos)
     {
@@ -236,25 +236,25 @@ loader_errors download_task::open_temporary_file()
     }
 
     std::wstring file_name;
-    
+
     if (!filename_.empty() && boost::filesystem::path(filename_).is_complete()) // check if filename is complete
     {
         file_name = filename_;
     }
     else
     {
-        file_name = files_folder_ + L"/" + (filename_.empty() ? core::tools::from_utf8(info_->get_file_name_short()) : filename_);
+        file_name = files_folder_ + L'/' + (filename_.empty() ? core::tools::from_utf8(info_->get_file_name_short()) : filename_);
         if (core::tools::system::is_exist(file_name))
         {
             boost::filesystem::wpath path_for_file(file_name);
             std::wstring ext = path_for_file.extension().wstring();
             std::wstring file_name_without_ext = file_name.substr(0, file_name.length() - ext.length());
 
-            for (auto i = 0; i < 1000; i++)
+            for (auto i = 0; i < 1000; ++i)
             {
                 std::wstringstream ss_file_name;
 
-                ss_file_name << file_name_without_ext << L"-" << i << ext;
+                ss_file_name << file_name_without_ext << L'-' << i << ext;
 
                 if (!core::tools::system::is_exist(ss_file_name.str()))
                 {

@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "D5E14CD41BC683F9007F8671"
-               BuildableName = "libcorelib.dylib"
+               BuildableName = "libcorelib.a"
                BlueprintName = "corelib"
                ReferencedContainer = "container:corelib.xcodeproj">
             </BuildableReference>
@@ -46,7 +46,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D5E14CD41BC683F9007F8671"
-            BuildableName = "libcorelib.dylib"
+            BuildableName = "libcorelib.a"
             BlueprintName = "corelib"
             ReferencedContainer = "container:corelib.xcodeproj">
          </BuildableReference>
@@ -64,7 +64,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D5E14CD41BC683F9007F8671"
-            BuildableName = "libcorelib.dylib"
+            BuildableName = "libcorelib.a"
             BlueprintName = "corelib"
             ReferencedContainer = "container:corelib.xcodeproj">
          </BuildableReference>

@@ -20,35 +20,40 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
 namespace
 {
     const QString SELECTION_STYLE =
-        QString("background: transparent; selection-background-color: %1;")
+        qsl("background: transparent; selection-background-color: %1;")
         .arg(Utils::rgbaStringFromColor(Utils::getSelectionColor()));
 
-    QString extractTrailingSpaces(const QString &text, Out QString &trimmedText)
+    struct ExtractResult
+    {
+        QString trimmedText;
+        QString trailingSpaces;
+    };
+
+    ExtractResult extractTrailingSpaces(const QString &text)
     {
         assert(!text.isEmpty());
 
-        Out trimmedText.resize(0);
-        Out trimmedText += text;
+        QStringRef trimmedTextRef(&text);
 
-        if (trimmedText.length() > 1 && trimmedText.startsWith(QChar::LineFeed))
+        if (trimmedTextRef.length() > 1 && trimmedTextRef.startsWith(QChar::LineFeed))
         {
-            trimmedText = trimmedText.mid(1, trimmedText.length() - 1);
+            trimmedTextRef = trimmedTextRef.mid(1, trimmedTextRef.length() - 1);
         }
 
         QString trailingSpaces;
 
         if (text.isEmpty())
         {
-            return trailingSpaces;
+            return { trimmedTextRef.toString(), std::move(trailingSpaces) };
         }
 
-        trailingSpaces.reserve(trimmedText.length());
+        trailingSpaces.reserve(trimmedTextRef.length());
 
-        while(!trimmedText.isEmpty())
+        while(!trimmedTextRef.isEmpty())
         {
-            const auto lastCharIndex = (trimmedText.length() - 1);
+            const auto lastCharIndex = (trimmedTextRef.length() - 1);
 
-            const auto lastChar = trimmedText[lastCharIndex];
+            const auto lastChar = trimmedTextRef.at(lastCharIndex);
 
             if (!lastChar.isSpace())
             {
@@ -56,15 +61,15 @@ namespace
             }
 
             trailingSpaces += lastChar;
-            trimmedText.resize(lastCharIndex);
+            trimmedTextRef.truncate(lastCharIndex);
         }
 
-        return trailingSpaces;
+        return { trimmedTextRef.toString(), std::move(trailingSpaces) };
     }
 }
 
 TextBlock::TextBlock(ComplexMessageItem *parent, const QString &text, const bool _hideLinks)
-    : GenericBlock(parent, text, MenuFlagNone, false)
+    : GenericBlock(parent, text, MenuFlagCopyable, false)
     , Text_(text)
     , Layout_(nullptr)
     , TextCtrl_(nullptr)
@@ -72,12 +77,13 @@ TextBlock::TextBlock(ComplexMessageItem *parent, const QString &text, const bool
     , TextFontSize_(-1)
     , TextOpacity_(1.0)
     , hideLinks_(_hideLinks)
-    
+
 {
     assert(!Text_.isEmpty());
 
-    TrimmedText_.reserve(Text_.length());
-    TrailingSpaces_ = extractTrailingSpaces(Text_, Out TrimmedText_);
+    auto result = extractTrailingSpaces(Text_);
+    TrimmedText_ = std::move(result.trimmedText);
+    TrailingSpaces_ = std::move(result.trailingSpaces);
 
     Layout_ = new TextBlockLayout();
     setLayout(Layout_);
@@ -218,12 +224,6 @@ void TextBlock::initialize()
 
     QObject::connect(
         TextCtrl_,
-        &QTextBrowser::anchorClicked,
-        this,
-        &TextBlock::onAnchorClicked);
-
-    QObject::connect(
-        TextCtrl_,
         &QTextBrowser::selectionChanged,
         this,
         &TextBlock::selectionChanged);
@@ -233,7 +233,7 @@ TextEditEx* TextBlock::createTextEditControl(const QString &text)
 {
     assert(!text.isEmpty());
 
-    blockSignals(true);
+    QSignalBlocker sb(this);
     setUpdatesEnabled(false);
 
     QPalette p;
@@ -257,10 +257,11 @@ TextEditEx* TextBlock::createTextEditControl(const QString &text)
     textControl->setOpenLinks(false);
     textControl->setOpenExternalLinks(false);
     textControl->setWordWrapMode(QTextOption::WordWrap);
-    textControl->setStyleSheet("background: transparent");
+    textControl->setStyleSheet(qsl("background: transparent"));
     textControl->setContextMenuPolicy(Qt::NoContextMenu);
     textControl->setReadOnly(true);
     textControl->setUndoRedoEnabled(false);
+    textControl->setMentions(getParentComplexMessage()->getMentions());
 
     setTextEditTheme(textControl);
 
@@ -273,9 +274,10 @@ TextEditEx* TextBlock::createTextEditControl(const QString &text)
     textControl->verticalScrollBar()->blockSignals(false);
 
     setUpdatesEnabled(true);
-    blockSignals(false);
 
+    sb.unblock();
     emit setTextEditEx(textControl);
+
     return textControl;
 }
 
@@ -293,22 +295,6 @@ void TextBlock::setTextEditTheme(TextEditEx *textControl)
     textControl->setPalette(palette);
 }
 
-void TextBlock::onAnchorClicked(const QUrl &_url)
-{
-    QString uin;
-
-    if (Utils::extractUinFromIcqLink(_url.toString(), Out uin))
-    {
-        assert(!uin.isEmpty());
-        emit Utils::InterConnector::instance().profileSettingsShow(uin);
-        return;
-    }
-
-    clickHandled();
-
-    QDesktopServices::openUrl(_url);
-}
-
 void TextBlock::connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover)
 {
     if (hover && TextCtrl_)
@@ -321,6 +307,11 @@ void TextBlock::connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover)
 bool TextBlock::isBubbleRequired() const
 {
     return true;
+}
+
+QString TextBlock::linkAtPos(const QPoint& pos) const
+{
+    return TextCtrl_->anchorAt(TextCtrl_->mapFromGlobal(pos));
 }
 
 UI_COMPLEX_MESSAGE_NS_END

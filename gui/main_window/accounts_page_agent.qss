@@ -1,0 +1,319 @@
+QWidget
+{
+    font-family: %FONT_FAMILY%;
+}
+
+QScrollBar:vertical
+{
+    background-color: transparent;
+    width:6dip;
+}
+
+QScrollBar::handle:vertical
+{
+    background-color: #C4C4C4;
+    min-height: 20dip;
+}
+
+QScrollBar::add-line:vertical
+{
+    background-color: transparent;
+}
+
+QScrollBar::sub-line:vertical
+{
+    background-color: transparent;
+}
+
+
+QScrollBar:horizontal
+{
+    background-color: transparent;
+    height:6dip;
+}
+
+QScrollBar::handle:horizontal
+{
+    background-color: #C4C4C4;
+    min-width: 20dip;
+}
+
+QScrollBar::add-line:horizontal
+{
+    background-color: transparent;
+}
+
+QScrollBar::sub-line:horizontal
+{
+    background-color: transparent;
+}
+
+
+QWidget#choose_account_page
+{
+    background-color: #ffffff;
+}
+
+QWidget#logo_icq
+{
+    background-repeat: no-repeat;
+    background-position: center;
+    background-image: url(:/resources/migration/content_logo_100.png);
+}
+
+QWidget#logo_agent
+{
+    background-repeat: no-repeat;
+    background-position: center;
+    background-image: url(:/resources/migration/content_logo_agent_100.png);
+}
+
+QPushButton#custom_button
+{
+    color: #ffffff;
+    font-size: 16dip;
+    background-color: #57b359;
+    border-style: none;
+    border: none;
+    margin: 0;
+    padding-left: 20dip;
+    padding-right: 20dip;
+    min-width: 100dip;
+    max-height: 32dip;
+    min-height: 32dip;
+}
+
+QPushButton#custom_button:disabled
+{
+    background-color: #999999;
+}
+
+QPushButton#frame_button
+{
+    color: #57b359;
+    font-size: 16dip;
+    background-color: #ffffff;
+    border-style: solid;
+    border-width: 2dip;
+    margin: 0;
+    padding-left: 20dip;
+    padding-right: 20dip;
+    min-width: 100dip;
+    max-height: 28dip;
+    min-height: 28dip;
+}
+
+QPushButton#frame_button:disabled
+{
+    color: #999999;
+}
+
+QProgressBar
+{
+    border: none;
+    margin-left: 16dip;
+    margin-right: 16dip;
+    background-color: #eaeae2;
+}
+
+QProgressBar::chunk
+{
+    background-color: #57b359;
+}
+
+QLabel#choose_account_label
+{
+    font-size: 22dip; 
+}
+
+QLabel#choose_account_comment_label
+{
+    font-size: 15dip;
+}
+
+QLabel#label_account_nick
+{
+    color: #000000;
+    font-size: 15dip;
+}
+
+QLabel#label_account_uin
+{
+    color: #696969;
+    font-size: 15dip;
+}
+
+QWidget#agent_page_icon
+{
+    border: none;
+    border-image: url(:/resources/migration/step_1_100_active.png);
+    width: 12dip;
+    height: 12dip;
+}
+
+
+QWidget#agent_page_icon[state="normal"]
+{
+    border-image: url(:/resources/migration/step_1_100_active.png);
+}
+
+QWidget#agent_page_icon[state="normalchecked"]
+{
+    border-image: url(:/resources/migration/step_100_active.png);    
+}
+
+QWidget#agent_page_icon[state="disabled"]
+{
+    border-image: url(:/resources/migration/step_100.png);    
+}
+
+QWidget#agent_page_icon[state="disabledchecked"]
+{
+    border-image: url(:/resources/migration/step_100.png);    
+}
+
+
+QLabel#agent_page_text
+{
+    color: red;
+    border: none;
+    background-color: white;    
+    font-size: 14dip;
+    margin-bottom: 1dip;
+}
+
+QLabel#agent_page_text[state="normal"]
+{
+    color: #43a047;
+}
+
+QLabel#agent_page_text[state="normalchecked"]
+{
+    color: #43a047;
+}
+
+QLabel#agent_page_text[state="disabled"]
+{
+    color: #999999;
+}
+
+QLabel#agent_page_text[state="disabledchecked"]
+{
+    color: #999999;
+}
+
+QLabel#agent_page_text[state="gray"]
+{
+    color: #999999;
+}
+
+
+QWidget#icq_page_icon
+{
+    border: none;
+    border-image: url(:/resources/migration/step_2_100_active.png);
+    width: 12dip;
+    height: 12dip;
+}
+
+QWidget#icq_page_icon[state="normal"]
+{
+    border-image: url(:/resources/migration/step_2_100_active.png);
+}
+
+QWidget#icq_page_icon[state="normalchecked"]
+{
+    border-image: url(:/resources/migration/step_100_active.png);    
+}
+
+QWidget#icq_page_icon[state="disabled"]
+{
+    border-image: url(:/resources/migration/step_2_100.png);    
+}
+
+QWidget#icq_page_icon[state="disabledchecked"]
+{
+    border-image: url(:/resources/migration/step_100.png);    
+}
+
+QLabel#icq_page_text
+{
+    color: red;
+    border: none;
+    background-color: #ffffff;    
+    font-size: 14dip;
+    margin-bottom: 1dip;
+}
+
+QLabel#icq_page_text[state="normal"]
+{
+    color: #43a047;
+}
+
+QLabel#icq_page_text[state="normalchecked"]
+{
+    color: #43a047;
+}
+
+QLabel#icq_page_text[state="disabled"]
+{
+    color: #999999;
+}
+
+QLabel#icq_page_text[state="disabledchecked"]
+{
+    color: #999999;
+}
+
+QLabel#icq_page_text[state="gray"]
+{
+    color: #999999;
+}
+
+QScrollArea
+{
+    border: none;
+}
+
+QWidget#accounts_area_widget
+{
+    background-color: #ffffff;
+}
+
+QPushButton#account_widget 
+{
+    background: none;
+    margin-right: 12dip;
+    border: none;
+}
+
+QWidget#check_right[state="normal"]
+{
+    border-image: url(:/resources/migration/check_icon_100.png);
+    width: 16dip;
+    height: 16dip;
+}
+
+QWidget#check_right[state="hover"]
+{
+    border-image: url(:/resources/migration/check_icon_100_hover.png);
+}
+
+QWidget#check_right[state="checked"]
+{
+    border-image: url(:/resources/migration/check_icon_100_active.png);
+}
+
+QPushButton#skip_button
+{
+    border: none;
+    color: #cbcbcb;
+    font-size: 13dip;
+    margin-top: 8dip;
+    text-decoration: underline;
+}
+
+QPushButton#skip_button:hover
+{
+    color: #696969;
+}

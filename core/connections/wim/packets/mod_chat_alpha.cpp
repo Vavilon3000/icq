@@ -9,11 +9,11 @@ using namespace core;
 using namespace wim;
 
 mod_chat_alpha::mod_chat_alpha(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _aimid)
-    : robusto_packet(_params)
+    : robusto_packet(std::move(_params))
     , aimid_(_aimid)
-    , chat_params_(new chat_params())
+    , chat_params_(std::make_unique<chat_params>())
 {
 }
 
@@ -60,13 +60,20 @@ int32_t mod_chat_alpha::init_request(std::shared_ptr<core::http_request_simple> 
         node_params.AddMember("defaultRole", std::string(chat_params_->get_readOnly().get() ? "readonly" : "member"), a);
     if (chat_params_->get_ageGate().is_initialized())
         node_params.AddMember("ageRestriction", chat_params_->get_ageGate().get(), a);
-    doc.AddMember("params", node_params, a);
+    doc.AddMember("params", std::move(node_params), a);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
 
-    _request->push_post_parameter(buffer.GetString(), "");
+    _request->push_post_parameter(buffer.GetString(), std::string());
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_json_marker("authToken");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

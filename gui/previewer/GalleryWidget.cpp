@@ -19,7 +19,7 @@
 namespace
 {
     const qreal backgroundOpacity = 0.95;
-    const QBrush backgroundColor(QColor("#000000"));
+    const QBrush backgroundColor(QColor(ql1s("#000000")));
     const int smallSpacing = 8;
     const int largeSpacing = 24;
     const int cacheSize = 5; // odd number only
@@ -46,14 +46,14 @@ Previewer::GalleryWidget::GalleryWidget(QWidget* _parent)
 
     setMouseTracking(true);
 
-    QHBoxLayout* buttonWrapperLayout = new QHBoxLayout();
+    auto buttonWrapperLayout = new QHBoxLayout();
     buttonWrapperLayout->addWidget(createZoomFrame());
     buttonWrapperLayout->addSpacing(Utils::scale_value(smallSpacing));
     buttonWrapperLayout->addWidget(createButtonFrame());
     buttonWrapperLayout->addSpacing(Utils::scale_value(smallSpacing));
     buttonWrapperLayout->addWidget(createCloseFrame());
 
-    QHBoxLayout* buttonLayout = new QHBoxLayout();
+    auto buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
     buttonLayout->addLayout(buttonWrapperLayout);
     buttonLayout->addStretch();
@@ -112,9 +112,9 @@ void Previewer::GalleryWidget::openGallery(const QString& _aimId, const Data::Im
 
     info_->setText(getDefaultText());
 
-    imageCache_.reset(new ImageCache(_aimId));
+    imageCache_ = std::make_unique<Previewer::ImageCache>(_aimId);
 
-    imageIterator_.reset(new ImageIterator(imageCache_.get(), _image));
+    imageIterator_ = std::make_unique<Previewer::ImageIterator>(imageCache_.get(), _image);
     connect(imageIterator_.get(), &ImageIterator::iteratorUpdated, this, &GalleryWidget::onIteratorUpdated, Qt::QueuedConnection);
     connect(imageIterator_.get(), &ImageIterator::numberFound, this, &GalleryWidget::onNumberFound, Qt::QueuedConnection);
     connect(imageIterator_.get(), &ImageIterator::cacheLoaded, this, &GalleryWidget::onCacheLoaded, Qt::QueuedConnection);
@@ -133,7 +133,7 @@ void Previewer::GalleryWidget::openGallery(const QString& _aimId, const Data::Im
 
 void Previewer::GalleryWidget::closeGallery()
 {
-    if (!imageCache_) // allready closed
+    if (!imageCache_) // already closed
         return;
 
     initComplete_ = false;
@@ -172,14 +172,14 @@ QFrame* Previewer::GalleryWidget::createZoomFrame()
 
     zoomFrame->addSpace(GalleryFrame::SpaceSize::Small);
 
-    zoomOut_ = zoomFrame->addButton("zoom_minus", GalleryFrame::Disabled | GalleryFrame::Hover | GalleryFrame::Pressed);
+    zoomOut_ = zoomFrame->addButton(qsl("zoom_minus"), GalleryFrame::Disabled | GalleryFrame::Hover | GalleryFrame::Pressed);
     zoomOut_->setDisabled(false);
     zoomOut_->setVisible(false);
     connect(zoomOut_, &QPushButton::clicked, this, &GalleryWidget::onZoomOut);
 
     zoomFrame->addSpace(GalleryFrame::SpaceSize::Medium);
 
-    zoomIn_ = zoomFrame->addButton("zoom", GalleryFrame::Disabled | GalleryFrame::Hover | GalleryFrame::Pressed);
+    zoomIn_ = zoomFrame->addButton(qsl("zoom"), GalleryFrame::Disabled | GalleryFrame::Hover | GalleryFrame::Pressed);
     zoomIn_->setDisabled(false);
     zoomIn_->setVisible(false);
     connect(zoomIn_, &QPushButton::clicked, this, &GalleryWidget::onZoomIn);
@@ -197,13 +197,13 @@ QFrame* Previewer::GalleryWidget::createButtonFrame()
 
     buttonsFrame->addSpace(GalleryFrame::SpaceSize::Small);
 
-    prev_ = buttonsFrame->addButton("prev", GalleryFrame::Disabled | GalleryFrame::Hover | GalleryFrame::Pressed);
+    prev_ = buttonsFrame->addButton(qsl("prev"), GalleryFrame::Disabled | GalleryFrame::Hover | GalleryFrame::Pressed);
     prev_->setDisabled(true);
     connect(prev_, &QPushButton::clicked, this, &GalleryWidget::onPrevClicked);
 
     buttonsFrame->addSpace(GalleryFrame::SpaceSize::Medium);
 
-    next_ = buttonsFrame->addButton("next", GalleryFrame::Disabled | GalleryFrame::Hover | GalleryFrame::Pressed);
+    next_ = buttonsFrame->addButton(qsl("next"), GalleryFrame::Disabled | GalleryFrame::Hover | GalleryFrame::Pressed);
     next_->setDisabled(true);
     connect(next_, &QPushButton::clicked, this, &GalleryWidget::onNextClicked);
 
@@ -215,7 +215,7 @@ QFrame* Previewer::GalleryWidget::createButtonFrame()
 
     buttonsFrame->addSpace(GalleryFrame::SpaceSize::Large);
 
-    save_ = buttonsFrame->addButton("download", GalleryFrame::Disabled | GalleryFrame::Hover | GalleryFrame::Pressed);
+    save_ = buttonsFrame->addButton(qsl("download"), GalleryFrame::Disabled | GalleryFrame::Hover | GalleryFrame::Pressed);
     save_->setEnabled(false);
     connect(save_, &QPushButton::clicked, this, &GalleryWidget::onSaveClicked);
 
@@ -228,7 +228,7 @@ QFrame* Previewer::GalleryWidget::createCloseFrame()
 {
     auto closeFrame = new GalleryFrame(nullptr);
 
-    auto closeButton = closeFrame->addButton("close", GalleryFrame::Hover | GalleryFrame::Pressed);
+    auto closeButton = closeFrame->addButton(qsl("close"), GalleryFrame::Hover | GalleryFrame::Pressed);
     connect(closeButton, &QPushButton::clicked, this, &GalleryWidget::closeGallery);
 
     return closeFrame;
@@ -402,7 +402,7 @@ void Previewer::GalleryWidget::onImageLoaded()
 
 void Previewer::GalleryWidget::onImageLoadingError()
 {
-    QTimer::singleShot(0, [this]() { showError(); });
+    QTimer::singleShot(0, this, [this]() { showError(); });
 }
 
 void Previewer::GalleryWidget::onCacheLoaded()
@@ -491,7 +491,7 @@ void Previewer::GalleryWidget::showError()
 void Previewer::GalleryWidget::setFirstImage(const Data::Image& _imageInfo, const QString& _localPath)
 {
     showProgress();
-    auto loader = std::unique_ptr<ImageLoader>(new ImageLoader(aimId_, _imageInfo, _localPath));
+    auto loader = std::make_unique<ImageLoader>(aimId_, _imageInfo, _localPath);
     tryShowImage(*loader);
     loaders_[middleCachePos].swap(loader);
     connectLoader();
@@ -503,7 +503,7 @@ void Previewer::GalleryWidget::downloadRelativeImage(int _n)
         return;
 
     const auto& image = imageIterator_->peekImageRelative(_n);
-    auto loader = std::unique_ptr<ImageLoader>(new ImageLoader(aimId_, image));
+    auto loader = std::make_unique<ImageLoader>(aimId_, image);
     loaders_[middleCachePos + _n].swap(loader);
 }
 
@@ -525,8 +525,8 @@ void Previewer::GalleryWidget::connectLoader()
 
 void Previewer::GalleryWidget::disconnectLoader()
 {
-    disconnect(&currentLoader(), 0, 0, 0);
-    disconnect(download_, 0, 0, 0);
+    disconnect(&currentLoader(), nullptr, nullptr, nullptr);
+    disconnect(download_, nullptr, nullptr, nullptr);
 }
 
 bool Previewer::GalleryWidget::hasPrev() const

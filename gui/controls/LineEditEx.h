@@ -3,28 +3,28 @@
 
 namespace Ui
 {
-	class LineEditEx : public QLineEdit
-	{
-		Q_OBJECT
+    class LineEditEx : public QLineEdit
+    {
+        Q_OBJECT
 Q_SIGNALS:
-		void focusIn();
-		void focusOut();
-		void clicked();
-		void emptyTextBackspace();
-		void escapePressed();
-		void upArrow();
-		void downArrow();
-		void enter();
+        void focusIn();
+        void focusOut();
+        void clicked();
+        void emptyTextBackspace();
+        void escapePressed();
+        void upArrow();
+        void downArrow();
+        void enter();
 
-	public:
-		LineEditEx(QWidget* _parent);
+    public:
+        explicit LineEditEx(QWidget* _parent);
 
-	protected:
-		virtual void focusInEvent(QFocusEvent*);
-		virtual void focusOutEvent(QFocusEvent*);
-		virtual void mousePressEvent(QMouseEvent*);
-		virtual void keyPressEvent(QKeyEvent*);
-        virtual void contextMenuEvent(QContextMenuEvent *);
+    protected:
+        virtual void focusInEvent(QFocusEvent*) override;
+        virtual void focusOutEvent(QFocusEvent*) override;
+        virtual void mousePressEvent(QMouseEvent*) override;
+        virtual void keyPressEvent(QKeyEvent*) override;
+        virtual void contextMenuEvent(QContextMenuEvent *) override;
 
-	};
+    };
 }

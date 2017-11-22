@@ -7,8 +7,8 @@
 using namespace core;
 using namespace wim;
 
-get_flags::get_flags(const wim_packet_params& _params)
-    : wim_packet(_params)
+get_flags::get_flags(wim_packet_params _params)
+    : wim_packet(std::move(_params))
     , flags_(0)
 {
 }
@@ -28,6 +28,13 @@ int32_t get_flags::init_request(std::shared_ptr<core::http_request_simple> _requ
 
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

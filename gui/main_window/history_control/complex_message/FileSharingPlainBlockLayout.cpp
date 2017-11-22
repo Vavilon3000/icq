@@ -21,7 +21,7 @@ namespace
 
     QRect evalFileSizeGeometry(const QRect &contentRect, const QRect &btnRect, const QFontMetrics &m, const QString &text);
 
-    QRect evalShowInDirLinkGeometry(const QRect &fileSizeRect, const QFontMetrics &m, const QString &text);
+    QRect evalShowInDirLinkGeometry(const QRect &contentRect, const QRect &fileSizeRect, const QFontMetrics &m, const QString &text);
 }
 
 FileSharingPlainBlockLayout::FileSharingPlainBlockLayout()
@@ -40,18 +40,6 @@ QSize FileSharingPlainBlockLayout::blockSizeForMaxWidth(const int32_t maxWidth)
     const bool isSingle = block.isStandalone();
 
     return evalBubbleSize(maxWidth, isSingle);
-}
-
-QRect FileSharingPlainBlockLayout::getAuthorAvatarRect() const
-{
-    assert(!"method is not expected to be called");
-    return QRect();
-}
-
-QRect FileSharingPlainBlockLayout::getAuthorNickRect() const
-{
-    assert(!"method is not expected to be called");
-    return QRect();
 }
 
 const QRect& FileSharingPlainBlockLayout::getContentRect() const
@@ -98,7 +86,7 @@ QSize FileSharingPlainBlockLayout::setBlockGeometryInternal(const QRect &geometr
 
     {
         QFontMetrics m(Style::Files::getShowInDirLinkFont());
-        ShowInDirLinkRect_ = evalShowInDirLinkGeometry(FileSizeRect_, m, block.getShowInDirLinkText());
+        ShowInDirLinkRect_ = evalShowInDirLinkGeometry(ContentRect_, FileSizeRect_, m, block.getShowInDirLinkText());
     }
 
     return frameSize;
@@ -177,17 +165,13 @@ namespace
         auto maxTextWidth = (contentRect.right() + 1 - textX);
         maxTextWidth -= Style::Files::getFilenameLeftMargin(); // the right margin is the same as the left one
 
-        auto textWidth = m.width(text);
+        auto textWidth = m.width(text) + 1;
         textWidth = std::min(textWidth, maxTextWidth);
-
-#ifdef __APPLE__
-        textWidth = maxTextWidth;
-#endif
 
         return QRect(textX, textY, textWidth, textHeight);
     }
 
-    QRect evalShowInDirLinkGeometry(const QRect &fileSizeRect, const QFontMetrics &m, const QString &text)
+    QRect evalShowInDirLinkGeometry(const QRect &contentRect, const QRect &fileSizeRect, const QFontMetrics &m, const QString &text)
     {
         assert(!text.isEmpty());
 
@@ -199,7 +183,13 @@ namespace
         const auto textHeight = m.height();
         textY -= textHeight;
 
-        const auto textWidth = m.width(text);
+        auto textWidth = m.width(text);
+
+#ifdef __APPLE__
+        auto maxTextWidth = (contentRect.right() + 1 - textX);
+        maxTextWidth -= Style::Files::getShowInDirLinkLeftMargin();
+        textWidth = maxTextWidth;
+#endif //__APPLE__
 
         return QRect(textX, textY, textWidth, textHeight);
     }

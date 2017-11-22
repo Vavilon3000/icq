@@ -18,10 +18,10 @@ namespace core
     public:
 
         void set_password(const std::string& _password);
-        std::string get_password() const;
+        const std::string& get_password() const;
 
         void set_login(const std::string& _login);
-        std::string get_login() const;
+        const std::string& get_login() const;
 
         void set_login_type(login_type _type);
         login_type get_login_type() const;
@@ -46,10 +46,10 @@ namespace core
         virtual ~phone_info() {}
 
         void set_phone(const std::string& _phone);
-        const std::string get_phone() const;
+        const std::string& get_phone() const;
 
         void set_locale(const std::string& _locale);
-        const std::string get_locale() const;
+        const std::string& get_locale() const;
 
         void set_existing(bool _existing);
         bool get_existing() const;
@@ -58,7 +58,7 @@ namespace core
         const std::string get_trans_id() const;
 
         void set_sms_code(const std::string&);
-        const std::string get_sms_code() const;
+        const std::string& get_sms_code() const;
     };
 
 }

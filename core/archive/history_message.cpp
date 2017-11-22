@@ -53,6 +53,7 @@ namespace
     const std::string c_added_to_buddy_list = "addedToBuddyList";
     const std::string c_event_class = "event";
     const std::string c_parts = "parts";
+    const std::string c_mentions = "mentions";
     const std::string c_media_type = "mediaType";
     const std::string c_sn = "sn";
     const std::string c_stiker_id = "stickerId";
@@ -60,12 +61,14 @@ namespace
     const std::string c_type_forward = "forward";
     const std::string c_type_text = "text";
     const std::string c_type_sticker = "sticker";
+    const std::string c_chat_stamp = "stamp";
+    const std::string c_chat_name = "name";
 
     std::string parse_sender_aimid(const rapidjson::Value &_node);
 
     void serialize_metadata_from_uri(const std::string &_uri, Out coll_helper &_coll);
 
-    void find_person(const std::string &_aimid, const persons_map &_persons, Out std::string &_friendly);
+    std::string find_person(const std::string &_aimid, const persons_map &_persons);
 
     bool is_generic_event(const rapidjson::Value& _node);
 
@@ -83,9 +86,10 @@ namespace
 // message_header class
 //////////////////////////////////////////////////////////////////////////
 message_header::message_header()
-    :	version_(0),
-    time_(0),
+    :
     id_(-1),
+    version_(0),
+    time_(0),
     prev_id_(-1),
     data_offset_(-1),
     data_size_(0)
@@ -100,10 +104,11 @@ message_header::message_header(
     int64_t _prev_id,
     int64_t _data_offset,
     uint32_t _data_size)
-    :	version_(0),
+    :
+    id_(_id),
+    version_(0),
     flags_(_flags),
     time_(_time),
-    id_(_id),
     prev_id_(_prev_id),
     data_offset_(_data_offset),
     data_size_(_data_size)
@@ -267,6 +272,11 @@ bool message_header::is_patch() const
     return flags_.flags_.patch_;
 }
 
+bool message_header::is_outgoing() const
+{
+    return flags_.flags_.outgoing_;
+}
+
 const message_header_vec& message_header::get_modifications() const
 {
     assert(is_modified());
@@ -289,7 +299,7 @@ int32_t core::archive::sticker_data::unserialize(const rapidjson::Value& _node)
     if (iter_id == _node.MemberEnd() || !iter_id->value.IsString())
         return -1;
 
-    id_ = iter_id->value.GetString();
+    id_ = rapidjson_get_string(iter_id->value);
 
     return 0;
 }
@@ -341,16 +351,21 @@ enum message_fields : uint32_t
     mf_chat_event_sender_aimid                  = 43,
     mf_quote_set_id                             = 44,
     mf_quote_sticker_id                         = 45,
+    mf_quote_chat_stamp                         = 46,
+    mf_quote_chat_name                          = 47,
+    mf_mention                                  = 48,
+    mf_mention_sn                               = 49,
+    mf_mention_friendly                         = 50,
 };
 
 sticker_data::sticker_data()
 {
 }
 
-sticker_data::sticker_data(const std::string& _id)
-    : id_(_id)
+sticker_data::sticker_data(std::string _id)
+    : id_(std::move(_id))
 {
-    assert(boost::starts_with(_id, "ext:"));
+    assert(boost::starts_with(id_, "ext:"));
 }
 
 void core::archive::sticker_data::serialize(core::tools::tlvpack& _pack)
@@ -375,18 +390,18 @@ void core::archive::sticker_data::serialize(icollection* _collection)
 {
     coll_helper coll(_collection, false);
 
-    auto ids = get_ids();
+    auto ids = get_ids(id_);
 
     coll.set<uint32_t>("set_id", ids.first);
     coll.set<uint32_t>("sticker_id", ids.second);
 }
 
-std::pair<int32_t, int32_t> core::archive::sticker_data::get_ids()
+std::pair<int32_t, int32_t> core::archive::sticker_data::get_ids(const std::string& _id)
 {
     std::vector<std::string> components;
     components.reserve(4);
 
-    boost::split(Out components, id_, boost::is_any_of(":"));
+    boost::split(Out components, _id, boost::is_any_of(":"));
 
     assert(components.size() == 4);
     if (components.size() != 4)
@@ -416,7 +431,7 @@ core::archive::voip_data::voip_data()
 void core::archive::voip_data::apply_persons(const archive::persons_map &_persons)
 {
     assert(!sender_aimid_.empty());
-    find_person(sender_aimid_, _persons, Out sender_friendly_);
+    sender_friendly_ = find_person(sender_aimid_, _persons);
 }
 
 bool core::archive::voip_data::unserialize(
@@ -447,7 +462,7 @@ bool core::archive::voip_data::unserialize(
         return false;
     }
 
-    const std::string type = type_node.GetString();
+    const std::string type = rapidjson_get_string(type_node);
 
     // read subtype
 
@@ -463,7 +478,7 @@ bool core::archive::voip_data::unserialize(
             return false;
         }
 
-        subtype = subtype_node.GetString();
+        subtype = rapidjson_get_string(subtype_node);
     }
 
     // read event direction
@@ -685,10 +700,10 @@ int32_t core::archive::chat_data::unserialize(const rapidjson::Value& _node)
     if (iter_sender == _node.MemberEnd() || !iter_sender->value.IsString())
         return -1;
 
-    sender_ = iter_sender->value.GetString();
+    sender_ = rapidjson_get_string(iter_sender->value);
 
     if (iter_name != _node.MemberEnd() && iter_name->value.IsString())
-        name_ = iter_name->value.IsString();
+        name_ = rapidjson_get_string(iter_name->value);
 
     // workaround for the server issue
     // https://jira.mail.ru/browse/IMDESKTOP-1923
@@ -700,9 +715,9 @@ int32_t core::archive::chat_data::unserialize(const rapidjson::Value& _node)
 
 void core::archive::chat_data::serialize(core::tools::tlvpack& _pack)
 {
-    _pack.push_child(core::tools::tlv(message_fields::mf_chat_sender, (std::string) sender_));
-    _pack.push_child(core::tools::tlv(message_fields::mf_chat_name, (std::string) name_));
-    _pack.push_child(core::tools::tlv(message_fields::mf_chat_friendly, (std::string) friendly_));
+    _pack.push_child(core::tools::tlv(message_fields::mf_chat_sender, sender_));
+    _pack.push_child(core::tools::tlv(message_fields::mf_chat_name, name_));
+    _pack.push_child(core::tools::tlv(message_fields::mf_chat_friendly, friendly_));
 }
 
 int32_t core::archive::chat_data::unserialize(core::tools::tlvpack& _pack)
@@ -740,8 +755,8 @@ void core::archive::chat_data::serialize(icollection* _collection)
 
 file_sharing_data::file_sharing_data(const std::string &_local_path,
                                      const std::string &_uri)
-                                     : local_path_(_local_path)
-                                     , uri_(_uri)
+                                     : uri_(_uri)
+                                     , local_path_(_local_path)
 {
     if (local_path_.empty())
     {
@@ -898,7 +913,7 @@ chat_event_data_uptr chat_event_data::make_mchat_event(const rapidjson::Value& _
 {
     assert(_node.IsObject());
 
-    const auto sender_aimid = parse_sender_aimid(_node);
+    auto sender_aimid = parse_sender_aimid(_node);
     if (sender_aimid.empty())
     {
         return nullptr;
@@ -916,7 +931,7 @@ chat_event_data_uptr chat_event_data::make_mchat_event(const rapidjson::Value& _
         return nullptr;
     }
 
-    const std::string type_str = type_iter->value.GetString();
+    const std::string type_str = rapidjson_get_string(type_iter->value);
 
     assert(!type_str.empty());
     if (type_str.empty())
@@ -936,8 +951,8 @@ chat_event_data_uptr chat_event_data::make_mchat_event(const rapidjson::Value& _
         new chat_event_data(type)
         );
 
-    result->mchat_.members_ = members;
-    result->sender_aimid_ = sender_aimid;
+    result->mchat_.members_ = std::move(members);
+    result->sender_aimid_ = std::move(sender_aimid);
 
     return result;
 }
@@ -946,7 +961,7 @@ chat_event_data_uptr chat_event_data::make_modified_event(const rapidjson::Value
 {
     assert(_node.IsObject());
 
-    const auto sender_aimid = parse_sender_aimid(_node);
+    auto sender_aimid = parse_sender_aimid(_node);
     if (sender_aimid.empty())
     {
         return nullptr;
@@ -978,18 +993,18 @@ chat_event_data_uptr chat_event_data::make_modified_event(const rapidjson::Value
             return nullptr;
         }
 
-        const std::string new_name = new_name_node.GetString();
+        std::string new_name = rapidjson_get_string(new_name_node);
 
         chat_event_data_uptr result(
             new chat_event_data(chat_event_type::chat_name_modified));
 
         assert(result->sender_aimid_.empty());
-        result->sender_aimid_ = sender_aimid;
+        result->sender_aimid_ = std::move(sender_aimid);
 
         if (!new_name.empty())
         {
             assert(result->chat_.new_name_.empty());
-            result->chat_.new_name_ = new_name;
+            result->chat_.new_name_ = std::move(new_name);
         }
 
         return result;
@@ -1003,7 +1018,7 @@ chat_event_data_uptr chat_event_data::make_modified_event(const rapidjson::Value
             new chat_event_data(chat_event_type::avatar_modified));
 
         assert(result->sender_aimid_.empty());
-        result->sender_aimid_ = sender_aimid;
+        result->sender_aimid_ = std::move(sender_aimid);
 
         return result;
     }
@@ -1018,10 +1033,10 @@ chat_event_data_uptr chat_event_data::make_modified_event(const rapidjson::Value
             new chat_event_data(chat_event_type::chat_description_modified)
             );
 
-        result->chat_.new_description_ = about_iter->value.GetString();
+        result->chat_.new_description_ = rapidjson_get_string(about_iter->value);
 
         assert(result->sender_aimid_.empty());
-        result->sender_aimid_ = sender_aimid;
+        result->sender_aimid_ = std::move(sender_aimid);
 
         return result;
     }
@@ -1035,11 +1050,10 @@ chat_event_data_uptr chat_event_data::make_modified_event(const rapidjson::Value
         chat_event_data_uptr result(
             new chat_event_data(chat_event_type::chat_rules_modified));
 
-        result->chat_.new_rules_ = rules_iter->value.GetString();
-        //assert(!result->chat_.new_rules_.empty());
+        result->chat_.new_rules_ = rapidjson_get_string(rules_iter->value);
 
         assert(result->sender_aimid_.empty());
-        result->sender_aimid_ = sender_aimid;
+        result->sender_aimid_ = std::move(sender_aimid);
 
         return result;
     }
@@ -1068,15 +1082,15 @@ chat_event_data_uptr chat_event_data::make_generic_event(const rapidjson::Value&
 {
     assert(_text_node.IsString());
 
-    return make_generic_event(_text_node.GetString());
+    return make_generic_event(rapidjson_get_string(_text_node));
 }
 
-chat_event_data_uptr chat_event_data::make_generic_event(const std::string& _text)
+chat_event_data_uptr chat_event_data::make_generic_event(std::string _text)
 {
     chat_event_data_uptr result(
         new chat_event_data(chat_event_type::generic));
 
-    result->generic_ = _text;
+    result->generic_ = std::move(_text);
 
     return result;
 }
@@ -1135,7 +1149,7 @@ void chat_event_data::apply_persons(const archive::persons_map &_persons)
     if (has_sender_aimid())
     {
         assert(!sender_aimid_.empty());
-        find_person(sender_aimid_, _persons, Out sender_friendly_);
+        sender_friendly_ = find_person(sender_aimid_, _persons);
         assert(!sender_friendly_.empty());
     }
 
@@ -1144,13 +1158,10 @@ void chat_event_data::apply_persons(const archive::persons_map &_persons)
         auto &friendly_members = mchat_.members_friendly_;
         assert(friendly_members.empty());
 
-        for (const auto &member_uin : mchat_.members_)
+        for (auto member_uin : mchat_.members_)
         {
-            std::string friendly_member;
-            auto normalizedUin = member_uin;
-            boost::replace_last(normalizedUin, "@uin.icq", std::string());
-            find_person(normalizedUin, _persons, Out friendly_member);
-            friendly_members.emplace(std::move(friendly_member));
+            boost::replace_last(member_uin, "@uin.icq", std::string());
+            friendly_members.emplace(find_person(member_uin, _persons));
         }
     }
 }
@@ -1370,7 +1381,7 @@ void chat_event_data::serialize_mchat_members(Out coll_helper &_coll) const
     assert(!members_friendly.empty());
 
     ifptr<iarray> members_array(_coll->create_array());
-
+    members_array->reserve(members_friendly.size());
     for (const auto &friendly : members_friendly)
     {
         assert(!friendly.empty());
@@ -1479,19 +1490,19 @@ void history_message::init_file_sharing_from_local_path(const std::string &_loca
         ));
     assert(!file_sharing_);
 
-    file_sharing_.reset(new file_sharing_data(_local_path, std::string()));
+    file_sharing_ = std::make_unique<core::archive::file_sharing_data>(_local_path, std::string());
 }
 
 void history_message::init_file_sharing_from_link(const std::string &_uri)
 {
-    file_sharing_.reset(new file_sharing_data(std::string(), _uri));
+    file_sharing_ = std::make_unique<core::archive::file_sharing_data>(std::string(), _uri);
 }
 
 void history_message::init_sticker_from_text(const std::string &_text)
 {
     assert(boost::starts_with(_text, "ext:"));
 
-    sticker_.reset(new sticker_data(_text));
+    sticker_ = std::make_unique<core::archive::sticker_data>(_text);
 }
 
 const file_sharing_data_uptr& history_message::get_file_sharing_data() const
@@ -1522,6 +1533,7 @@ void history_message::copy(const history_message& _message)
     flags_ = _message.flags_;
     sender_friendly_ = _message.sender_friendly_;
     quotes_ = _message.quotes_;
+    mentions_ = _message.mentions_;
 
     sticker_.reset();
     mult_.reset();
@@ -1532,41 +1544,38 @@ void history_message::copy(const history_message& _message)
 
     if (_message.sticker_)
     {
-        sticker_.reset(new sticker_data(*_message.sticker_));
+        sticker_ = std::make_unique<core::archive::sticker_data>(*_message.sticker_);
     }
 
     if (_message.mult_)
     {
-        mult_.reset(new mult_data(*_message.mult_));
+        mult_ = std::make_unique<core::archive::mult_data>(*_message.mult_);
     }
 
     if (_message.voip_)
     {
-        voip_.reset(new voip_data(*_message.voip_));
+        voip_ = std::make_unique<core::archive::voip_data>(*_message.voip_);
     }
 
     if (_message.chat_)
     {
-        chat_.reset(new chat_data(*_message.chat_));
+        chat_ = std::make_unique<core::archive::chat_data>(*_message.chat_);
     }
 
     if (_message.file_sharing_)
     {
-        file_sharing_.reset(new file_sharing_data(*_message.file_sharing_));
+        file_sharing_ = std::make_unique<core::archive::file_sharing_data>(*_message.file_sharing_);
     }
 
     if (_message.chat_event_)
     {
-        chat_event_.reset(new chat_event_data(*_message.chat_event_));
+        chat_event_ = std::make_unique<core::archive::chat_event_data>(*_message.chat_event_);
     }
 }
 
 
 archive::chat_data* history_message::get_chat_data()
 {
-    if (!chat_)
-        return nullptr;
-
     return chat_.get();
 }
 
@@ -1574,7 +1583,7 @@ void history_message::set_chat_data(const chat_data& _data)
 {
     if (!chat_)
     {
-        chat_.reset(new chat_data(_data));
+        chat_ = std::make_unique<core::archive::chat_data>(_data);
 
         return;
     }
@@ -1666,7 +1675,7 @@ void history_message::serialize(icollection* _collection, const time_t _offset, 
         ifptr<iarray> quotes_array(coll->create_array());
         quotes_array->reserve(quotes_.size());
 
-        for (auto q : quotes_)
+        for (const auto& q : quotes_)
         {
             coll_helper coll_quote(coll->create_collection(), true);
             q.serialize(coll_quote.get());
@@ -1676,6 +1685,26 @@ void history_message::serialize(icollection* _collection, const time_t _offset, 
         }
 
         coll.set_value_as_array("quotes", quotes_array.get());
+    }
+
+    if (!mentions_.empty())
+    {
+        ifptr<iarray> arr(coll->create_array());
+        arr->reserve(mentions_.size());
+
+        for (const auto& p: mentions_)
+        {
+            coll_helper coll_ment(coll->create_collection(), true);
+
+            coll_ment.set_value_as_string("sn", p.first);
+            coll_ment.set_value_as_string("friendly", p.second);
+
+            ifptr<ivalue> val(coll->create_value());
+            val->set_as_collection(coll_ment.get());
+            arr->push_back(val.get());
+        }
+
+        coll.set_value_as_array("mentions", arr.get());
     }
 }
 
@@ -1734,11 +1763,19 @@ void history_message::serialize(core::tools::binary_stream& _data) const
         msg_pack.push_child(core::tools::tlv(mf_chat_event, chat_event_pack));
     }
 
-    for (auto iter : quotes_)
+    for (const auto& q : quotes_)
     {
         core::tools::tlvpack quote_pack;
-        iter.serialize(quote_pack);
+        q.serialize(quote_pack);
         msg_pack.push_child(core::tools::tlv(mf_quote, quote_pack));
+    }
+
+    for (const auto& p: mentions_)
+    {
+        core::tools::tlvpack pack;
+        pack.push_child(core::tools::tlv(message_fields::mf_mention_sn, p.first));
+        pack.push_child(core::tools::tlv(message_fields::mf_mention_friendly, p.second));
+        msg_pack.push_child(core::tools::tlv(mf_mention, pack));
     }
 
     msg_pack.serialize(_data);
@@ -1781,28 +1818,28 @@ int32_t history_message::unserialize(core::tools::binary_stream& _data)
             break;
         case message_fields::mf_chat:
             {
-                chat_.reset(new chat_data());
+                chat_ = std::make_unique<core::archive::chat_data>();
                 core::tools::tlvpack pack = tlv_field->get_value<core::tools::tlvpack>();
                 chat_->unserialize(pack);
             }
             break;
         case message_fields::mf_sticker:
             {
-                sticker_.reset(new sticker_data());
+                sticker_ = std::make_unique<core::archive::sticker_data>();
                 core::tools::tlvpack pack = tlv_field->get_value<core::tools::tlvpack>();
                 sticker_->unserialize(pack);
             }
             break;
         case message_fields::mf_mult:
             {
-                mult_.reset(new mult_data());
+                mult_ = std::make_unique<core::archive::mult_data>();
                 core::tools::tlvpack pack = tlv_field->get_value<core::tools::tlvpack>();
                 mult_->unserialize(pack);
             }
             break;
         case message_fields::mf_voip:
             {
-                voip_.reset(new voip_data());
+                voip_ = std::make_unique<core::archive::voip_data>();
                 const auto pack = tlv_field->get_value<core::tools::tlvpack>();
                 if (!voip_->unserialize(pack))
                 {
@@ -1814,7 +1851,7 @@ int32_t history_message::unserialize(core::tools::binary_stream& _data)
         case message_fields::mf_file_sharing:
             {
                 const auto pack = tlv_field->get_value<core::tools::tlvpack>();
-                file_sharing_.reset(new file_sharing_data(pack));
+                file_sharing_ = std::make_unique<core::archive::file_sharing_data>(pack);
             }
             break;
         case message_fields::mf_chat_event:
@@ -1828,11 +1865,24 @@ int32_t history_message::unserialize(core::tools::binary_stream& _data)
                 quote q;
                 const auto pack = tlv_field->get_value<core::tools::tlvpack>();
                 q.unserialize(pack);
-                quotes_.push_back(q);
+                quotes_.push_back(std::move(q));
             }
-
+            break;
+        case message_fields::mf_mention:
+            {
+                const auto pack = tlv_field->get_value<core::tools::tlvpack>();
+                const auto sn = pack.get_item(mf_mention_sn);
+                const auto fr = pack.get_item(mf_mention_friendly);
+                if (sn && fr)
+                {
+                    const auto sn_str = sn->get_value<std::string>();
+                    const auto fr_str = fr->get_value<std::string>();
+                    if (!sn_str.empty() && !fr_str.empty())
+                        mentions_.emplace(sn_str, fr_str);
+                }
+            }
+            break;
         default:
-            //assert(!"unknown message field");
             break;
         }
     }
@@ -1847,9 +1897,9 @@ int32_t history_message::unserialize(const rapidjson::Value& _node,
 
     // load basic fields
 
-    for (auto iter_field = _node.MemberBegin(); iter_field != _node.MemberEnd(); iter_field++)
+    for (auto iter_field = _node.MemberBegin(), end = _node.MemberEnd(); iter_field != end ; ++iter_field)
     {
-        const std::string name = iter_field->name.GetString();
+        const std::string name = rapidjson_get_string(iter_field->name);
 
         if (c_msgid == name)
         {
@@ -1857,11 +1907,11 @@ int32_t history_message::unserialize(const rapidjson::Value& _node,
         }
         else if (c_wimid == name)
         {
-            wimid_ = iter_field->value.GetString();
+            wimid_ = rapidjson_get_string(iter_field->value);
         }
         else if (c_reqid == name)
         {
-            internal_id_ = iter_field->value.GetString();
+            internal_id_ = rapidjson_get_string(iter_field->value);
         }
         else if (c_outgoing == name)
         {
@@ -1873,7 +1923,7 @@ int32_t history_message::unserialize(const rapidjson::Value& _node,
         }
         else if (c_text == name)
         {
-            text_ = iter_field->value.GetString();
+            text_ = rapidjson_get_string(iter_field->value);
         }
     }
 
@@ -1895,7 +1945,7 @@ int32_t history_message::unserialize(const rapidjson::Value& _node,
                     const auto iter_text = part.FindMember(c_text);
                     if (iter_text != part.MemberEnd() && iter_text->value.IsString())
                     {
-                        text_ = iter_text->value.GetString();
+                        text_ = rapidjson_get_string(iter_text->value);
                     }
                     continue;
                 }
@@ -1904,7 +1954,7 @@ int32_t history_message::unserialize(const rapidjson::Value& _node,
                     const auto stickerId = part.FindMember(c_stiker_id);
                     if (stickerId != part.MemberEnd() && stickerId->value.IsString())
                     {
-                        sticker_.reset(new sticker_data(stickerId->value.GetString()));
+                        sticker_ = std::make_unique<core::archive::sticker_data>(rapidjson_get_string(stickerId->value));
                     }
                     continue;
                 }
@@ -1912,7 +1962,7 @@ int32_t history_message::unserialize(const rapidjson::Value& _node,
                 {
                     quote q;
                     q.unserialize(part, type == c_type_forward);
-                    quotes_.push_back(q);
+                    quotes_.push_back(std::move(q));
                     continue;
                 }
             }
@@ -1977,23 +2027,23 @@ int32_t history_message::unserialize(const rapidjson::Value& _node,
 
     // load other child structures
 
-    for (auto iter_field = _node.MemberBegin(); iter_field != _node.MemberEnd(); iter_field++)
+    for (auto iter_field = _node.MemberBegin(), end = _node.MemberEnd(); iter_field != end; ++iter_field)
     {
-        const std::string name = iter_field->name.GetString();
+        const std::string name = rapidjson_get_string(iter_field->name);
 
         if (c_sticker == name)
         {
-            sticker_.reset(new sticker_data());
+            sticker_ = std::make_unique<core::archive::sticker_data>();
             sticker_->unserialize(iter_field->value);
         }
         else if (c_mult == name)
         {
-            mult_.reset(new mult_data());
+            mult_ = std::make_unique<core::archive::mult_data>();
             mult_->unserialize(iter_field->value);
         }
         else if (c_voip == name)
         {
-            voip_.reset(new voip_data());
+            voip_ = std::make_unique<core::archive::voip_data>();
             if (!voip_->unserialize(iter_field->value, _sender_aimid))
             {
                 assert(!"voip unserialization failed");
@@ -2002,8 +2052,24 @@ int32_t history_message::unserialize(const rapidjson::Value& _node,
         }
         else if (c_chat == name)
         {
-            chat_.reset(new chat_data());
+            chat_ = std::make_unique<core::archive::chat_data>();
             chat_->unserialize(iter_field->value);
+        }
+        else if (c_mentions == name)
+        {
+            mentions_.clear();
+            const auto& mentions = iter_field->value;
+            if (mentions.IsArray())
+            {
+                for (auto iter = mentions.Begin(), m_end = mentions.End(); iter != m_end; ++iter)
+                {
+                    if (iter->IsString())
+                    {
+                        const auto mention = rapidjson_get_string(*iter);
+                        mentions_.emplace(mention, mention);
+                    }
+                }
+            }
         }
     }
 
@@ -2146,21 +2212,31 @@ void history_message::apply_modifications(const history_block &_modifications)
 
             reset_extended_data();
 
-            chat_event_.reset(new chat_event_data(*chat_event));
+            chat_event_ = std::make_unique<core::archive::chat_event_data>(*chat_event);
 
             continue;
         }
     }
 }
 
-quotes_vec history_message::get_quotes() const
+const quotes_vec& history_message::get_quotes() const
 {
     return quotes_;
 }
 
-void history_message::attach_quotes(quotes_vec _quotes)
+void history_message::attach_quotes(const quotes_vec& _quotes)
 {
     quotes_ = _quotes;
+}
+
+const mentions_map& core::archive::history_message::get_mentions() const
+{
+    return mentions_;
+}
+
+void core::archive::history_message::set_mentions(const mentions_map& _mentions)
+{
+    mentions_ = _mentions;
 }
 
 message_flags history_message::get_flags() const
@@ -2229,17 +2305,27 @@ bool history_message::contents_equal(const history_message& _msg) const
 
 void history_message::apply_persons_to_quotes(const archive::persons_map & _persons)
 {
-    for (auto q = quotes_.begin(); q != quotes_.end(); ++q)
+    for (auto& q : quotes_)
     {
-        auto iter_p = _persons.find(q->get_sender());
+        const auto iter_p = _persons.find(q.get_sender());
+        if (iter_p != _persons.end())
+            q.set_sender_friendly(iter_p->second.friendly_);
+    }
+}
+
+void core::archive::history_message::apply_persons_to_mentions(const archive::persons_map & _persons)
+{
+    for (auto& it: mentions_)
+    {
+        const auto iter_p = _persons.find(it.first);
         if (iter_p != _persons.end())
         {
-            q->set_sender_friendly(iter_p->second.friendly_);
+            it.second = iter_p->second.friendly_;
         }
     }
 }
 
-std::string history_message::get_text() const
+const std::string& history_message::get_text() const
 {
     if (is_sticker())
     {
@@ -2263,9 +2349,9 @@ bool history_message::has_text() const
 
 quote::quote()
     : time_(-1)
-    , msg_id_(-1)
     , setId_(-1)
     , stickerId_(-1)
+    , msg_id_(-1)
     , is_forward_(false)
 {
 }
@@ -2285,6 +2371,8 @@ void quote::serialize(icollection* _collection) const
         helper.set_value_as_int("setId", setId_);
     if (stickerId_ != -1)
         helper.set_value_as_int("stickerId", stickerId_);
+    helper.set_value_as_string("stamp", chat_stamp_);
+    helper.set_value_as_string("chatName", chat_name_);
 }
 
 void quote::serialize(core::tools::tlvpack& _pack) const
@@ -2314,6 +2402,12 @@ void quote::serialize(core::tools::tlvpack& _pack) const
         _pack.push_child(core::tools::tlv(message_fields::mf_quote_sticker_id, stickerId_));
 
     _pack.push_child(core::tools::tlv(message_fields::mf_quote_is_forward, is_forward_));
+
+    if (!chat_stamp_.empty())
+        _pack.push_child(core::tools::tlv(message_fields::mf_quote_chat_stamp, chat_stamp_));
+
+    if (!chat_name_.empty())
+        _pack.push_child(core::tools::tlv(message_fields::mf_quote_chat_name, chat_name_));
 }
 
 void quote::unserialize(icollection* _coll)
@@ -2330,20 +2424,23 @@ void quote::unserialize(icollection* _coll)
 
     if (helper.is_value_exist("setId"))
         setId_ = helper.get_value_as_int("setId");
-    
+
     if (helper.is_value_exist("stickerId"))
         stickerId_ = helper.get_value_as_int("stickerId");
+
+    chat_stamp_ = helper.get_value_as_string("stamp");
+    chat_name_ = helper.get_value_as_string("chatName");
 }
 
 void quote::unserialize(const rapidjson::Value& _node, bool _is_forward)
 {
     const auto text_iter = _node.FindMember(c_text);
     if (text_iter != _node.MemberEnd() && text_iter->value.IsString())
-        text_ = text_iter->value.GetString();
+        text_ = rapidjson_get_string(text_iter->value);
 
     const auto sn_iter = _node.FindMember(c_sn);
     if (sn_iter != _node.MemberEnd() && sn_iter->value.IsString())
-        sender_ = sn_iter->value.GetString();
+        sender_ = rapidjson_get_string(sn_iter->value);
 
     const auto msg_id_iter = _node.FindMember(c_msgid);
     if (msg_id_iter != _node.MemberEnd())
@@ -2354,7 +2451,7 @@ void quote::unserialize(const rapidjson::Value& _node, bool _is_forward)
         }
         else if (msg_id_iter->value.IsString())
         {
-            std::string id = msg_id_iter->value.GetString();
+            std::string id = rapidjson_get_string(msg_id_iter->value);
             std::stringstream ss;
             ss << id;
             ss >> msg_id_;
@@ -2368,54 +2465,51 @@ void quote::unserialize(const rapidjson::Value& _node, bool _is_forward)
     const auto sticker_iter = _node.FindMember(c_sticker_id);
     if (sticker_iter != _node.MemberEnd() && sticker_iter->value.IsString())
     {
-        sticker_data sticker(sticker_iter->value.GetString());
-        auto ids = sticker.get_ids();
+        auto ids = sticker_data::get_ids(rapidjson_get_string(sticker_iter->value));
         setId_ = ids.first;
         stickerId_ = ids.second;
     }
 
     is_forward_ = _is_forward;
+
+    const auto chat_iter = _node.FindMember(c_chat);
+    if (chat_iter != _node.MemberEnd() && chat_iter->value.IsObject())
+    {
+        const rapidjson::Value& chat_node = chat_iter->value;
+
+        const auto chat_sn_iter = chat_node.FindMember(c_sn);
+        if (chat_sn_iter != chat_node.MemberEnd() && chat_sn_iter->value.IsString())
+            chat_ = rapidjson_get_string(chat_sn_iter->value);
+
+        const auto chat_stamp_iter = chat_node.FindMember(c_chat_stamp);
+        if (chat_stamp_iter != chat_node.MemberEnd() && chat_stamp_iter->value.IsString())
+            chat_stamp_ = rapidjson_get_string(chat_stamp_iter->value);
+
+        const auto chat_cn_iter = chat_node.FindMember(c_chat_name);
+        if (chat_cn_iter != chat_node.MemberEnd() && chat_cn_iter->value.IsString())
+            chat_name_ = rapidjson_get_string(chat_cn_iter->value);
+    }
 }
 
 void quote::unserialize(const core::tools::tlvpack &_pack)
 {
-    const auto tlv_text = _pack.get_item(message_fields::mf_quote_text);
-    const auto tlv_sn = _pack.get_item(message_fields::mf_quote_sn);
-    const auto tlv_chat = _pack.get_item(message_fields::mf_quote_chat_id);
-    const auto tlv_time = _pack.get_item(message_fields::mf_quote_time);
-    const auto tlv_msg_id = _pack.get_item(message_fields::mf_quote_msg_id);
-    const auto tlv_type = _pack.get_item(message_fields::mf_voip_event_type);
-    const auto tlv_sn_friendly = _pack.get_item(message_fields::mf_quote_friendly);
-    const auto tlv_forward = _pack.get_item(message_fields::mf_quote_is_forward);
-    const auto tlv_set_id = _pack.get_item(message_fields::mf_quote_set_id);
-    const auto tlv_sticker_id = _pack.get_item(message_fields::mf_quote_sticker_id);
-
-    if (tlv_text)
-        text_ = tlv_text->get_value<std::string>(std::string());
-
-    if (tlv_sn)
-        sender_ = tlv_sn->get_value<std::string>(std::string());
-
-    if (tlv_chat)
-        chat_ = tlv_chat->get_value<std::string>(std::string());
-
-    if (tlv_time)
-        time_ = tlv_time->get_value<int32_t>(-1);
-
-    if (tlv_msg_id)
-        msg_id_ = tlv_msg_id->get_value<int64_t>(-1);
-
-    if (tlv_sn_friendly)
-        senderFriendly_ = tlv_sn_friendly->get_value<std::string>(std::string());
-
-    if (tlv_forward)
-        is_forward_ = tlv_forward->get_value<bool>(false);
-
-    if (tlv_set_id)
-        setId_ = tlv_set_id->get_value<int32_t>(-1);
-
-    if (tlv_sticker_id)
-        stickerId_ = tlv_sticker_id->get_value<int32_t>(-1);
+    auto get_value = [_pack](auto _field, auto _def_value, Out auto _out_ptr)
+    {
+        const auto item = _pack.get_item(_field);
+        if (item)
+            *_out_ptr = item->template get_value<std::remove_pointer_t<decltype(_out_ptr)>>(_def_value);
+    };
+    get_value(message_fields::mf_quote_text,    std::string(),  &text_);
+    get_value(message_fields::mf_quote_sn,      std::string(),  &sender_);
+    get_value(message_fields::mf_quote_chat_id, std::string(),  &chat_);
+    get_value(message_fields::mf_quote_time,    -1,             &time_);
+    get_value(message_fields::mf_quote_msg_id,  -1,             &msg_id_);
+    get_value(message_fields::mf_quote_friendly, std::string(), &senderFriendly_);
+    get_value(message_fields::mf_quote_set_id,  -1,             &setId_);
+    get_value(message_fields::mf_quote_is_forward, false,       &is_forward_);
+    get_value(message_fields::mf_quote_sticker_id, int32_t(-1), &stickerId_);
+    get_value(message_fields::mf_quote_chat_stamp,std::string(),&chat_stamp_);
+    get_value(message_fields::mf_quote_chat_name, std::string(),&chat_name_);
 }
 
 std::string quote::get_sticker() const
@@ -2424,7 +2518,7 @@ std::string quote::get_sticker() const
          return std::string();
 
      std::stringstream ss_message;
-     ss_message << "ext:" << setId_ << ":" << "sticker:" << stickerId_;
+     ss_message << "ext:" << setId_ << ":sticker:" << stickerId_;
 
      return ss_message.str();
 };
@@ -2484,7 +2578,7 @@ namespace
             return std::string();
         }
 
-        std::string sender_aimid = sender_iter->value.GetString();
+        std::string sender_aimid = rapidjson_get_string(sender_iter->value);
         assert(!sender_aimid.empty());
 
         return sender_aimid;
@@ -2537,19 +2631,14 @@ namespace
         coll.set_value_as_int("height", height);
     }
 
-    void find_person(const std::string &_aimid, const persons_map &_persons, Out std::string &_friendly)
+    std::string find_person(const std::string &_aimid, const persons_map &_persons)
     {
         assert(!_aimid.empty());
 
-        auto iter_p = _persons.find(_aimid);
+        const auto iter_p = _persons.find(_aimid);
         if (iter_p != _persons.end())
-        {
-            Out _friendly = iter_p->second.friendly_;
-        }
-        else
-        {
-            Out _friendly = _aimid;
-        }
+            return iter_p->second.friendly_;
+        return _aimid;
     }
 
     bool is_generic_event(const rapidjson::Value& _node)
@@ -2557,10 +2646,15 @@ namespace
         assert(_node.IsObject());
 
         const auto text_iter = _node.FindMember("text");
-        if (
-            (text_iter == _node.MemberEnd()) ||
-            !text_iter->value.IsString()
-            )
+        if (text_iter == _node.MemberEnd() ||
+            !text_iter->value.IsString() ||
+            rapidjson_get_string(text_iter->name).empty())
+        {
+            return false;
+        }
+
+        const auto voip_iter = _node.FindMember("voip");
+        if (voip_iter != _node.MemberEnd())
         {
             return false;
         }
@@ -2711,7 +2805,7 @@ namespace
                 continue;
             }
 
-            std::string member = member_value.GetString();
+            std::string member = rapidjson_get_string(member_value);
             assert(!member.empty());
 
             if (!member.empty())

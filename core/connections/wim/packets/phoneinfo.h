@@ -22,7 +22,7 @@ namespace core
         private:
             std::string phone_;
             std::string gui_locale_;
-            
+
         public:
             std::string info_operator_;
             std::string info_phone_;
@@ -34,13 +34,13 @@ namespace core
             std::vector<int32_t> remaining_lengths_;
             std::vector<std::string> prefix_state_;
             std::string modified_prefix_;
-            
+
         private:
             virtual int32_t init_request(std::shared_ptr<core::http_request_simple> request) override;
             virtual int32_t parse_response(std::shared_ptr<core::tools::binary_stream> response) override;
 
         public:
-            phoneinfo(const wim_packet_params &params, const std::string &phone, const std::string &gui_locale);
+            phoneinfo(wim_packet_params params, const std::string &phone, const std::string &gui_locale);
             virtual ~phoneinfo();
         };
 

@@ -8,24 +8,28 @@ Ui::CustomButton::CustomButton(QWidget* _parent, const QString& _imageName)
     : QPushButton(_parent)
     , activeState_(false)
 {
-	init();
+    init();
     auto px = QPixmap(Utils::parse_image_name(_imageName));
     if (!px.isNull())
     {
-        pixmapDefault_ = px;
+        pixmapDefault_ = std::move(px);
         pixmapToDraw_ = pixmapDefault_;
+
+        Utils::check_pixel_ratio(pixmapDefault_);
+        Utils::check_pixel_ratio(pixmapToDraw_);
+
     }
     setFlat(true);
-    QString stylesheet = "QPushButton:pressed { background-color: transparent; } "
-                         "QPushButton:focus { border: none; outline: none; }";
+    const QString stylesheet = qsl(
+        "QPushButton:pressed { background-color: transparent; } "
+        "QPushButton:focus { border: none; outline: none; } ");
     setStyleSheet(stylesheet);
-
 };
 
 Ui::CustomButton::CustomButton(QWidget* _parent, const QPixmap& _pixmap) : QPushButton(_parent)
 {
     init();
-    pixmapDefault_ = QPixmap(_pixmap);
+    pixmapDefault_ = _pixmap;
     pixmapToDraw_ = pixmapDefault_;
     setFlat(true);
 }
@@ -45,12 +49,10 @@ void Ui::CustomButton::paintEvent(QPaintEvent *_e)
     QPushButton::paintEvent(_e);
 
     QPainter painter(this);
-	if (fillColor_.isValid())
-	{
-		painter.fillRect(rect(), fillColor_);
-	}
-    Utils::check_pixel_ratio(pixmapToDraw_);
-    Utils::check_pixel_ratio(pixmapDisabled_);
+    if (fillColor_.isValid())
+    {
+        painter.fillRect(rect(), fillColor_);
+    }
     double ratio = Utils::scale_bitmap(1);
     int x = (this->rect().width() / 2) - (pixmapToDraw_.width() / 2. / ratio);
     int y = (this->rect().height() / 2) - (pixmapToDraw_.height() / 2. / ratio);
@@ -62,17 +64,17 @@ void Ui::CustomButton::paintEvent(QPaintEvent *_e)
         y = 0;
     else if ((align_ & Qt::AlignBottom) == Qt::AlignBottom)
         y = this->rect().height() - (pixmapToDraw_.height() / ratio);
-	
-	if (activeState_ && xForActive_ != NO_VALUE && yForActive_ != NO_VALUE)
-	{
-		x += xForActive_;
-		y += yForActive_;
-	}
-	else
-	{
-		x += x_;
-		y += y_;
-	}
+
+    if (activeState_ && xForActive_ != NO_VALUE && yForActive_ != NO_VALUE)
+    {
+        x += xForActive_;
+        y += yForActive_;
+    }
+    else
+    {
+        x += x_;
+        y += y_;
+    }
 
     painter.drawPixmap(x, y, (!isEnabled() && !pixmapDisabled_.isNull()) ? pixmapDisabled_ : pixmapToDraw_);
 }
@@ -136,9 +138,9 @@ void Ui::CustomButton::setOffsets(int _x, int _y)
 
 void Ui::CustomButton::setOffsetsForActive(int _x, int _y)
 {
-	xForActive_ = _x;
-	yForActive_ = _y;
-	update();
+    xForActive_ = _x;
+    yForActive_ = _y;
+    update();
 }
 
 void Ui::CustomButton::setImage(const QString& _imageName)
@@ -172,6 +174,8 @@ void Ui::CustomButton::setImage(const QPixmap& _px)
     {
         pixmapDefault_ = _px;//platform::is_apple() ? px.scaled(Utils::scale_value(px.width()), Utils::scale_value(px.width()), Qt::KeepAspectRatio, Qt::SmoothTransformation) : px;
         pixmapToDraw_ = pixmapDefault_;
+        Utils::check_pixel_ratio(pixmapDefault_);
+        Utils::check_pixel_ratio(pixmapToDraw_);
     }
     update();
 }
@@ -179,25 +183,37 @@ void Ui::CustomButton::setImage(const QPixmap& _px)
 void Ui::CustomButton::setHoverImage(const QPixmap& _px)
 {
     if (!_px.isNull())
+    {
         pixmapHover_ = _px;//platform::is_apple() ? px.scaled(Utils::scale_value(px.width()), Utils::scale_value(px.width()), Qt::KeepAspectRatio, Qt::SmoothTransformation) : px;
+        Utils::check_pixel_ratio(pixmapHover_);
+    }
 }
 
 void Ui::CustomButton::setActiveImage(const QPixmap& _px)
 {
     if (!_px.isNull())
+    {
         pixmapActive_ = _px;//platform::is_apple() ? px.scaled(Utils::scale_value(px.width()), Utils::scale_value(px.width()), Qt::KeepAspectRatio, Qt::SmoothTransformation) : px;
+        Utils::check_pixel_ratio(pixmapActive_);
+    }
 }
 
 void Ui::CustomButton::setDisabledImage(const QPixmap& _px)
 {
     if (!_px.isNull())
+    {
         pixmapDisabled_ = _px;//platform::is_apple() ? px.scaled(Utils::scale_value(px.width()), Utils::scale_value(px.width()), Qt::KeepAspectRatio, Qt::SmoothTransformation) : px;
+        Utils::check_pixel_ratio(pixmapDisabled_);
+    }
 }
 
 void Ui::CustomButton::setPressedImage(const QPixmap& _px)
 {
     if (!_px.isNull())
+    {
         pixmapPressed_ = _px;//platform::is_apple() ? px.scaled(Utils::scale_value(px.width()), Utils::scale_value(px.width()), Qt::KeepAspectRatio, Qt::SmoothTransformation) : px;
+        Utils::check_pixel_ratio(pixmapPressed_);
+    }
 }
 
 void Ui::CustomButton::setActive(bool _isActive)
@@ -221,13 +237,13 @@ void Ui::CustomButton::setActive(bool _isActive)
 
 void Ui::CustomButton::setFillColor(QColor _color)
 {
-	fillColor_ = _color;
-	update();
+    fillColor_ = _color;
+    update();
 }
 
 void Ui::CustomButton::setTextColor(const QString& _color)
 {
-    QString stylesheet = QString(
+    const QString stylesheet = qsl(
         "QPushButton { color: %1 } "
         "QPushButton:pressed { background-color: transparent; }"
         "QPushButton:focus { border: none; outline: none; }"

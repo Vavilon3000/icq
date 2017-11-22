@@ -27,7 +27,7 @@ namespace core
             virtual int32_t on_response_error_code() override;
 
         public:
-            join_chat_alpha(const wim_packet_params& _params, const std::string& _stamp, const int age);
+            join_chat_alpha(wim_packet_params _params, const std::string& _stamp, const int age);
 
             virtual ~join_chat_alpha();
         };

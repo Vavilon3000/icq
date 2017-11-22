@@ -16,7 +16,11 @@ namespace
 {
     enum
     {
+#ifdef __linux__
+        kIncomingCallWndDefH = 400,
+#else
         kIncomingCallWndDefH = 300,
+#endif
         kIncomingCallWndDefW = 400,
     };
 
@@ -32,20 +36,25 @@ namespace
 QList<Ui::IncomingCallWindow*> Ui::IncomingCallWindow::instances_;
 
 Ui::IncomingCallWindow::IncomingCallWindow(const std::string& _account, const std::string& _contact)
-    : QWidget(NULL) 
+    : QWidget(nullptr, Qt::Window)
     , contact_(_contact)
     , account_(_account)
     , header_(new(std::nothrow) voipTools::BoundBox<VoipSysPanelHeader>(this))
     , controls_(new voipTools::BoundBox<IncomingCallControls>(this))
     , transparentPanelOutgoingWidget_(nullptr)
-	, shadow_(this)
+    , shadow_(this)
 {
-    setStyleSheet(Utils::LoadStyle(":/voip/incoming_call.qss"));
+#ifndef __linux__
+    setStyleSheet(Utils::LoadStyle(":/qss/incoming_call"));
+#else
+    setStyleSheet(Utils::LoadStyle(":/qss/incoming_call_linux"));
+#endif
+
     QIcon icon(build::is_icq()
-        ? ":/resources/main_window/appicon.ico"
-        : ":/resources/main_window/appicon_agent.ico");
+        ? ":/logo/ico_icq"
+        : ":/logo/ico_agent");
     setWindowIcon(icon);
-    
+
 #ifdef _WIN32
     setWindowFlags(Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint | Qt::Window);
     setAttribute(Qt::WA_ShowWithoutActivating);
@@ -57,13 +66,15 @@ Ui::IncomingCallWindow::IncomingCallWindow(const std::string& _account, const st
     //setAttribute(Qt::WA_ShowWithoutActivating);
     setAttribute(Qt::WA_X11DoNotAcceptFocus);
 #endif
-    
+
+#ifndef __linux__
     setAttribute(Qt::WA_UpdatesDisabled);
+#endif
 
     QVBoxLayout* rootLayout = Utils::emptyVLayout();
     rootLayout->setAlignment(Qt::AlignVCenter);
     setLayout(rootLayout);
-    
+
     header_->setWindowFlags(header_->windowFlags() | Qt::WindowStaysOnTopHint);
     controls_->setWindowFlags(controls_->windowFlags() | Qt::WindowStaysOnTopHint);
 
@@ -77,17 +88,30 @@ Ui::IncomingCallWindow::IncomingCallWindow(const std::string& _account, const st
     panels.push_back(transparentPanelOutgoingWidget_.get());
 #endif
 
+#ifdef __linux__
+    rootLayout->addWidget(header_.get());
+#endif
+
 #ifndef STRIP_VOIP
     rootWidget_ = platform_specific::GraphicsPanel::create(this, panels, false);
     rootWidget_->setContentsMargins(0, 0, 0, 0);
     rootWidget_->setAttribute(Qt::WA_UpdatesDisabled);
     rootWidget_->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+#ifdef __linux__
+    rootLayout->addWidget(rootWidget_, 1);
+#else
     layout()->addWidget(rootWidget_);
+#endif
+
 #endif //__linux__
 
+#ifdef __linux__
+    rootLayout->addWidget(controls_.get());
+#endif
+
     std::vector<BaseVideoPanel*> videoPanels;
-	videoPanels.push_back(header_.get());
-	videoPanels.push_back(controls_.get());
+    videoPanels.push_back(header_.get());
+    videoPanels.push_back(controls_.get());
     videoPanels.push_back(transparentPanelOutgoingWidget_.get());
 
     eventFilter_ = new ResizeEventFilter(videoPanels, shadow_.getShadowWidget(), this);
@@ -100,8 +124,8 @@ Ui::IncomingCallWindow::IncomingCallWindow(const std::string& _account, const st
     QObject::connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipWindowRemoveComplete(quintptr)), this, SLOT(onVoipWindowRemoveComplete(quintptr)), Qt::DirectConnection);
     QObject::connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipWindowAddComplete(quintptr)), this, SLOT(onVoipWindowAddComplete(quintptr)), Qt::DirectConnection);
     QObject::connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipCallNameChanged(const voip_manager::ContactsList&)), this, SLOT(onVoipCallNameChanged(const voip_manager::ContactsList&)), Qt::DirectConnection);
-	QObject::connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipMediaLocalVideo(bool)), header_.get(), SLOT(setVideoStatus(bool)), Qt::DirectConnection);
-	QObject::connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipMediaLocalVideo(bool)), controls_.get(), SLOT(setVideoStatus(bool)), Qt::DirectConnection);
+    QObject::connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipMediaLocalVideo(bool)), header_.get(), SLOT(setVideoStatus(bool)), Qt::DirectConnection);
+    QObject::connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipMediaLocalVideo(bool)), controls_.get(), SLOT(setVideoStatus(bool)), Qt::DirectConnection);
 
     const QSize defaultSize(Utils::scale_value(kIncomingCallWndDefW), Utils::scale_value(kIncomingCallWndDefH));
     setMinimumSize(defaultSize);
@@ -189,21 +213,21 @@ void Ui::IncomingCallWindow::showEvent(QShowEvent* _e)
         transparentPanelOutgoingWidget_->show();
     }
 
-	shadow_.showShadow();
+    shadow_.showShadow();
 
     QWidget::showEvent(_e);
 }
 
 void Ui::IncomingCallWindow::hideEvent(QHideEvent* _e)
 {
-	header_->hide();
-	controls_->hide();
-	if (transparentPanelOutgoingWidget_)
-	{
+    header_->hide();
+    controls_->hide();
+    if (transparentPanelOutgoingWidget_)
+    {
         transparentPanelOutgoingWidget_->hide();
     }
 
-	shadow_.hideShadow();
+    shadow_.hideShadow();
 
     QWidget::hideEvent(_e);
 }

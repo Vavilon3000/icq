@@ -17,7 +17,7 @@ enum gui_settings_types
 gui_settings::gui_settings(
     const std::wstring& _file_name,
     const std::wstring& _file_name_exported)
-    :	file_name_(_file_name),
+    : file_name_(_file_name),
         file_name_exported_(_file_name_exported),
         changed_(false)
 {
@@ -43,7 +43,7 @@ void gui_settings::start_save()
             return;
 
         ptr_this->save_if_needed();
-    }, 10000);
+    }, std::chrono::seconds(10));
 }
 
 bool gui_settings::load()
@@ -51,7 +51,7 @@ bool gui_settings::load()
     core::tools::binary_stream bstream;
     if (bstream.load_from_file(file_name_))
         return unserialize(bstream);
-    
+
     return load_exported();
 }
 
@@ -183,7 +183,7 @@ bool gui_settings::unserialize(const rapidjson::Value& _node)
 
         set_value(settings_key1_to_send_message, bs);
     }
-        
+
     auto iter_enable_preview = _node.FindMember(settings_show_video_and_images);
     if (iter_enable_preview != _node.MemberEnd() && iter_enable_preview->value.IsBool())
     {
@@ -222,12 +222,12 @@ void gui_settings::serialize(core::coll_helper _collection) const
     for (auto iter = values_.begin(); iter != values_.end(); ++iter)
     {
         coll_helper coll_value(_collection->create_collection(), true);
-        
+
         ifptr<istream> value_data_stream(_collection->create_stream(), true);
         auto bs_value_data = iter->second;
         int32_t len = bs_value_data.available();
         value_data_stream->write((const uint8_t*) bs_value_data.read(len), len);
-        
+
         coll_value.set_value_as_string("name", iter->first);
         coll_value.set_value_as_stream("value", value_data_stream.get());
 
@@ -251,7 +251,7 @@ void gui_settings::save_if_needed()
         std::wstring file_name = file_name_;
 
         g_core->save_async([bs_data, file_name]
-        { 
+        {
             bs_data->save_2_file(file_name);
 
             return 0;

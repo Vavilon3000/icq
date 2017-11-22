@@ -22,7 +22,6 @@ QRect Previewer::AbstractViewer::rect() const
 
 void Previewer::AbstractViewer::scale(double _newScaleFactor)
 {
-    const auto oldSize = imageRect_.size() * scaleFactor_;
     const auto newSize = imageRect_.size() * _newScaleFactor;
 
     if (newSize.width() > viewportRect_.width()
@@ -38,7 +37,7 @@ void Previewer::AbstractViewer::scale(double _newScaleFactor)
             ? (newSize.height() - viewportRect_.height()) / _newScaleFactor / 2
             : 0;
 
-        fragment_ = QRect(x + offset_.x(), y + offset_.y(), 
+        fragment_ = QRect(x + offset_.x(), y + offset_.y(),
             viewport_.width() / _newScaleFactor, viewport_.height() / _newScaleFactor);
 
         fixBounds(imageRect_.size(), fragment_);
@@ -236,7 +235,7 @@ Previewer::FFMpegViewer::FFMpegViewer(const QString& _fileName, const QSize& _vi
         preview_(_preview)
 {
     ffplayer_.reset(new Ui::DialogPlayer(_parent, (
-        Ui::DialogPlayer::Flags::enable_control_panel | 
+        Ui::DialogPlayer::Flags::enable_control_panel |
         Ui::DialogPlayer::Flags::use_opengl |
         Ui::DialogPlayer::Flags::as_window)));
 

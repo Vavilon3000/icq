@@ -25,14 +25,14 @@ namespace Ui
 
     private:
 
-        std::shared_ptr<bool>	ref_;
+        std::shared_ptr<bool> ref_;
 
     protected:
 
-        const QString			aimid_;
+        const QString       aimid_;
 
-        TextEmojiWidget*		name_;
-        TextEmojiWidget*		info_;
+        TextEmojiWidget*    name_;
+        TextEmojiWidget*    info_;
 
         virtual void paintEvent(QPaintEvent* _e) override;
 
@@ -60,11 +60,11 @@ namespace Ui
 
     protected:
 
-        const QString			aimid_;
+        const QString           aimid_;
 
-        QVBoxLayout*			rootLayout_;
-        ContactAvatarWidget*	avatar_;
-        ContactInfoWidget*		infoWidget_;
+        QVBoxLayout*            rootLayout_;
+        ContactAvatarWidget*    avatar_;
+        ContactInfoWidget*      infoWidget_;
 
         virtual void resizeEvent(QResizeEvent * _e) override;
 

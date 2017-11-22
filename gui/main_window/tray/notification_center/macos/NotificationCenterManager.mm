@@ -5,6 +5,7 @@
 #include "../../../../main_window/MainWindow.h"
 #include "../../../../utils/InterConnector.h"
 #include "../../../../utils/utils.h"
+#include "../../RecentMessagesAlert.h"
 
 #import <Foundation/Foundation.h>
 #import <AppKit/NSImage.h>
@@ -29,9 +30,15 @@ static Ui::NotificationCenterManager * sharedCenter;
     {
         NSString * aimId = notification.userInfo[@"aimId"];
         NSString * mailId = notification.userInfo[@"mailId"];
-        QString str = QString::fromCFString((__bridge CFStringRef)aimId);
-        QString str2 = QString::fromCFString((__bridge CFStringRef)mailId);
-        sharedCenter->Activated(str, str2);
+        NSString * alertType = notification.userInfo[@"alertType"];
+        NSString * messageId = notification.userInfo[@"messageId"];
+        
+        QString aimIdStr = QString::fromCFString((__bridge CFStringRef)aimId);
+        QString mailIdStr = QString::fromCFString((__bridge CFStringRef)mailId);
+        QString alertTypeStr = QString::fromCFString((__bridge CFStringRef)alertType);
+        QString messageIdStr = QString::fromCFString((__bridge CFStringRef)messageId);
+
+        sharedCenter->Activated(alertTypeStr, aimIdStr, mailIdStr, messageIdStr);
     }
 }
 
@@ -124,7 +131,7 @@ namespace Ui
                     aimId = displayName.mid(i1 + 1, displayName.length() - i1 - (displayName.length() - i2 + 1));
             }
             
-            Logic::QPixmapSCptr avatar = Logic::GetAvatarStorage()->Get(aimId, displayName, Utils::scale_value(64), !Logic::getContactListModel()->isChat(aimId), isDefault, false);
+            Logic::QPixmapSCptr avatar = Logic::GetAvatarStorage()->Get(aimId, displayName, Utils::scale_value(64), isDefault, false);
             
             if (avatar.get())
             {
@@ -153,19 +160,28 @@ namespace Ui
         }
     }
 
-	void NotificationCenterManager::DisplayNotification(const QString& aimId, const QString& senderNick, const QString& message, const QString& mailId, const QString& displayName)
+	void NotificationCenterManager::DisplayNotification(
+        const QString& alertType,
+        const QString& aimId,
+        const QString& senderNick,
+        const QString& message,
+        const QString& mailId,
+        const QString& displayName,
+        const QString& messageId)
 	{
         NSString * aimId_ = (NSString *)CFBridgingRelease(aimId.toCFString());
         NSString * displayName_ = (NSString *)CFBridgingRelease(displayName.toCFString());
         NSString * mailId_ = (NSString *)CFBridgingRelease(mailId.toCFString());
-        
+        NSString * alertType_ = (NSString *)CFBridgingRelease(alertType.toCFString());
+        NSString * messageId_ = (NSString *)CFBridgingRelease(messageId.toCFString());
+
         NSUserNotification * notification = [[[NSUserNotification alloc] init] autorelease];
         
         notification.title = (NSString *)CFBridgingRelease(displayName.toCFString());
         notification.subtitle = (NSString *)CFBridgingRelease(senderNick.toCFString());
         notification.informativeText = (NSString *)CFBridgingRelease(message.toCFString());
         
-        NSMutableDictionary * userInfo = [[@{@"aimId": aimId_, @"displayName": displayName_, @"mailId" : mailId_} mutableCopy] autorelease];
+        NSMutableDictionary * userInfo = [[@{@"aimId": aimId_, @"displayName": displayName_, @"mailId" : mailId_, @"alertType": alertType_, @"messageId": messageId_} mutableCopy] autorelease];
         
         notification.userInfo = userInfo;
         
@@ -196,10 +212,31 @@ namespace Ui
         emit osxThemeChanged();
     }
 
-	void NotificationCenterManager::Activated(const QString& aimId, const QString& mailId)
+    AlertType string2AlertType(const QString _type)
+    {
+        if (_type == "message")
+            return AlertType::alertTypeMessage;
+        else if (_type == "mention")
+            return AlertType::alertTypeMentionMe;
+        else if (_type == "mail")
+            return AlertType::alertTypeEmail;
+        else
+        {
+            assert(false);
+            return AlertType::alertTypeMessage;
+        }
+    }
+    
+	void NotificationCenterManager::Activated(
+        const QString& alertType,
+        const QString& aimId,
+        const QString& mailId,
+        const QString& messageId)
 	{
         Utils::InterConnector::instance().getMainWindow()->closeGallery();
-		emit messageClicked(aimId, mailId);
+
+		emit messageClicked(aimId, mailId, messageId.toLongLong(), string2AlertType(alertType));
+
         HideNotifications(aimId);
 	}
     

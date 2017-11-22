@@ -7,8 +7,8 @@ namespace Ui
     BackButton::BackButton(QWidget* _parent)
         : QPushButton(_parent)
     {
-		setStyleSheet(Utils::LoadStyle(":/controls/controls_style.qss"));
-        setObjectName("backButton");
+        setStyleSheet(Utils::LoadStyle(qsl(":/qss/controls_style")));
+        setObjectName(qsl("backButton"));
     }
     BackButton::~BackButton()
     {

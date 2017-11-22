@@ -77,7 +77,7 @@ void load_app_config(const boost::filesystem::wpath &_path)
 
     if (!core::tools::system::is_exist(_path))
     {
-        config_.reset(new app_config());
+        config_ = std::make_unique<app_config>();
         return;
     }
 
@@ -99,12 +99,12 @@ void load_app_config(const boost::filesystem::wpath &_path)
     const auto full_log = options.get<bool>("fulllog", false);
     const auto unlock_context_menu_features = options.get<bool>("dev.unlock_context_menu_features", ::build::is_debug());
 
-    config_.reset(new app_config(
+    config_ = std::make_unique<app_config>(
         !disable_server_history,
         forced_dpi,
         enable_crash,
         full_log,
-        unlock_context_menu_features));
+        unlock_context_menu_features);
 }
 
 namespace

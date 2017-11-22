@@ -13,22 +13,18 @@ UI_NS_BEGIN
 class AppConfig
 {
 public:
-	AppConfig(const core::coll_helper &collection);
+    AppConfig(const core::coll_helper &collection);
 
     bool IsContextMenuFeaturesUnlocked() const;
 
-	bool IsServerHistoryEnabled() const;
-
-	int GetForcedDpi() const;
+    bool IsServerHistoryEnabled() const;
 
     bool isCrashEnable() const;
 
 private:
     bool IsContextMenuFeaturesUnlocked_;
 
-    int ForcedDpi_;
-
-	bool IsServerHistoryEnabled_;
+    bool IsServerHistoryEnabled_;
 
     bool isCrashEnable_;
 

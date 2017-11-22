@@ -4,6 +4,8 @@
 
 #include "../utils/utils.h"
 
+#include  "../types/message.h"
+
 FONTS_NS_BEGIN
 
 enum class FontFamily;
@@ -29,18 +31,22 @@ namespace Ui
         void enter();
         void setSize(int, int);
         void keyPressed(int);
+        void mentionErased(const QString& _aimid);
 
     private Q_SLOTS:
         void editContentChanged();
         void enableFlash();
+        void onAnchorClicked(const QUrl &_url);
+        void onCursorPositionChanged();
 
     private:
 
         int index_;
 
-        typedef std::map<QString, QString>	ResourceMap;
+        typedef std::map<QString, QString> ResourceMap;
 
         ResourceMap resourceIndex_;
+        Data::MentionMap mentions_;
         QFont font_;
         QColor color_;
         int prevPos_;
@@ -49,8 +55,10 @@ namespace Ui
         int flashInterval_;
         int add_;
         int limit_;
+        int prevCursorPos_;
 
         QTimer* flashChangeTimer_;
+        QString placeholderText_;
 
         bool isCatchEnter_;
 
@@ -63,17 +71,22 @@ namespace Ui
 
         TextEditEx(QWidget* _parent, const QFont& _font, const QPalette& _palette, bool _input, bool _isFitToText);
         TextEditEx(QWidget* _parent, const QFont& _font, const QColor& _color, bool _input, bool _isFitToText);
-        
+
         void limitCharacters(int count);
 
         virtual QSize sizeHint() const override;
+        void setPlaceholderText(const QString& _text);
 
         QString getPlainText() const;
         void setPlainText(const QString& _text, bool _convertLinks = true, const QTextCharFormat::VerticalAlignment _aligment = QTextCharFormat::AlignBaseline);
 
+        void setMentions(Data::MentionMap _mentions);
+        const Data::MentionMap& getMentions() const;
+
         void mergeResources(const ResourceMap& _resources);
         void insertEmoji(int _main, int _ext);
         void insertPlainText_(const QString& _text);
+        void insertMention(const QString& _aimId, const QString& _friendly);
 
         void selectWholeText();
         void selectFromBeginning(const QPoint& _p);
@@ -89,14 +102,12 @@ namespace Ui
         int32_t getTextWidth() const;
 
         void setCatchEnter(bool _isCatchEnter);
-        virtual bool catchEnter(int _modifiers);
+        virtual bool catchEnter(const int _modifiers);
+        virtual bool catchNewLine(const int _modifiers);
 
         int adjustHeight(int _width);
 
         void addSpace(int _space) { add_ = _space; }
-
-        void mousePress(QMouseEvent* ev);
-        void mouseRelease(QMouseEvent* ev);
 
     protected:
         virtual void focusInEvent(QFocusEvent*) override;
@@ -105,6 +116,7 @@ namespace Ui
         virtual void mouseReleaseEvent(QMouseEvent*) override;
         virtual void mouseMoveEvent(QMouseEvent *) override;
         virtual void keyPressEvent(QKeyEvent*) override;
+        virtual void inputMethodEvent(QInputMethodEvent*) override;
 
         virtual QMimeData* createMimeDataFromSelection() const override;
         virtual bool canInsertFromMimeData(const QMimeData* _source) const override;

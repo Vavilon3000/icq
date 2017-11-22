@@ -37,7 +37,7 @@ namespace core {
             int32_t parse_response(std::shared_ptr<core::tools::binary_stream> response) override;
 
         public:
-            wim_allocate(const wim_packet_params& params, const std::string& internal_params);
+            wim_allocate(wim_packet_params params, const std::string& internal_params);
             virtual ~wim_allocate();
 
             std::shared_ptr<core::tools::binary_stream> getRawData() override;
@@ -51,7 +51,7 @@ namespace core {
             int32_t parse_response(std::shared_ptr<core::tools::binary_stream> response) override;
 
         public:
-            wim_webrtc(const wim_packet_params& params, const voip_manager::VoipProtoMsg& internal_params);
+            wim_webrtc(wim_packet_params params, const voip_manager::VoipProtoMsg& internal_params);
             virtual ~wim_webrtc();
 
             std::shared_ptr<core::tools::binary_stream> getRawData() override;

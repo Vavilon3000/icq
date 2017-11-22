@@ -10,7 +10,8 @@ namespace Ui
 
     class MessagesScrollAreaLayout : public QLayout
     {
-		Q_OBJECT;
+        Q_OBJECT;
+
         enum class SlideOp;
 
         friend QTextStream& operator <<(QTextStream &lhs, const SlideOp slideOp);
@@ -69,9 +70,9 @@ namespace Ui
 
         int32_t getViewportHeight() const;
 
-        QList<Logic::MessageKey> getWidgetsOverBottomOffset(const int32_t offset) const;
+        QVector<Logic::MessageKey> getWidgetsOverBottomOffset(const int32_t offset) const;
 
-        void insertWidgets(const WidgetsList& _widgets, bool _isMoveToButtonIfNeed, int64_t _mess_id);
+        void insertWidgets(const WidgetsList& _widgets, bool _isMoveToButtonIfNeed, int64_t _mess_id, int64_t _countAfter, Logic::scroll_mode_type _scrollMode);
 
         void removeWidget(QWidget *widget);
 
@@ -79,11 +80,15 @@ namespace Ui
 
         int32_t shiftViewportAbsY(const int32_t delta);
 
+        void enableViewportShifting(bool enable);
+
         void updateItemKey(const Logic::MessageKey &key);
 
-        void enumerateMessagesItems(const MessageItemVisitor visitor, const bool reversed);
+        void scrollTo(const Logic::MessageKey &key, Logic::scroll_mode_type _scrollMode);
 
-        void enumerateWidgets(const WidgetVisitor visitor, const bool reversed);
+        void enumerateMessagesItems(const MessageItemVisitor& visitor, const bool reversed);
+
+        void enumerateWidgets(const WidgetVisitor& visitor, const bool reversed);
 
         bool isViewportAtBottom() const;
 
@@ -95,32 +100,36 @@ namespace Ui
 
         void updateItemsWidth();
 
-        QPoint viewport2Absolute(const QPoint viewportPos) const;
+        QPoint viewport2Absolute(QPoint viewportPos) const;
 
-		void updateBounds();
-		void updateScrollbar();
+        void updateBounds();
+
+        void updateScrollbar();
 
         virtual bool eventFilter(QObject* watcher, QEvent* e) override;
 
     private:
+
         class ItemInfo
         {
         public:
             ItemInfo(QWidget *widget, const Logic::MessageKey &key);
-            
+
             QWidget *Widget_;
-            
+
             QRect AbsGeometry_;
-            
+
             Logic::MessageKey Key_;
-            
+
             bool IsGeometrySet_;
-            
+
             bool IsHovered_;
-            
+
             bool IsActive_;
-            
-            bool IsVisible_;
+
+            bool isVisibleEnoughForPlay_;
+
+            bool isVisibleEnoughForRead_;
         };
 
         typedef std::unique_ptr<ItemInfo> ItemInfoUptr;
@@ -149,9 +158,24 @@ namespace Ui
 
         bool UpdatesLocked_;
 
-        QRect absolute2Viewport(const QRect &absolute) const;
+        bool ShiftingViewportEnabled_;
 
-        void applyItemsGeometry();
+        struct ShiftingParams
+        {
+            qint64 messageId;
+            qint64 countAfter;
+            Logic::scroll_mode_type type;
+        };
+
+        ShiftingParams ShiftingParams_;
+
+        bool applyShiftingParams();
+
+        int getPossibleOffset(QRect itemRect, qint64 countAfter, int delta) const;
+
+        QRect absolute2Viewport(QRect absolute) const;
+
+        void applyItemsGeometry(const bool _checkVisibility = true);
 
         void applyTypingWidgetGeometry();
 
@@ -177,6 +201,8 @@ namespace Ui
 
         void onItemVisibilityChanged(QWidget *widget, const bool isVisible);
 
+        void onItemRead(QWidget *widget, const bool _isVisible);
+
         void onItemDistanseToViewPortChanged(QWidget *widget, const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect);
 
         bool setViewportAbsY(const int32_t absY);
@@ -194,6 +220,7 @@ namespace Ui
         int getXForItem() const;
 
         bool isVisibleEnoughForPlay(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect) const;
+        bool isVisibleEnoughForRead(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect) const;
 
         std::list<QWidget*> ScrollingItems_;
 
@@ -215,5 +242,6 @@ Q_SIGNALS:
 		void updateHistoryPosition(int32_t position, int32_t offset);
         void recreateAvatarRect();
         void moveViewportUpByScrollingItem(QWidget*);
+        void itemRead(const qint64 _id, const bool _visible);
     };
 }

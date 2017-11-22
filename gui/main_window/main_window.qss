@@ -1,6 +1,6 @@
 QWidget[Invisible="true"]
 {
-	background-color: transparent;
+    background-color: transparent;
 }
 
 QWidget#contactsWidgetStyle
@@ -13,67 +13,56 @@ QWidget#contactsWidgetStyle
 
 QWidget#titleWidget
 {
-	background-color: #eeeded;
-	height: 36dip;
+    background-color: #eeeded;
+    height: 36dip;
 }
 
 QPushButton#windowIcon
 {
-	margin-top: 4dip;
-	margin-bottom: 4dip;
-	margin-left: 11dip;
-	border-image: url(:/resources/main_window/appicon_100.png);
-	width: 20dip;
-	height: 20dip;
+    margin-top: 4dip;
+    margin-bottom: 4dip;
+    margin-left: 11dip;
+    border-image: url(:/logo/logo_small_100);
+    width: 20dip;
+    height: 20dip;
 }
 
 QPushButton#windowIcon[agent = "true"]
 {
-	margin-top: 4dip;
-	margin-bottom: 4dip;
-	margin-left: 11dip;
-	border-image: url(:/resources/main_window/appicon_agent_100.png);
-	width: 20dip;
-	height: 20dip;
+    margin-top: 4dip;
+    margin-bottom: 4dip;
+    margin-left: 11dip;
+    border-image: url(:/logo/logo_agent_small_100);
+    width: 20dip;
+    height: 20dip;
 }
 
 QMenu::item
 {
-	padding-left: 40dip;
+    padding-left: 40dip;
 }
 QMenu::icon
 {
-	padding-left: 22dip;
+    padding-left: 22dip;
 }
 
 QWidget#logoWidget
 {
-	image: url(:/resources/main_window/content_logo_100.png);
+    image: url(:/logo/logo_100);
 }
 
 QWidget#logoWidgetAgent
 {
-	image: url(:/resources/main_window/content_logo_agent_100.png);
-}
-
-QLabel#unknownsLabel
-{
-    qproperty-alignment: AlignCenter;
-    font-size: 16dip;
-    font-family: "%FONT_FAMILY_MEDIUM%";
-    font-weight: %FONT_WEIGHT_MEDIUM%;
-    min-height: 48dip;
-    max-height: 48dip;
-    color: #999999;
+    image: url(:/logo/logo_agent_100);
 }
 
 QWidget#header
 {
-	background: white;
-	border-style: none;
-	border-bottom-style: solid;
-	border-bottom-width: 1dip; 
-	border-bottom-color: #d7d7d7;
+    background-color: #ffffff;
+    border-style: none;
+    border-bottom-style: solid;
+    border-bottom-width: 1dip; 
+    border-bottom-color: #d7d7d7;
 }
 
 QPushButton#header_back
@@ -81,17 +70,5 @@ QPushButton#header_back
     border: none;
     color: #979797;
     text-align: left;
-    font-size: 15dip;
     padding-left: 18dip;
-    font-family: "%FONT_FAMILY_MEDIUM%";
-    font-weight: %FONT_WEIGHT_MEDIUM%;
 }
-
-QLabel#header_label
-{
-    qproperty-alignment: AlignCenter;
-    font-size: 15dip;
-	font-family: "%FONT_FAMILY_MEDIUM%";
-    font-weight: %FONT_WEIGHT_MEDIUM%;
-    color: #979797;
-} 

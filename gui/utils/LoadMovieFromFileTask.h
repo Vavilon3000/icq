@@ -43,7 +43,7 @@ public:
 
     virtual ~LoadMovieToFFMpegPlayerFromFileTask();
 
-    void run();
+    void run() override;
 
 private:
     const QString Path_;

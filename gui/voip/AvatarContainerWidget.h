@@ -4,8 +4,9 @@
 #include <string>
 #include "../cache/avatars/AvatarStorage.h"
 
-namespace Ui {
-    
+namespace Ui
+{
+
     class AvatarContainerWidget : public QWidget
     {
         Q_OBJECT
@@ -25,7 +26,7 @@ namespace Ui {
         void resizeEvent(QResizeEvent*) override;
 
     private Q_SLOTS:
-        void _avatarChanged(QString);
+        void avatarChanged(const QString&);
 
     private:
         std::map<std::string, Logic::QPixmapSCptr> avatars_;
@@ -33,7 +34,7 @@ namespace Ui {
         float overlapPer01_;
 
         int avatarSize_;
-        int xOffset_; 
+        int xOffset_;
         int yOffset_;
 
         void addAvatarTo(const std::string& _userId, std::map<std::string, Logic::QPixmapSCptr>& _avatars);

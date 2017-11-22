@@ -28,10 +28,10 @@ namespace Ui
 
     private Q_SLOTS:
 
-        void needJoinLiveChat(QString _stamp);
-        void chatInfo(qint64, std::shared_ptr<Data::ChatInfo> _info);
+        void needJoinLiveChat(const QString& _stamp);
+        void chatInfo(qint64, const std::shared_ptr<Data::ChatInfo>& _info);
         void chatInfoFailed(qint64, core::group_chat_info_errors _error);
-        void liveChatJoined(QString _aimid);
+        void liveChatJoined(const QString& _aimid);
 
     private:
 
@@ -39,7 +39,7 @@ namespace Ui
 
     public:
 
-        LiveChats(QWidget* _parent);
+        explicit LiveChats(QWidget* _parent);
         virtual ~LiveChats();
     };
 
@@ -86,7 +86,7 @@ namespace Ui
         virtual void paintEvent(QPaintEvent* _e) override;
 
     public:
-                
+
         LiveChatErrorWidget(QWidget* _parent, const QString& _errorText);
         virtual ~LiveChatErrorWidget();
 

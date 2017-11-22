@@ -28,10 +28,10 @@ namespace core
 
         public:
 
-            gen_robusto_token(const wim_packet_params& _params);
+            gen_robusto_token(wim_packet_params _params);
             virtual ~gen_robusto_token();
 
-            const std::string get_token() const { return token_; }
+            const std::string& get_token() const { return token_; }
         };
 
     }

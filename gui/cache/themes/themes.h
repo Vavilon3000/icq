@@ -16,10 +16,11 @@ class theme
     QPixmap image_;
     bool tile_;
     bool isImageLoaded_;
+    bool delivery_status_light_;
     theme(int);
 public:
     theme();
-    theme(int _id, QString _tintColor, QByteArray& _imageData, QByteArray& _thumbData, const bool _tile);
+    theme(int _id, const QString& _tintColor, QByteArray& _imageData, QByteArray& _thumbData, const bool _tile);
     void unserialize(core::coll_helper _coll);
     void loadThumb(char* _data, int32_t _size);
 
@@ -42,13 +43,18 @@ public:
     }
     QPixmap getImage() const
     {
-        QPixmap ret = image_;
-        return ret;
+        return image_;
     }
     int get_position() const
     {
         return position_;
     }
+
+    bool isDeliveryStatusLight() const
+    {
+        return delivery_status_light_;
+    }
+
     QColor get_tint_color();
 
     static theme getDefaultTheme();
@@ -69,11 +75,11 @@ public:
     void unloadImage();
 
     static QColor colorFromString(const char* _colorString);
+    static QColor colorFromString(const QString& _colorString);
 
     struct bubble
     {
-        QColor bg1_color_;
-        QColor bg2_color_;
+        QColor bg_color_;
         QColor time_color_;
         QColor info_color_;
         void unserialize(Ui::gui_coll_helper& _coll);

@@ -1,65 +1,52 @@
 QWidget[normal="true"]
 {
-	font-size: 18dip;
-	background: #ffffff;
-	border-radius: 8dip;
-	border-color: #d7d7d7;
-	border-width: 1dip;
-	border-style: solid;
-	padding-left: 12dip;
-	padding-right: 0dip;
-	padding-top: 10dip;
-	padding-bottom: 10dip;
+    font-size: 18dip;
+    background-color: #ffffff;
+    border-radius: 8dip;
+    border-color: #d7d7d7;
+    border-width: 1dip;
+    border-style: solid;
+    padding-left: 12dip;
+    padding-right: 0dip;
+    padding-top: 10dip;
+    padding-bottom: 10dip;
 }
 
 QWidget[normal="true"]:focus
 {
-	border-color: #579e1c;
+    border-color: #57b359;
 }
 
 QWidget[normal="false"]
 {
-	font-size: 18dip;
-	color: #d0021b;
-	background: #ffffff;
-	border-radius: 8dip;
-	border-color: #d0021b;
-	border-width: 1dip;
-	border-style: solid;
-	padding-left: 12dip;
-	padding-right: 0dip;
-	padding-top: 10dip;
-	padding-bottom: 10dip;
+    font-size: 18dip;
+    color: #d0021b;
+    background-color: #ffffff;
+    border-radius: 8dip;
+    border-color: #d0021b;
+    border-width: 1dip;
+    border-style: solid;
+    padding-left: 12dip;
+    padding-right: 0dip;
+    padding-top: 10dip;
+    padding-bottom: 10dip;
 }
 
 QWidget[fileWidget="true"]
 {
-	background: #ebebeb;
-	border-radius: 8dip;
-	border-color: #d7d7d7;
-	border-style: none;
-	padding-left: 15dip;
-	padding-right: 15dip;
-	padding-top: 12dip;
-	padding-bottom: 10dip;
-}
-
-QLabel[fileName="true"]
-{
-	font-size: 16dip;
-	padding: 0;
-}
-
-QLabel[fileSize="true"]
-{
-	font-size: 16dip;
-	color: #999999;
-	padding: 0;
+    background-color: #ebebeb;
+    border-radius: 8dip;
+    border-color: #d7d7d7;
+    border-style: none;
+    padding-left: 15dip;
+    padding-right: 15dip;
+    padding-top: 12dip;
+    padding-bottom: 10dip;
 }
 
 QPushButton#deleteFile
 {
-	border-image: url(:/resources/basic_elements/close_a_100.png);
+    border-image: url(:/controls/close_a_100);
     min-width: 28dip;
     max-width: 28dip;
     min-height: 24dip;
@@ -67,10 +54,10 @@ QPushButton#deleteFile
 }
 QPushButton#deleteFile:hover
 {
-	border-image: url(:/resources/basic_elements/close_d_100.png);
+    border-image: url(:/controls/close_d_100);
 }
 
 QPushButton#successImage
 {
-	border-image: url(:/resources/placeholders/content_illustration_good_100.png);
+    border-image: url(:/placeholders/good_100);
 }

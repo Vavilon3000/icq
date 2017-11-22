@@ -33,7 +33,7 @@ namespace Ui
        void invertRight(bool _invert);
        void setIndent(int _indent);
 
-	   void popup(const QPoint& _pos, QAction* _at=0);
+       void popup(const QPoint& _pos, QAction* _at=0);
        void clear();
 
    protected:
@@ -44,6 +44,6 @@ namespace Ui
    private:
        bool InvertRight_;
        int Indent_;
-	   QPoint Pos_;
+       QPoint Pos_;
    };
 }

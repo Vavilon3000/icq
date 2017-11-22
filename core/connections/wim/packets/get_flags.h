@@ -27,7 +27,7 @@ namespace core
 
         public:
 
-            get_flags(const wim_packet_params& _params);
+            explicit get_flags(wim_packet_params _params);
 
             int32_t flags() const;
 

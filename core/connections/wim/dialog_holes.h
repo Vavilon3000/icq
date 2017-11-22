@@ -24,10 +24,10 @@ namespace core
                     int64_t _depth,
                     int32_t _recursion)
                     :
-                    contact_(_contact),
                     from_(_from),
                     depth_(_depth),
-                    recursion_(_recursion)
+                    recursion_(_recursion),
+                    contact_(_contact)
                 {
                 }
 

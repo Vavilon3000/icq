@@ -27,8 +27,14 @@ namespace Ui
 
         IsDirty_ = false;
 
-        auto item = qobject_cast<MessageItem*>(parent());
-        item->manualUpdateGeometry(LastSize_.width());
+        if (auto item = qobject_cast<MessageItem*>(parent()))
+        {
+            item->manualUpdateGeometry(LastSize_.width());
+        }
+        else
+        {
+            assert(!"can not cast parent to MessageItem");
+        }
     }
 
     void MessageItemLayout::addItem(QLayoutItem* /*item*/)

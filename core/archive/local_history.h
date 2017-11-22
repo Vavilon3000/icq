@@ -106,7 +106,7 @@ namespace core
                 on_result = [](const dlg_state&, const dlg_state_changes&){};
             }
         };
-        
+
         struct request_next_hole_handler
         {
             std::function<void(std::shared_ptr<archive_hole> _hole)> on_result;
@@ -219,7 +219,7 @@ namespace core
 
             void get_dlg_state(const std::string& _contact, dlg_state& _state);
 
-            void get_dlg_states(const std::vector<std::string>& _contacts, std::vector<dlg_state>& _states);
+            std::vector<dlg_state> get_dlg_states(const std::vector<std::string>& _contacts);
 
             void set_dlg_state(const std::string& _contact, const dlg_state& _state, Out dlg_state& _result, Out dlg_state_changes& _changes);
             bool clear_dlg_state(const std::string& _contact);
@@ -239,10 +239,11 @@ namespace core
             not_sent_message_sptr get_not_sent_message_by_iid(const std::string& _iid);
             int32_t insert_not_sent_message(const std::string& _contact, const not_sent_message_sptr& _msg);
             int32_t update_if_exist_not_sent_message(const std::string& _contact, const not_sent_message_sptr& _msg);
-            int32_t remove_messages_from_not_sent(const std::string& _contact, std::shared_ptr<archive::history_block> _data);
-            void mark_message_duplicated(const std::string _message_internal_id);
+            int32_t remove_messages_from_not_sent(const std::string& _contact, const std::shared_ptr<archive::history_block>& _data);
+            int32_t remove_messages_from_not_sent(const std::string& _contact, const std::shared_ptr<archive::history_block>& _data1, const std::shared_ptr<archive::history_block>& _data2);
+            void mark_message_duplicated(const std::string& _message_internal_id);
             void update_message_post_time(
-                const std::string& _message_internal_id, 
+                const std::string& _message_internal_id,
                 const std::chrono::system_clock::time_point& _time_point);
 
             bool has_not_sent_messages(const std::string& _contact);
@@ -261,8 +262,12 @@ namespace core
                 const archive::history_block_sptr &_block,
                 Out common::tools::url_vector_t &_uris);
 
+            int32_t get_outgoing_msg_count(const std::string& _contact);
+
             static void serialize(std::shared_ptr<headers_list> _headers, coll_helper& _coll);
             static void serialize_headers(std::shared_ptr<archive::history_block> _data, coll_helper& _coll);
+
+            void add_mention(const std::string& _contact, std::shared_ptr<archive::history_message> _message);
         };
 
         class face : public std::enable_shared_from_this<face>
@@ -274,7 +279,7 @@ namespace core
 
             explicit face(const std::wstring& _archive_path);
 
-            std::shared_ptr<update_history_handler> update_history(const std::string& _contact, std::shared_ptr<archive::history_block> _data);
+            std::shared_ptr<update_history_handler> update_history(const std::string& _contact, const std::shared_ptr<archive::history_block>& _data);
             std::shared_ptr<request_images_handler> get_images(const std::string& _contact, int64_t _from, int64_t _count);
             std::shared_ptr<async_task_handlers> repair_images(const std::string& _contact);
             std::shared_ptr<request_headers_handler> get_messages_index(const std::string& _contact, int64_t _from, int64_t _count);
@@ -287,7 +292,7 @@ namespace core
             std::shared_ptr<request_dlg_state_handler> get_dlg_state(const std::string& _contact);
 
             std::shared_ptr<request_dlg_states_handler> get_dlg_states(const std::vector<std::string>& _contacts);
-            
+
             std::shared_ptr<set_dlg_state_handler> set_dlg_state(const std::string& _contact, const dlg_state& _state);
             std::shared_ptr<async_task_handlers> clear_dlg_state(const std::string& _contact);
             std::shared_ptr<request_next_hole_handler> get_next_hole(const std::string& _contact, int64_t _from, int64_t _depth = -1);
@@ -299,12 +304,13 @@ namespace core
             std::shared_ptr<not_sent_messages_handler> get_not_sent_message_by_iid(const std::string& _iid);
             std::shared_ptr<async_task_handlers> insert_not_sent_message(const std::string& _contact, const not_sent_message_sptr& _msg);
             std::shared_ptr<async_task_handlers> update_if_exist_not_sent_message(const std::string& _contact, const not_sent_message_sptr& _msg);
-            std::shared_ptr<async_task_handlers> remove_messages_from_not_sent(const std::string& _contact, std::shared_ptr<archive::history_block> _data);
+            std::shared_ptr<async_task_handlers> remove_messages_from_not_sent(const std::string& _contact, const std::shared_ptr<archive::history_block>& _data);
+            std::shared_ptr<async_task_handlers> remove_messages_from_not_sent(const std::string& _contact, const std::shared_ptr<archive::history_block>& _data1, const std::shared_ptr<archive::history_block>& _data2);
             std::shared_ptr<async_task_handlers> remove_message_from_not_sent(const std::string& _contact, const history_message_sptr _data);
             std::shared_ptr<async_task_handlers> mark_message_duplicated(const std::string& _message_internal_id);
 
             std::shared_ptr<async_task_handlers> update_message_post_time(
-                const std::string& _message_internal_id, 
+                const std::string& _message_internal_id,
                 const std::chrono::system_clock::time_point& _time_point);
 
             std::shared_ptr<not_sent_messages_handler> update_pending_messages_by_imstate(
@@ -321,6 +327,8 @@ namespace core
             std::shared_ptr<async_task_handlers> delete_messages_up_to(const std::string& _contact, const int64_t _id);
 
             std::shared_ptr<find_previewable_links_handler> find_previewable_links(const archive::history_block_sptr &_block);
+
+            std::shared_ptr<async_task_handlers> add_mention(const std::string& _contact, std::shared_ptr<archive::history_message> _message);
 
             static void serialize(std::shared_ptr<headers_list> _headers, coll_helper& _coll);
             static void serialize_headers(std::shared_ptr<archive::history_block> _data, coll_helper& _coll);

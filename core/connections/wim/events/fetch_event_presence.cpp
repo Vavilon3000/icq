@@ -9,7 +9,7 @@ using namespace core;
 using namespace wim;
 
 fetch_event_presence::fetch_event_presence()
-    :	presense_(new cl_presence())
+    :	presense_(std::make_shared<cl_presence>())
 {
 }
 
@@ -26,27 +26,27 @@ int32_t fetch_event_presence::parse(const rapidjson::Value& _node_event_data)
         if  (iter_aimid == _node_event_data.MemberEnd() || !iter_aimid->value.IsString())
             return wpie_error_parse_response;
 
-        aimid_ = iter_aimid->value.GetString();
+        aimid_ = rapidjson_get_string(iter_aimid->value);
 
         auto iter_state = _node_event_data.FindMember("state");
         if  (iter_state != _node_event_data.MemberEnd() && iter_state->value.IsString())
-            presense_->state_ = iter_state->value.GetString();
+            presense_->state_ = rapidjson_get_string(iter_state->value);
 
         auto iter_friendly = _node_event_data.FindMember("friendly");
         if  (iter_friendly != _node_event_data.MemberEnd() && iter_friendly->value.IsString())
-            presense_->friendly_ = iter_friendly->value.GetString();
+            presense_->friendly_ = rapidjson_get_string(iter_friendly->value);
 
         auto iter_usertype = _node_event_data.FindMember("userType");
         if (iter_usertype != _node_event_data.MemberEnd() && iter_usertype->value.IsString())
-            presense_->usertype_ = iter_usertype->value.GetString();
+            presense_->usertype_ = rapidjson_get_string(iter_usertype->value);
 
         auto iter_status_msg = _node_event_data.FindMember("statusMsg");
         if (iter_status_msg != _node_event_data.MemberEnd() && iter_status_msg->value.IsString())
-            presense_->status_msg_ = iter_status_msg->value.GetString();
+            presense_->status_msg_ = rapidjson_get_string(iter_status_msg->value);
 
         auto iter_otherNumber = _node_event_data.FindMember("otherNumber");
         if (iter_otherNumber != _node_event_data.MemberEnd() && iter_otherNumber->value.IsString())
-            presense_->other_number_ = iter_otherNumber->value.GetString();
+            presense_->other_number_ = rapidjson_get_string(iter_otherNumber->value);
 
         auto iter_lastseen = _node_event_data.FindMember("lastseen");
         if (iter_lastseen != _node_event_data.MemberEnd() && iter_lastseen->value.IsUint())
@@ -69,7 +69,7 @@ int32_t fetch_event_presence::parse(const rapidjson::Value& _node_event_data)
         if (iter_capabilities != _node_event_data.MemberEnd() && iter_capabilities->value.IsArray())
         {
             for (auto iter = iter_capabilities->value.Begin(); iter != iter_capabilities->value.End(); ++iter)
-                presense_->capabilities_.insert(iter->GetString());
+                presense_->capabilities_.insert(rapidjson_get_string(*iter));
         }
 
         auto iter_official = _node_event_data.FindMember("official");
@@ -94,15 +94,15 @@ int32_t fetch_event_presence::parse(const rapidjson::Value& _node_event_data)
 
         auto iter_iconId = _node_event_data.FindMember("iconId");
         if (iter_iconId != _node_event_data.MemberEnd() && iter_iconId->value.IsString())
-            presense_->icon_id_ = iter_iconId->value.GetString();
+            presense_->icon_id_ = rapidjson_get_string(iter_iconId->value);
 
         auto iter_bigIconId = _node_event_data.FindMember("bigIconId");
         if (iter_bigIconId != _node_event_data.MemberEnd() && iter_bigIconId->value.IsString())
-            presense_->big_icon_id_ = iter_bigIconId->value.GetString();
+            presense_->big_icon_id_ = rapidjson_get_string(iter_bigIconId->value);
 
         auto iter_largeIconId = _node_event_data.FindMember("largeIconId");
         if (iter_largeIconId != _node_event_data.MemberEnd() && iter_largeIconId->value.IsString())
-            presense_->large_icon_id_ = iter_largeIconId->value.GetString();
+            presense_->large_icon_id_ = rapidjson_get_string(iter_largeIconId->value);
 
     }
     catch (const std::exception&)

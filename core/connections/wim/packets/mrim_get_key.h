@@ -26,12 +26,12 @@ namespace core
         public:
 
             mrim_get_key(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const std::string& _email);
 
             virtual ~mrim_get_key();
 
-            std::string get_mrim_key() const { return mrim_key_; }
+            const std::string& get_mrim_key() const { return mrim_key_; }
         };
 
     }

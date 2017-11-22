@@ -18,7 +18,7 @@ namespace core
 {
     namespace wim
     {
-        struct set_dlg_state_params 
+        struct set_dlg_state_params
         {
             std::string		aimid_;
             std::string		last_delivered_wim_;
@@ -27,10 +27,10 @@ namespace core
             int64_t			last_delivered_;
             int64_t			last_read_;
 
-            set_dlg_state_params() : 
+            set_dlg_state_params() :
+                invisible_(false),
                 last_delivered_(-1),
-                last_read_(-1),
-                invisible_(false)
+                last_read_(-1)
             {
             }
         };
@@ -45,8 +45,8 @@ namespace core
         public:
 
             set_dlg_state(
-                const wim_packet_params& _params, 
-                const set_dlg_state_params& _dlg_params);
+                wim_packet_params _params,
+                set_dlg_state_params _dlg_params);
 
             virtual ~set_dlg_state();
         };

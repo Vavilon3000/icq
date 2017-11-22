@@ -1,0 +1,36 @@
+QScrollArea
+{
+    border-width: 1dip;
+    border-style: solid;
+    border-color: #ebebeb;
+    border-left: none;
+    border-right: none;
+}
+
+QLabel#loading_state
+{
+    font-size: 14dip;
+    font-family: "%FONT_FAMILY_MEDIUM%";
+    font-weight: %FONT_WEIGHT_MEDIUM%;
+    color: #999999;
+}
+
+
+QWidget#scroll_area_widget
+{
+    background-color: #ffffff;
+    border: none;
+}
+
+
+Ui--PackWidget
+{
+    background-color: #ffffff;
+    border: none;
+}
+
+Ui--StickerPackInfo
+{
+    background-color: #ffffff;
+    border: none;
+}

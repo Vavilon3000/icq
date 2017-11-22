@@ -24,16 +24,16 @@ namespace Ui
         void setInfo(const QString& info, const QString& prefix = QString());
         void elideText(int width);
         void setAttachPhone(bool value);
-        QString getInfoText();
+        QString getInfoText() const;
 
     private Q_SLOTS:
         void menuRequested();
         void menu(QAction*);
 
     private:
-        QLabel* header_;
+        LabelEx* header_;
         TextEmojiWidget* info_;
-        QLabel* phoneInfo_;
+        LabelEx* phoneInfo_;
         QString infoStr_;
         bool attachPhone_;
     };
@@ -42,19 +42,19 @@ namespace Ui
     {
         Q_OBJECT
     public:
-        ProfilePage(QWidget* parent);
-        virtual void initFor(const QString& aimId);
+        explicit ProfilePage(QWidget* parent);
+        void initFor(const QString& aimId) override;
 
     protected:
-        virtual void paintEvent(QPaintEvent* e);
-        virtual void resizeEvent(QResizeEvent* e);
-        virtual void updateWidth();
+        void paintEvent(QPaintEvent* e) override;
+        void resizeEvent(QResizeEvent* e) override;
+        void updateWidth() override;
 
     private Q_SLOTS:
-        void chatInfo(qint64, std::shared_ptr<Data::ChatInfo>);
+        void chatInfo(qint64, const std::shared_ptr<Data::ChatInfo>&);
         void removeFromIgnore();
-        void contactChanged(QString);
-        void contactRemoved(QString);
+        void contactChanged(const QString&);
+        void contactRemoved(const QString&);
         void changed();
         void addClicked();
         void chatClicked();
@@ -62,22 +62,18 @@ namespace Ui
         void videoClicked();
         void back();
         void rename();
-        void menuStateOnline();
-        void menuStateDoNotDisturb();
-        void menuStateInvisible();
         void ignoreList();
         void editClicked();
         void attachOld();
         void recvFlags(int);
-        void statusClicked();
         void saveClicked();
         void avatarChanged();
         void touchScrollStateChanged(QScroller::State);
+        void copyLinkClicked();
 
     private:
         void init();
         void updateStatus();
-        void setState(const core::profile_state _state);
 
     private:
         QString currentAimId_;
@@ -93,7 +89,7 @@ namespace Ui
         LineWidget* Line_;
         QWidget* avatarBottomSpace_;
         QWidget* chatEditWidget_;
-        LabelEx* ignoreLabel_;
+        LabelEx* ignoreDelete_;
         LabelEx* editLabel_;
         std::shared_ptr<Data::ChatInfo> info_;
         CustomButton* addButton_;
@@ -101,6 +97,7 @@ namespace Ui
         CustomButton* callButton_;
         CustomButton* videoCall_button_;
         ActionButton* renameContact_;
+        ActionButton* shareLink_;
         ActionButton* quiAndDelete;
         ActionButton* ignoreListButton;
         ActionButton* attachOldAcc;
@@ -113,10 +110,7 @@ namespace Ui
         InfoPlate* city_;
         InfoPlate* country_;
         QWidget* nameMargin_;
-        QWidget* statusWidget_;
-        QPushButton* statusButton_;
         QPushButton* saveButton_;
-        FlatMenu* statusMenu_;
         LabelEx* statusLabel_;
         QVBoxLayout* subBackButtonLayout_;
         QVBoxLayout* subAvatarLayout_;

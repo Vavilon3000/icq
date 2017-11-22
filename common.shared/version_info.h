@@ -79,7 +79,7 @@ namespace core
 
         private:
 
-            std::vector<std::string> split(const std::string& _str, char _delimiter) 
+            std::vector<std::string> split(const std::string& _str, char _delimiter)
             {
                 std::vector<std::string> internal;
                 std::stringstream ss(_str); // Turn the string into a stream.

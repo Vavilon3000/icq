@@ -13,20 +13,20 @@
 namespace Ui
 {
     FoundContacts::FoundContacts(QWidget* _parent)
-        :	QWidget(_parent),
-        rootLayout_(new QVBoxLayout()),
+        : QWidget(_parent),
+        area_(CreateScrollAreaAndSetTrScrollBarV(this)),
         contactsLayout_(new FlowLayout(0, Utils::scale_value(24), Utils::scale_value(24))),
-        area_(CreateScrollAreaAndSetTrScrollBar(this)),
+        rootLayout_(new QVBoxLayout()),
         prevHScrollValue_(-1), prevVScrollValue_(-1)
     {
         rootLayout_->setContentsMargins(0, Utils::scale_value(24), 0, 0);
         rootLayout_->setSpacing(0);
 
-        area_->setObjectName("results_scroll_area");
+        area_->setObjectName(qsl("results_scroll_area"));
         Utils::grabTouchWidget(area_->viewport(), true);
 
         QWidget* scrollAreaWidget = new QWidget(area_);
-        scrollAreaWidget->setObjectName("results_scroll_area_widget");
+        scrollAreaWidget->setObjectName(qsl("results_scroll_area_widget"));
         area_->setWidget(scrollAreaWidget);
         area_->setWidgetResizable(true);
 
@@ -36,7 +36,7 @@ namespace Ui
 
         rootLayout_->addWidget(area_);
 
-        connect(Logic::GetAvatarStorage(), SIGNAL(avatarChanged(QString)), this, SLOT(onAvatarLoaded(QString)), Qt::QueuedConnection);
+        connect(Logic::GetAvatarStorage(), &Logic::AvatarStorage::avatarChanged, this, &FoundContacts::onAvatarLoaded, Qt::QueuedConnection);
 
         hookScroll();
 
@@ -79,8 +79,8 @@ namespace Ui
             prevVScrollValue_ = _value;
         });
     }
-    
-    void FoundContacts::onAvatarLoaded(QString _aimid)
+
+    void FoundContacts::onAvatarLoaded(const QString& _aimid)
     {
         auto iter_cw = items_.find(_aimid);
         if (iter_cw != items_.end())
@@ -95,14 +95,14 @@ namespace Ui
             if (items_.find(profile->get_aimid()) == items_.end())
             {
                 ContactWidget* cw = new ContactWidget(0, profile, countries_);
-                
-                connect(cw, SIGNAL(addContact(QString)), this, SLOT(onAddContact(QString)), Qt::QueuedConnection);
-                connect(cw, SIGNAL(msgContact(QString)), this, SLOT(onMsgContact(QString)), Qt::QueuedConnection);
-                connect(cw, SIGNAL(callContact(QString)), this, SLOT(onCallContact(QString)), Qt::QueuedConnection);
-                connect(cw, SIGNAL(contactInfo(QString)), this, SLOT(onContactInfo(QString)), Qt::QueuedConnection);
-                
+
+                connect(cw, &ContactWidget::addContact, this, &FoundContacts::onAddContact, Qt::QueuedConnection);
+                connect(cw, &ContactWidget::msgContact, this, &FoundContacts::onMsgContact, Qt::QueuedConnection);
+                connect(cw, &ContactWidget::callContact, this, &FoundContacts::onCallContact, Qt::QueuedConnection);
+                connect(cw, &ContactWidget::contactInfo, this, &FoundContacts::onContactInfo, Qt::QueuedConnection);
+
                 contactsLayout_->addWidget(cw);
-                
+
                 items_[profile->get_aimid()] = cw;
             }
         }
@@ -125,22 +125,22 @@ namespace Ui
         items_.clear();
     }
 
-    void FoundContacts::onAddContact(QString _contact)
+    void FoundContacts::onAddContact(const QString& _contact)
     {
         emit addContact(_contact);
     }
 
-    void FoundContacts::onMsgContact(QString _contact)
+    void FoundContacts::onMsgContact(const QString& _contact)
     {
         emit msgContact(_contact);
     }
 
-    void FoundContacts::onCallContact(QString _contact)
+    void FoundContacts::onCallContact(const QString& _contact)
     {
         emit callContact(_contact);
     }
 
-    void FoundContacts::onContactInfo(QString _contact)
+    void FoundContacts::onContactInfo(const QString& _contact)
     {
         emit contactInfo(_contact);
     }

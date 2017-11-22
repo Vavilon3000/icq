@@ -25,7 +25,7 @@ namespace core
         public:
 
             update_profile(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const std::vector<std::pair<std::string, std::string>>& _fields);
 
             virtual ~update_profile();

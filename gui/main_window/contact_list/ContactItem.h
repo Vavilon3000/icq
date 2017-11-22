@@ -11,7 +11,7 @@ namespace Logic
 	{
 	public:
 
-		explicit ContactItem(Data::Contact* _contact);
+		explicit ContactItem(Data::ContactPtr _contact);
 
 		bool operator== (const ContactItem& _other) const;
 
@@ -24,6 +24,7 @@ namespace Logic
 		bool is_phone() const;
 		bool recently() const;
         bool recently(const QDateTime& _current) const;
+        bool is_active(const QDateTime& _current) const;
 		bool is_chat() const;
 		bool is_muted() const;
         bool is_live_chat() const;
@@ -36,7 +37,7 @@ namespace Logic
 
         void set_chat_role(const QString& role);
         QString get_chat_role() const;
-		
+
 		void set_input_text(const QString& _inputText);
 		QString get_input_text() const;
 
@@ -44,15 +45,22 @@ namespace Logic
 		profile_ptr getContactProfile() const;
 		QString get_aimid() const;
 
+        int get_outgoing_msg_count() const;
+        void set_outgoing_msg_count(const int _count);
+
+        void set_stamp(const QString& _stamp);
+        QString get_stamp() const;
+
 	private:
 
 		std::shared_ptr<Data::Contact>				contact_;
 		std::shared_ptr<Logic::contact_profile>		profile_;
-		
-		
+
+
 		bool			visible_;
 		QString			input_text_;
         QString         chat_role_;
+        QString         stamp_;
 	};
 
 	static_assert(std::is_move_assignable<ContactItem>::value, "ContactItem must be move assignable");

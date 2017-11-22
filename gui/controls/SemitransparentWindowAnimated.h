@@ -10,7 +10,6 @@ namespace Ui
 
     public:
         SemitransparentWindowAnimated(QWidget* _parent, int _duration);
-        ~SemitransparentWindowAnimated();
 
         Q_PROPERTY(int step READ getStep WRITE setStep)
 
@@ -20,6 +19,7 @@ namespace Ui
         void Show();
         void Hide();
         void forceHide();
+        bool isSemiWindowVisible() const;
 
         bool isMainWindow() const;
         void updateSize();
@@ -30,6 +30,13 @@ namespace Ui
     protected:
         virtual void paintEvent(QPaintEvent*) override;
         virtual void mousePressEvent(QMouseEvent *e) override;
+        virtual void hideEvent(QHideEvent * event) override;
+
+        void decSemiwindowsCount();
+        void incSemiwindowsCount();
+        int  getSemiwindowsCount() const;
+        bool isSemiWindowsTouchSwallowed() const;
+        void setSemiwindowsTouchSwallowed(bool _val);
 
     private:
         QPropertyAnimation* Animation_;

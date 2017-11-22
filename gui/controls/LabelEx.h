@@ -2,16 +2,17 @@
 
 namespace Ui
 {
-	class LabelEx : public QLabel
-	{
-		Q_OBJECT
+    class LabelEx : public QLabel
+    {
+        Q_OBJECT
 Q_SIGNALS:
-		void clicked();
+        void clicked();
 
-	public:
-		LabelEx(QWidget* _parent);
+    public:
+        LabelEx(QWidget* _parent);
+        void setColor(const QColor &_color);
 
-	protected:
-		virtual void mouseReleaseEvent(QMouseEvent*);
-	};
+    protected:
+        void mouseReleaseEvent(QMouseEvent*) override;
+    };
 }

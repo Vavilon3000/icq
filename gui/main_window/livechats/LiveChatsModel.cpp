@@ -18,13 +18,13 @@ namespace Logic
 
     LiveChatsModel::LiveChatsModel(QObject* _parent)
         : QAbstractListModel(_parent)
-        , inited_(false)
+        , requestedTag_(qsl("_"))
         , finished_(false)
+        , inited_(false)
     {
-        connect(Ui::GetDispatcher(), SIGNAL(chatsHome(QList<Data::ChatInfo>, QString, bool, bool)), this, SLOT(chatsHome(QList<Data::ChatInfo>, QString, bool, bool)), Qt::QueuedConnection);
-        connect(Ui::GetDispatcher(), SIGNAL(chatsHomeError(int)), this, SLOT(chatsHomeError(int)), Qt::QueuedConnection);
-        connect(GetAvatarStorage(), SIGNAL(avatarChanged(QString)), this, SLOT(avatarLoaded(QString)), Qt::QueuedConnection);
-        requestedTag_ = "_";
+        connect(Ui::GetDispatcher(), &Ui::core_dispatcher::chatsHome, this, &LiveChatsModel::chatsHome, Qt::QueuedConnection);
+        connect(Ui::GetDispatcher(), &Ui::core_dispatcher::chatsHomeError, this, &LiveChatsModel::chatsHomeError, Qt::QueuedConnection);
+        connect(GetAvatarStorage(), &Logic::AvatarStorage::avatarChanged, this, &LiveChatsModel::avatarLoaded, Qt::QueuedConnection);
     }
 
     void LiveChatsModel::initIfNeeded()
@@ -36,26 +36,28 @@ namespace Logic
         }
     }
 
-    void LiveChatsModel::avatarLoaded(QString _aimId)
+    void LiveChatsModel::avatarLoaded(const QString& _aimId)
     {
         if (!inited_)
             return;
 
         int i = 0;
-        for (auto iter : cache_)
+        for (const auto& iter : Utils::as_const(cache_))
         {
             if (iter.AimId_ == _aimId)
             {
-                emit dataChanged(index(i), index(i));
+                const auto idx = index(i);
+                emit dataChanged(idx, idx);
                 return;
             }
 
             int memberCount = 0;
-            for (auto member : iter.Members_)
+            for (const auto& member : iter.Members_)
             {
                 if (member.AimId_ == _aimId)
                 {
-                    emit dataChanged(index(i), index(i));
+                    const auto idx = index(i);
+                    emit dataChanged(idx, idx);
                     return;
                 }
 
@@ -103,7 +105,7 @@ namespace Logic
 
     void LiveChatsModel::pending(const QString& _aimId)
     {
-        for (QList<Data::ChatInfo>::iterator iter = cache_.begin(); iter != cache_.end(); ++iter)
+        for (auto iter = cache_.begin(); iter != cache_.end(); ++iter)
         {
             if (iter->AimId_ == _aimId)
             {
@@ -115,7 +117,7 @@ namespace Logic
 
     void LiveChatsModel::joined(const QString& _aimId)
     {
-        for (QList<Data::ChatInfo>::iterator iter = cache_.begin(); iter != cache_.end(); ++iter)
+        for (auto iter = cache_.begin(); iter != cache_.end(); ++iter)
         {
             if (iter->AimId_ == _aimId)
             {
@@ -125,7 +127,7 @@ namespace Logic
         }
     }
 
-    void LiveChatsModel::chatsHome(QList<Data::ChatInfo> _chats, QString _newTag, bool _restart, bool _finished)
+    void LiveChatsModel::chatsHome(const QVector<Data::ChatInfo>& _chats, const QString& _newTag, bool _restart, bool _finished)
     {
         tag_ = _newTag;
         finished_ = _finished;
@@ -140,7 +142,7 @@ namespace Logic
             return;
         }
 
-        for (auto iter : _chats)
+        for (const auto& iter : _chats)
             cache_.append(iter);
 
         emit dataChanged(index(0), index(rowCount()));
@@ -158,17 +160,17 @@ namespace Logic
 
         Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
         collection.set_value_as_qstring("tag", tag_);
-        Ui::GetDispatcher()->post_message_to_core("chats/home/get", collection.get());
+        Ui::GetDispatcher()->post_message_to_core(qsl("chats/home/get"), collection.get());
         requestedTag_ = tag_;
     }
 
-	LiveChatsModel* GetLiveChatsModel()
-	{	
+    LiveChatsModel* GetLiveChatsModel()
+    {
         if (!gLivechatModel)
-            gLivechatModel.reset(new LiveChatsModel(0));
+            gLivechatModel = std::make_unique<LiveChatsModel>(nullptr);
 
-		return gLivechatModel.get();
-	}
+        return gLivechatModel.get();
+    }
 
     void ResetLiveChatsModel()
     {

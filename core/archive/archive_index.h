@@ -54,11 +54,17 @@ namespace core
             archive::error last_error_;
             headers_map headers_index_;
             std::unique_ptr<storage> storage_;
+            int32_t outgoing_count_;
+            bool loaded_from_local_;
+            std::string aimid_;
 
             void serialize_block(const headers_list& _headers, core::tools::binary_stream& _data) const;
             bool unserialize_block(core::tools::binary_stream& _data);
             void insert_block(const archive::headers_list& _headers);
             void insert_header(const archive::message_header& header);
+
+            void notify_core_outgoing_msg_count();
+            int32_t get_outgoing_count() const;
 
         public:
 
@@ -67,13 +73,13 @@ namespace core
             bool has_header(const int64_t _msgid) const;
 
             bool get_next_hole(int64_t _from, archive_hole& _hole, int64_t _depth) const;
-            int64_t validate_hole_request(const archive_hole& _hole, const int32_t _count);
+            int64_t validate_hole_request(const archive_hole& _hole, const int32_t _count) const;
 
             bool save_all();
             bool save_block(const archive::headers_list& _block);
 
             void optimize();
-            bool need_optimize();
+            bool need_optimize() const;
 
             bool load_from_local();
 
@@ -83,11 +89,11 @@ namespace core
 
             void delete_up_to(const int64_t _to);
 
-            int64_t get_last_msgid();
+            int64_t get_last_msgid() const;
 
             archive::error get_last_error() const { return last_error_; }
 
-            archive_index(const std::wstring& _file_name);
+            archive_index(const std::wstring& _file_name, const std::string& _aimid);
             virtual ~archive_index();
         };
 

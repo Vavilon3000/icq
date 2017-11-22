@@ -39,29 +39,29 @@ namespace
 
     QString getChatNameStylesheet(const QString& _color)
     {
-        return QString("font: %1 %2px \"%3\"; color: %4; background-color: transparent")
-            .arg(Fonts::appFontWeightQss(Fonts::FontWeight::Normal))
-            .arg(Utils::scale_value(18))
-            .arg(Fonts::defaultAppFontQssName())
-            .arg(_color);
+        return qsl("font: %1 %2px \"%3\"; color: %4; background-color: transparent")
+            .arg(Fonts::appFontWeightQss(Fonts::FontWeight::Normal),
+                 QString::number(Utils::scale_value(18)),
+                 Fonts::defaultAppFontQssName(),
+                 _color);
     };
 
     QString getChatDescriptionStylesheet(const QString& _color)
     {
-        return QString("font: %1 %2px \"%3\"; color: %4; background-color: transparent")
-            .arg(Fonts::appFontWeightQss(Fonts::FontWeight::Normal))
-            .arg(Utils::scale_value(14))
-            .arg(Fonts::defaultAppFontQssName())
-            .arg(_color);
+        return qsl("font: %1 %2px \"%3\"; color: %4; background-color: transparent")
+            .arg(Fonts::appFontWeightQss(Fonts::FontWeight::Normal),
+                 QString::number(Utils::scale_value(14)),
+                 Fonts::defaultAppFontQssName(),
+                 _color);
     };
 
     QString getFriendsStylesheet(const QString& _color)
     {
-        return QString("font: %1 %2px \"%3\"; color: %4; background-color: transparent")
-            .arg(Fonts::appFontWeightQss(Fonts::FontWeight::Medium))
-            .arg(Utils::scale_value(12))
-            .arg(Fonts::defaultAppFontQssName())
-            .arg(_color);
+        return qsl("font: %1 %2px \"%3\"; color: %4; background-color: transparent")
+            .arg(Fonts::appFontWeightQss(Fonts::FontWeight::Medium),
+                 QString::number(Utils::scale_value(12)),
+                 Fonts::defaultAppFontQssName(),
+                 _color);
     };
 
     QString formatMembersCount(int _members, int _avatarsVisible)
@@ -70,19 +70,12 @@ namespace
         if (resultInt <= 0)
             return QString();
 
-        QString result = "+";
         if (resultInt > 999)
         {
-            float resultFloat = (float)resultInt / float(1000);
-            result += QString::number(resultFloat, 'f', 1);
-            result += "k";
+            auto resultFloat = double(resultInt) / 1000.0;
+            return ql1c('+') % QString::number(resultFloat, 'f', 1) % ql1c('k');
         }
-        else
-        {
-            result += QVariant(resultInt).toString();
-        }
-
-        return result;
+        return ql1c('+') % QString::number(resultInt);
     }
 }
 
@@ -90,8 +83,8 @@ namespace Logic
 {
     LiveChatItemDelegate::LiveChatItemDelegate(QWidget* _parent)
         : QItemDelegate(_parent)
-        , parent_(_parent)
         , stateBlocked_(false)
+        , parent_(_parent)
     {
     }
 
@@ -108,13 +101,13 @@ namespace Logic
             QSize size = sizeHint(_option, _index);
             if (_option.state & QStyle::State_MouseOver && !stateBlocked_)
             {
-                static QBrush hoverBrush(Ui::CommonStyle::getContactListHoveredColor());
+                static QBrush hoverBrush(CommonStyle::getColor(CommonStyle::Color::GRAY_FILL_LIGHT));
                 _painter->fillRect(0, 0, size.width(), size.height(), hoverBrush);
             }
 
             if (_option.state & QStyle::State_Selected && !stateBlocked_)
             {
-                static QBrush selectedBrush(Ui::CommonStyle::getContactListSelectedColor());
+                static QBrush selectedBrush(CommonStyle::getColor(CommonStyle::Color::GREEN_FILL));
                 _painter->fillRect(0, 0, size.width(), size.height(), selectedBrush);
             }
 
@@ -126,14 +119,14 @@ namespace Logic
             bool isSelected = (_option.state & QStyle::State_Selected);
 
             static auto name = ContactList::CreateTextBrowser(
-                "chat_name",
-                getChatNameStylesheet(Utils::rgbaStringFromColor(Ui::CommonStyle::getTextCommonColor())),
+                qsl("chat_name"),
+                getChatNameStylesheet(CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY).name()),
                 0
             );
 
             static auto name_active = ContactList::CreateTextBrowser(
-                "chat_name",
-                getChatNameStylesheet("#ffffff"),
+                qsl("chat_name"),
+                getChatNameStylesheet(qsl("#ffffff")),
                 0
                 );
 
@@ -149,8 +142,14 @@ namespace Logic
             name_control->setFixedWidth(maxWidth);
             name_control->render(_painter, QPoint(margin, Utils::scale_value(top_margin - spacing)));
 
-            static auto description = ContactList::CreateTextBrowser("chat_info", getChatDescriptionStylesheet("#767676"), 0);
-            static auto description_active = ContactList::CreateTextBrowser("chat_info", getChatDescriptionStylesheet("#ffffff"), 0);
+            static auto description = ContactList::CreateTextBrowser(
+                qsl("chat_info"),
+                getChatDescriptionStylesheet(CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT).name()),
+                0);
+            static auto description_active = ContactList::CreateTextBrowser(
+                qsl("chat_info"),
+                getChatDescriptionStylesheet(qsl("#ffffff")),
+                0);
 
             auto desc_control = isSelected ? description_active.get() : description.get();
 
@@ -160,7 +159,7 @@ namespace Logic
             QTextCursor cursorDescription = desc_control->textCursor();
             QString about = info.About_;
             if (about.length() > max_desc_chars)
-                about = about.left(max_desc_chars) + "...";
+                about = about.leftRef(max_desc_chars) % ql1s("...");
 
             int lineCount = 0;
             int eol = about.indexOf(QChar::LineSeparator);
@@ -185,19 +184,23 @@ namespace Logic
             if (info.FriendsCount != 0)
             {
                 if (!friendsInfoStr.isEmpty())
-                    friendsInfoStr += " - ";
+                    friendsInfoStr += ql1s(" - ");
 
-                friendsInfoStr.append(QVariant(info.FriendsCount).toString() + " " +
+                friendsInfoStr += QString::number(info.FriendsCount) % ql1c(' ') %
                     Utils::GetTranslator()->getNumberString(
                     info.FriendsCount,
-                    QT_TRANSLATE_NOOP3("livechats", "friend", "1"),
-                    QT_TRANSLATE_NOOP3("livechats", "friends", "2"),
-                    QT_TRANSLATE_NOOP3("livechats", "friends", "5"),
-                    QT_TRANSLATE_NOOP3("livechats", "friends", "21")));
+                    QT_TRANSLATE_NOOP3("groupchats", "friend", "1"),
+                    QT_TRANSLATE_NOOP3("groupchats", "friends", "2"),
+                    QT_TRANSLATE_NOOP3("groupchats", "friends", "5"),
+                    QT_TRANSLATE_NOOP3("groupchats", "friends", "21"));
             }
 
-            static auto friends = ContactList::CreateTextBrowser("friends", getFriendsStylesheet("#767676"), 0);
-            static auto friends_active = ContactList::CreateTextBrowser("friends", getFriendsStylesheet("#ffffff"), 0);
+            static auto friends = ContactList::CreateTextBrowser(
+                qsl("friends"),
+                getFriendsStylesheet(CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT).name()),
+                0);
+            static auto friends_active = ContactList::CreateTextBrowser(
+                qsl("friends"), getFriendsStylesheet(qsl("#ffffff")), 0);
 
             auto friends_control = isSelected ? friends_active.get() : friends.get();
 
@@ -224,11 +227,11 @@ namespace Logic
             avatarsCollection_.adjustWidth();
 
             if (_option.state & QStyle::State_Selected)
-                avatarsCollection_.setColor(Ui::CommonStyle::getContactListSelectedColor());
+                avatarsCollection_.setColor(CommonStyle::getColor(CommonStyle::Color::GREEN_FILL));
             else if (_option.state & QStyle::State_MouseOver)
-                avatarsCollection_.setColor(Ui::CommonStyle::getContactListHoveredColor());
+                avatarsCollection_.setColor(CommonStyle::getColor(CommonStyle::Color::GRAY_FILL_LIGHT));
             else
-                avatarsCollection_.setColor(Ui::CommonStyle::getFrameColor());
+                avatarsCollection_.setColor(CommonStyle::getFrameColor());
 
             avatarsCollection_.render(_painter, QPoint(margin, y), QRegion(), QWidget::DrawChildren);
 
@@ -245,7 +248,7 @@ namespace Logic
             kCount_.setText(formatMembersCount(info.MembersCount_, avatarsCollection_.getRealCount()));
             kCount_.setFont(Fonts::appFontScaled(12));
             QPalette p;
-            p.setColor(QPalette::Foreground, isSelected ? QColor("#ffffff") : QColor("#767676"));
+            p.setColor(QPalette::Foreground, isSelected ? QColor(ql1s("#ffffff")) : CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT));
             kCount_.setPalette(p);
             kCount_.adjustSize();
             kCount_.render(_painter, QPoint(margin + avatarsCollection_.width(), y), QRegion(), QWidget::DrawChildren);

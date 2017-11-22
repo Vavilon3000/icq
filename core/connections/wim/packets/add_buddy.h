@@ -30,7 +30,7 @@ namespace core
         public:
 
             add_buddy(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const std::string& _aimid,
                 const std::string& _group,
                 const std::string& _auth_message);

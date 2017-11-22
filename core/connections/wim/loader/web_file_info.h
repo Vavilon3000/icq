@@ -39,16 +39,16 @@ namespace core
             int64_t get_file_size() const;
 
             void set_file_name(const std::wstring& _name);
-            std::wstring get_file_name() const;
+            const std::wstring& get_file_name() const;
 
             void set_bytes_transfer(int64_t _bytes);
             int64_t get_bytes_transfer() const;
 
             void set_file_name_short(const std::string& _file_name_short);
-            std::string get_file_name_short() const;
+            const std::string& get_file_name_short() const;
 
             void set_file_url(const std::string& _url);
-            std::string get_file_url() const;
+            const std::string& get_file_url() const;
 
             bool is_previewable() const;
             void set_is_previewable(bool _is_previewable);
@@ -57,21 +57,21 @@ namespace core
             void set_played(bool _played);
 
             void set_file_dlink(const std::string& _dlink);
-            std::string get_file_dlink() const;
+            const std::string& get_file_dlink() const;
 
             void set_mime(const std::string& _mime);
-            std::string get_mime() const;
+            const std::string& get_mime() const;
 
             void set_md5(const std::string& _md5);
-            std::string get_md5() const;
+            const std::string& get_md5() const;
 
             void set_file_preview(const std::string& _val);
             const std::string& get_file_preview() const;
 
             void set_file_preview_2k(const std::string& _val);
-            std::string get_file_preview_2k() const;
+            const std::string& get_file_preview_2k() const;
 
-            std::string get_file_id() const;
+            const std::string& get_file_id() const;
             void set_file_id(const std::string& _file_id);
 
             void serialize(icollection* _collection) const;

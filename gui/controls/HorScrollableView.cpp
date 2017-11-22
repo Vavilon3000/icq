@@ -9,19 +9,19 @@ namespace Ui
         opacityEffect_ = new QGraphicsOpacityEffect(this);
         opacityEffect_->setOpacity(0.0);
         horizontalScrollBar()->setGraphicsEffect(opacityEffect_);
-        fadeAnimation_ = new QPropertyAnimation(opacityEffect_, "opacity");
+        fadeAnimation_ = new QPropertyAnimation(opacityEffect_, QByteArrayLiteral("opacity"), this);
 
         timer_ = new QTimer(this);
         timer_->setSingleShot(true);
-        connect(timer_, SIGNAL(timeout()), this, SLOT(hideScroll()), Qt::QueuedConnection);
+        connect(timer_, &QTimer::timeout, this, &HorScrollableView::hideScroll, Qt::QueuedConnection);
         timer_->start(2000);
 
-        connect(horizontalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(showScroll()), Qt::QueuedConnection);
+        connect(horizontalScrollBar(), &QScrollBar::valueChanged, this, &HorScrollableView::showScroll, Qt::QueuedConnection);
 
         setMouseTracking(true);
     }
 
-	void HorScrollableView::wheelEvent(QWheelEvent* e)
+    void HorScrollableView::wheelEvent(QWheelEvent* e)
     {
         auto scroll = horizontalScrollBar();
         if (scroll && scroll->minimum() != scroll->maximum())

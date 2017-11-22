@@ -7,25 +7,28 @@
 namespace Ui
 {
     qt_gui_settings::qt_gui_settings()
-        : 
+        :
         shadowWidth_(0)
     {
 
     }
 
-
-    bool qt_gui_settings::contains_value(const QString& _name) const
-    {
-        return (values_.find(_name) != values_.end());
-    }
-
     template<> void qt_gui_settings::set_value<QString>(const QString& _name, const QString& _value)
     {
-        QByteArray arr = _value.toUtf8();
+        const QByteArray arr = _value.toUtf8();
         set_value_simple_data(_name, arr.data(), arr.size() + 1);
     }
 
     template<> QString qt_gui_settings::get_value<QString>(const QString& _name, const QString& _defaultValue) const
+    {
+        std::vector<char> data;
+        if (!get_value_simple_data(_name, data))
+            return _defaultValue;
+
+        return &data[0];
+    }
+
+    template<> QString qt_gui_settings::get_value<QString>(const char* _name, const QString& _defaultValue) const
     {
         std::vector<char> data;
         if (!get_value_simple_data(_name, data))
@@ -44,12 +47,22 @@ namespace Ui
         return get_value_simple(_name, _defaultValue);
     }
 
+    template <> int qt_gui_settings::get_value<int>(const char* _name, const int& _defaultValue) const
+    {
+        return get_value_simple(_name, _defaultValue);
+    }
+
     template<> void qt_gui_settings::set_value<double>(const QString& _name, const double& _value)
     {
         set_value_simple(_name, _value);
     }
 
     template <> double qt_gui_settings::get_value<double>(const QString& _name, const double& _defaultValue) const
+    {
+        return get_value_simple(_name, _defaultValue);
+    }
+
+    template <> double qt_gui_settings::get_value<double>(const char* _name, const double& _defaultValue) const
     {
         return get_value_simple(_name, _defaultValue);
     }
@@ -64,9 +77,21 @@ namespace Ui
         return get_value_simple(_name, _defaultValue);
     }
 
+    template <> bool qt_gui_settings::get_value<bool>(const char* _name, const bool& _defaultValue) const
+    {
+        return get_value_simple(_name, _defaultValue);
+    }
+
     template<> void qt_gui_settings::set_value<std::vector<int32_t>>(const QString& _name, const std::vector<int32_t>& _value)
     {
-        set_value_simple_data(_name, (const char*) &_value[0], (int)_value.size()*sizeof(int32_t));
+        if (_value.empty())
+        {
+            set_value_simple_data(_name, 0, 0);
+
+            return;
+        }
+
+        set_value_simple_data(_name, (const char*)&_value[0], (int)_value.size() * sizeof(int32_t));
     }
 
     template<> std::vector<int32_t> qt_gui_settings::get_value<std::vector<int32_t>>(const QString& _name, const std::vector<int32_t>& _defaultValue) const
@@ -85,6 +110,27 @@ namespace Ui
         }
 
         std::vector<int32_t> out_data(data.size()/sizeof(int32_t));
+        ::memcpy(&out_data[0], &data[0], data.size());
+
+        return out_data;
+    }
+
+    template<> std::vector<int32_t> qt_gui_settings::get_value<std::vector<int32_t>>(const char* _name, const std::vector<int32_t>& _defaultValue) const
+    {
+        std::vector<char> data;
+        if (!get_value_simple_data(_name, data))
+            return _defaultValue;
+
+        if (data.empty())
+            return _defaultValue;
+
+        if ((data.size() % sizeof(int32_t)) != 0)
+        {
+            assert(false);
+            return _defaultValue;
+        }
+
+        std::vector<int32_t> out_data(data.size() / sizeof(int32_t));
         ::memcpy(&out_data[0], &data[0], data.size());
 
         return out_data;
@@ -110,6 +156,23 @@ namespace Ui
         }
 
         int32_t* buffer = (int32_t*) &data[0];
+
+        return QRect(buffer[0], buffer[1], buffer[2], buffer[3]);
+    }
+
+    template<> QRect qt_gui_settings::get_value<QRect>(const char* _name, const QRect& _defaultValue) const
+    {
+        std::vector<char> data;
+        if (!get_value_simple_data(_name, data))
+            return _defaultValue;
+
+        if (data.size() != sizeof(int32_t[4]))
+        {
+            assert(false);
+            return _defaultValue;
+        }
+
+        int32_t* buffer = (int32_t*)&data[0];
 
         return QRect(buffer[0], buffer[1], buffer[2], buffer[3]);
     }
@@ -170,33 +233,17 @@ namespace Ui
         cl_coll.set_value_as_qstring("name", _name);
         cl_coll.set_value_as_stream("value", data_stream.get());
 
-        GetDispatcher()->post_message_to_core("settings/value/set", cl_coll.get());
+        GetDispatcher()->post_message_to_core(qsl("settings/value/set"), cl_coll.get());
     }
 
     qt_gui_settings* get_gui_settings()
     {
-        static std::unique_ptr<qt_gui_settings> settings(new qt_gui_settings());
+        static auto settings = std::make_unique<qt_gui_settings>();
         return settings.get();
     }
 
-    const std::string get_account_setting_name(const std::string& _settingName)
+    std::string get_account_setting_name(const std::string& _settingName)
     {
-        return MyInfo()->aimId().toUtf8().constData() + std::string("/") + _settingName;
-    }
-
-    bool qt_common_settings::get_need_show_promo() const
-    {
-        return need_show_promo_;
-    }
-
-    void qt_common_settings::set_need_show_promo(bool _need_show_promo)
-    {
-        need_show_promo_ = _need_show_promo;
-    }
-
-    qt_common_settings* get_common_settings()
-    {
-        static std::unique_ptr<qt_common_settings> settings(new qt_common_settings());
-        return settings.get();
+        return MyInfo()->aimId().toStdString() + '/' + _settingName;
     }
 }

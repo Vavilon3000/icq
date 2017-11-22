@@ -100,8 +100,7 @@ namespace core
 
         public:
 
-            info(const std::string& _aimid) : gender_(gender::unknown), birthdate_(0), children_(0), smoking_(false), aimid_(_aimid) {}
-            virtual ~info() {}
+            info(std::string _aimid) : aimid_(std::move(_aimid)), birthdate_(0), gender_(gender::unknown), children_(0), smoking_(false) {}
 
             bool unserialize(const rapidjson::Value& _node);
             void serialize(coll_helper _coll) const;

@@ -19,30 +19,30 @@ namespace Ui
 
     ThemesPage::ThemesPage(QWidget* _parent, int _spacing)
         : QWidget(_parent)
-        , themesModel_(new ThemesModel(this))
         , flowLayout_(new FlowLayout(0, _spacing, _spacing))
+        , themesModel_(new ThemesModel(this))
         , themesList_(themes::themesList())
         , loadedThemes_(QMap<int, bool>())
         , firstThemeAdded_(false)
     {
         QVBoxLayout *rootLayout = Utils::emptyVLayout();
-        auto area = CreateScrollAreaAndSetTrScrollBar(this);
+        auto area = CreateScrollAreaAndSetTrScrollBarV(this);
         QWidget* scrollArea = new QWidget(area);
         Utils::grabTouchWidget(area->viewport(), true);
         Utils::grabTouchWidget(area);
         Utils::grabTouchWidget(scrollArea);
-        connect(QScroller::scroller(area->viewport()), SIGNAL(stateChanged(QScroller::State)), this, SLOT(touchScrollStateChanged(QScroller::State)), Qt::QueuedConnection);
+        connect(QScroller::scroller(area->viewport()), &QScroller::stateChanged, this, &ThemesPage::touchScrollStateChanged, Qt::QueuedConnection);
 
         area->setWidget(scrollArea);
         area->setWidgetResizable(true);
         auto layout = Utils::emptyVLayout();
-        layout->setContentsMargins(Utils::scale_value(36), 0, Utils::scale_value(36), Utils::scale_value(36));
+        layout->setContentsMargins(Utils::scale_value(16), 0, Utils::scale_value(16), Utils::scale_value(16));
         layout->setAlignment(Qt::AlignTop);
         scrollArea->setLayout(layout);
         rootLayout->addWidget(area);
         setLayout(rootLayout);
 
-        auto themesCaption = new TextEmojiWidget(this, Fonts::appFontScaled(20, Fonts::FontWeight::Medium), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(36));
+        auto themesCaption = new TextEmojiWidget(this, Fonts::appFontScaled(20, Fonts::FontWeight::Medium), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(20));
         themesCaption->setText(QT_TRANSLATE_NOOP("settings_pages", "Wallpaper"));
         Utils::grabTouchWidget(themesCaption);
 
@@ -52,14 +52,14 @@ namespace Ui
         backButton_->setFocusPolicy(Qt::NoFocus);
         backButton_->setCursor(Qt::PointingHandCursor);
 
-        connect(backButton_, SIGNAL(clicked()), this, SLOT(backPressed()));
+        connect(backButton_, &BackButton::clicked, this, &ThemesPage::backPressed);
 
         auto themeCaptionLayout_ = Utils::emptyHLayout();
-        themeCaptionLayout_->setContentsMargins(0, 0, 0, Utils::scale_value(16));
+        themeCaptionLayout_->setContentsMargins(0, Utils::scale_value(16), 0, Utils::scale_value(16));
         themeCaptionLayout_->addWidget(backButton_);
 
         backButtonAndCaptionSpacer_ = new QWidget(this);
-        backButtonAndCaptionSpacer_->setFixedSize(Utils::scale_value(16), 1);
+        backButtonAndCaptionSpacer_->setFixedWidth(Utils::scale_value(16));
         Utils::grabTouchWidget(backButtonAndCaptionSpacer_);
         themeCaptionLayout_->addWidget(backButtonAndCaptionSpacer_);
         themeCaptionLayout_->addWidget(themesCaption);

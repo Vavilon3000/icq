@@ -2,30 +2,30 @@
 
 namespace Ui
 {
-	class HorScrollableView : public QTableView
-	{
-		Q_OBJECT
+    class HorScrollableView : public QTableView
+    {
+        Q_OBJECT
 
     Q_SIGNALS:
         void enter();
         void leave();
 
     public:
-        HorScrollableView(QWidget* _parent);
+        explicit HorScrollableView(QWidget* _parent);
 
-    public Q_SLOTS: 
+    public Q_SLOTS:
         void showScroll();
         void hideScroll();
 
-	protected:
-		virtual void wheelEvent(QWheelEvent*);
-        virtual void enterEvent(QEvent *);
-        virtual void leaveEvent(QEvent *);
-        virtual void mouseMoveEvent(QMouseEvent *);
+    protected:
+        void wheelEvent(QWheelEvent*) override;
+        void enterEvent(QEvent *) override;
+        void leaveEvent(QEvent *) override;
+        void mouseMoveEvent(QMouseEvent *) override;
 
     private:
         QGraphicsOpacityEffect* opacityEffect_;
         QPropertyAnimation* fadeAnimation_;
         QTimer* timer_;
-	};
+    };
 }

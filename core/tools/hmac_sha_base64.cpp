@@ -146,7 +146,7 @@ int32_t base64::base64_encode(uint8_t* source, int32_t length, uint8_t* dst)
         }
     }
     return (size);
-}	
+}
 
 
 std::string base64::hmac_base64(std::vector<uint8_t>& data, std::vector<uint8_t>& secret)

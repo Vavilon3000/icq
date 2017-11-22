@@ -26,7 +26,6 @@ namespace Ui
     class VideoWindow;
     class VideoSettings;
     class IncomingCallWindow;
-    class CallPanelMain;
     class ContactDialog;
     class SearchContactsWidget;
     class GeneralSettingsWidget;
@@ -36,35 +35,33 @@ namespace Ui
     class ContextMenu;
     class FlatMenu;
     class IntroduceYourself;
+    class LabelEx;
     class LiveChatHome;
     class LiveChats;
     class TextEmojiWidget;
     class TopPanelWidget;
-    class SnapsPage;
     class MainMenu;
     class SemitransparentWindowAnimated;
     class HorScrollableView;
     class CustomButton;
+    class Sidebar;
+    class SearchDropdown;
 
-    class UnknownsHeader: public QWidget
+    namespace Stickers
     {
-        Q_OBJECT
+        class Store;
+    }
 
-    public:
-        explicit UnknownsHeader(QWidget* _parent = nullptr);
-        ~UnknownsHeader();
-
-    };
 
     class UnreadsCounter : public QWidget
     {
         Q_OBJECT
 
     public:
-        UnreadsCounter(QWidget* _parent);
+        explicit UnreadsCounter(QWidget* _parent);
 
     protected:
-        virtual void paintEvent(QPaintEvent* e);
+        void paintEvent(QPaintEvent* e) override;
     };
 
     class HeaderBack : public QPushButton
@@ -73,13 +70,13 @@ namespace Ui
 
     Q_SIGNALS:
         void resized();
-        
+
     public:
-        HeaderBack(QWidget* _parent);
+        explicit HeaderBack(QWidget* _parent);
 
     protected:
-        virtual void paintEvent(QPaintEvent* e);
-        virtual void resizeEvent(QResizeEvent* e);
+        void paintEvent(QPaintEvent* e) override;
+        void resizeEvent(QResizeEvent* e) override;
     };
 
     class BackButton;
@@ -102,7 +99,6 @@ namespace Ui
     public Q_SLOTS:
         void startSearhInDialog(QString _aimid);
         void setSearchFocus();
-        void snapsClose();
         void onAddContactClicked();
         void settingsClicked();
 
@@ -112,8 +108,6 @@ namespace Ui
         void searchInputClear();
         void onContactSelected(QString _contact);
         void contactsClicked();
-        void storiesClicked();
-        void discoverClicked();
         void createGroupChat();
         void myProfileClicked();
         void aboutClicked();
@@ -149,21 +143,21 @@ namespace Ui
         void tabChanged(int);
         void themesSettingsOpen();
         void animFinished();
-        void snapsChanged();
-        void showSnapsChanged();
-        void snapClicked(const QModelIndex& index);
         void headerBack();
-        void showHeader(QString);
+        void showHeader(const QString&);
+        void currentPageChanged(int _index);
+
+        void showStickersStore();
 
     private:
-        MainPage(QWidget* _parent);
+        explicit MainPage(QWidget* _parent);
         static MainPage* _instance;
 
     public:
         static MainPage* instance(QWidget* _parent = 0);
         static void reset();
         ~MainPage();
-        void selectRecentChat(QString _aimId);
+        void selectRecentChat(const QString& _aimId);
         void recentsTabActivate(bool _selectUnread = false);
         void settingsTabActivate(Utils::CommonSettingsType _item = Utils::CommonSettingsType::CommonSettingsType_None);
         void hideInput();
@@ -175,11 +169,6 @@ namespace Ui
 
         void nextChat();
         void prevChat();
-        void leftTab();
-        void rightTab();
-        void nextSnap();
-        void nextUserSnap();
-        void prevUserSnap();
 
         ContactDialog* getContactDialog() const;
         HistoryControlPage* getHistoryPage(const QString& _aimId) const;
@@ -193,7 +182,6 @@ namespace Ui
         void restoreSidebar();
 
         bool isContactDialog() const;
-        bool isSnapsPageVisible() const;
 
         static int getContactDialogWidth(int _mainPageWidth);
 
@@ -221,22 +209,30 @@ namespace Ui
         bool isMenuVisible() const;
         bool isMenuVisibleOrOpening() const;
 
+        void showSemiWindow();
+        void hideSemiWindow();
+        bool isSemiWindowVisible() const;
+
         static QString getMainWindowQss();
 
+	void addButtonToTop(QWidget* _button);
+
     protected:
-        virtual void resizeEvent(QResizeEvent* _event);
+        void resizeEvent(QResizeEvent* _event) override;
 
     private:
 
-        QWidget* showNoContactsYetSuggestions(QWidget* _parent, std::function<void()> _addNewContactsRoutine);
+        QWidget* showNoContactsYetSuggestions(QWidget* _parent);
         QWidget* showIntroduceYourselfSuggestions(QWidget* _parent);
         void animateVisibilityCL(int _newWidth, bool _withAnimation);
         void setLeftPanelState(LeftPanelState _newState, bool _withAnimation, bool _for_search = false, bool _force = false);
         void changeCLHead(bool _showUnknownHeader);
 
-    private:
-        UnknownsHeader                  *unknownsHeader_;
+        void initAccessability();
 
+    private:
+        QWidget*                        unknownsHeader_;
+        SearchDropdown*                 searchDropdown_;
         ContactList*                    contactListWidget_;
         SearchWidget*                   searchWidget_;
         VideoWindow*                    videoWindow_;
@@ -244,11 +240,13 @@ namespace Ui
         WidgetsNavigator*               pages_;
         ContactDialog*                  contactDialog_;
         QVBoxLayout*                    pagesLayout_;
+
         SearchContactsWidget*           searchContacts_;
         GeneralSettingsWidget*          generalSettings_;
         ThemesSettingsWidget*           themesSettings_;
+        Stickers::Store*                stickersStore_;
+
         LiveChatHome*                   liveChatsPage_;
-        SnapsPage*                      snapsPage_;
         QHBoxLayout*                    horizontalLayout_;
         QWidget*                        noContactsYetSuggestions_;
         QWidget*                        introduceYourselfSuggestions_;
@@ -256,7 +254,6 @@ namespace Ui
         QTimer*                         settingsTimer_;
         bool                            recvMyInfo_;
         QPropertyAnimation*             animCLWidth_;
-        QPropertyAnimation*             animTopPanelHeight;
         QPropertyAnimation*             animBurger_;
         QWidget*                        clSpacer_;
         QVBoxLayout*                    contactsLayout;
@@ -267,12 +264,12 @@ namespace Ui
         TopPanelWidget*                 myTopWidget_;
         MainMenu*                       mainMenu_;
         SemitransparentWindowAnimated*  semiWindow_;
-        HorScrollableView*              snapsView_;
         CustomButton*                   searchButton_;
         QWidget*                        headerWidget_;
-        HeaderBack*                    headerBack_;
+        HeaderBack*                     headerBack_;
         UnreadsCounter*                 counter_;
-        QLabel*                         headerLabel_;
+        LabelEx*                        headerLabel_;
+        Sidebar*                        embeddedSidebar_;
         bool                            NeedShowUnknownsHeader_;
         bool                            menuVisible_;
         int                             currentTab_;

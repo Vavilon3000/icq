@@ -14,7 +14,7 @@ namespace Logic
 namespace Ui
 {
     class ListViewWithTrScrollBar;
-	class ConferenceSearchMember;
+    class ConferenceSearchMember;
 
     class SelectionContactsForConference : public SelectContactsWidget
     {
@@ -24,107 +24,116 @@ namespace Ui
 
         SelectionContactsForConference(
             Logic::ChatMembersModel* _chatMembersModel,
-			Logic::ChatMembersModel* _otherContactsModel,			
+            Logic::ChatMembersModel* _otherContactsModel,
             const QString& _labelText,
             QWidget* _parent,
-			ConferenceSearchMember& usersSearchModel,
+            ConferenceSearchMember& usersSearchModel,
             bool _handleKeyPressEvents = true);
 
-		void onVoipCallDestroyed(const voip_manager::ContactEx& _contactEx);
+        void onVoipCallDestroyed(const voip_manager::ContactEx& _contactEx);
 
-		// Set maximum restriction for selected item count. Used for video conference.
-		virtual void setMaximumSelectedCount(int number) override;
+        // Set maximum restriction for selected item count. Used for video conference.
+        virtual void setMaximumSelectedCount(int number) override;
+
+        virtual bool show() override;
 
     public Q_SLOTS:
         void updateSize();
 
     private Q_SLOTS:
 
-		void updateMemberList();
-		void itemClicked(const QModelIndex& _current);
-		void onVoipCallNameChanged(const voip_manager::ContactsList& _contacts);
-		void updateMaxSelectedCount();
-		void updateConferenceListSize();
-		void clickConferenceMembers();
+        void updateMemberList();
+        void itemClicked(const QModelIndex& _current);
+        void onVoipCallNameChanged(const voip_manager::ContactsList& _contacts);
+        void updateMaxSelectedCount();
+        void updateConferenceListSize();
+        void clickConferenceMembers();
 
     private:
         QWidget* membersList_;
         QWidget* mainWidget_;
-		QLabel*  memberLabel_;
-		QPushButton*  memberArrowLabel_;
-        ListViewWithTrScrollBar* conferenceContacts_;  
-		Logic::ChatMembersModel* conferenceMembersModel_;
-		int videoConferenceMaxUsers_;
+        QLabel*  memberLabel_;
+        QPushButton*  memberArrowLabel_;
+        ListViewWithTrScrollBar* conferenceContacts_;
+        Logic::ChatMembersModel* conferenceMembersModel_;
+        int videoConferenceMaxUsers_;
+
+        // Make this dialog singleton visible. If second instance is show, first will be hide.
+        static SelectionContactsForConference* currentVisibleInstance_;
     };
 
-	// Copy of contact list without video conference memebers.
-	class ContactsForVideoConference : public Logic::ChatMembersModel
-	{
-		Q_OBJECT
+    // Copy of contact list without video conference memebers.
+    class ContactsForVideoConference : public Logic::ChatMembersModel
+    {
+        Q_OBJECT
 
-	public:
+    public:
 
-		ContactsForVideoConference(QObject* parent, const Logic::ChatMembersModel& videoConferenceModel);
+        ContactsForVideoConference(QObject* parent, const Logic::ChatMembersModel& videoConferenceModel);
 
-	protected Q_SLOTS:
+    protected Q_SLOTS:
 
-		void updateMemberList();
-		void allMembersDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles);		
+        void updateMemberList();
+        void allMembersDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles);
 
-	protected:
+    protected:
 
-		const Logic::ChatMembersModel& videoConferenceModel_;
-		Data::ChatInfo allMembers_;
-		QMetaObject::Connection connection_;
-	};
-
-
-	// Draw only avatars of users for contacts list.
-	// Used in horizontal mode in add to video conference dialog.
-	class ContactListItemHorizontalDelegate : public Logic::AbstractItemDelegateWithRegim
-	{
-	public:
-		ContactListItemHorizontalDelegate(QObject* parent);
-
-		virtual ~ContactListItemHorizontalDelegate();
-
-		void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-
-		QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-
-		virtual void setFixedWidth(int width) override;
-
-		void setLeftMargin(int margin);
-
-		void setRightMargin(int margin);
-
-		virtual void setRegim(int _regim) override;
-
-	private:
-		::ContactList::ViewParams viewParams_;
-	};
+        const Logic::ChatMembersModel& videoConferenceModel_;
+        Data::ChatInfo allMembers_;
+        QMetaObject::Connection connection_;
+    };
 
 
+    // Draw only avatars of users for contacts list.
+    // Used in horizontal mode in add to video conference dialog.
+    class ContactListItemHorizontalDelegate : public Logic::AbstractItemDelegateWithRegim
+    {
+    public:
+        ContactListItemHorizontalDelegate(QObject* parent);
 
-	class ConferenceSearchMember : public ::Logic::SearchMembersModel
-	{
-		Q_OBJECT
+        virtual ~ContactListItemHorizontalDelegate();
 
-	public:
-		ConferenceSearchMember();
+        void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 
-		int rowCount(const QModelIndex& _parent = QModelIndex()) const override;
-		QVariant data(const QModelIndex& _index, int _role) const override;
+        QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 
-		void setWidget(QWidget* widget);
+        virtual void setFixedWidth(int width) override;
 
-	public Q_SLOTS:
-		void searchPatternChanged(QString) override;
+        void setLeftMargin(int margin);
 
-	private:
+        void setRightMargin(int margin);
 
-		QWidget* firstElement_;
-		bool bSearchMode_;
-	};
+        virtual void blockState(bool value) override {}
+
+        virtual void setDragIndex(const QModelIndex& index) override {}
+
+        virtual void setRegim(int _regim) override;
+
+    private:
+        ::ContactList::ViewParams viewParams_;
+    };
+
+
+
+    class ConferenceSearchMember : public ::Logic::SearchMembersModel
+    {
+        Q_OBJECT
+
+    public:
+        ConferenceSearchMember();
+
+        int rowCount(const QModelIndex& _parent = QModelIndex()) const override;
+        QVariant data(const QModelIndex& _index, int _role) const override;
+
+        void setWidget(QWidget* widget);
+
+    public Q_SLOTS:
+        void searchPatternChanged(QString) override;
+
+    private:
+
+        QWidget* firstElement_;
+        bool bSearchMode_;
+    };
 
 }

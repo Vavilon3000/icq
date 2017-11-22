@@ -22,13 +22,6 @@ namespace core
             typedef std::unique_ptr<link_meta> link_meta_uptr;
         }
 
-        namespace SNAPS_NS
-        {
-            class snap_metainfo;
-
-            typedef std::unique_ptr<snap_metainfo> snap_metainfo_uptr;
-        }
-
         struct upload_progress_handler
         {
             std::function<void(int32_t, const web_file_info& _info)> on_result;
@@ -67,11 +60,6 @@ namespace core
         struct download_link_metainfo_handler
         {
             std::function<void(int32_t _error, const preview_proxy::link_meta_uptr &_meta)> on_result;
-        };
-
-        struct download_snap_metainfo_handler
-        {
-            std::function<void(int32_t _error, const snaps::snap_metainfo_uptr &_meta)> on_result;
         };
 
         struct get_file_direct_uri_handler

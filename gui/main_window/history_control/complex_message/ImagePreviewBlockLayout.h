@@ -26,6 +26,7 @@ private:
     void setActionButtonGeometry(const QRect &previewRect, ImagePreviewBlock &block);
 
     void setPreviewGeometry(const QRect &blockLtr, ImagePreviewBlock &block);
+
     QRect setTextControlGeometry(const QRect &contentLtr);
 
     QRect previewRect_;

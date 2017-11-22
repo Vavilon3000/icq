@@ -16,19 +16,19 @@
 
 namespace translate
 {
-	class translator_base
-	{
-	public:
-		virtual void init();
-		QString formatDate(const QDate& target, bool currentYear);
-		QString getNumberString(int number, const QString& one, const QString& two, const QString& five, const QString& twentyOne);
+    class translator_base
+    {
+    public:
+        virtual void init();
+        QString formatDate(const QDate& target, bool currentYear) const;
+        QString getNumberString(int number, const QString& one, const QString& two, const QString& five, const QString& twentyOne) const;
 
-        const QList<QString> &getLanguages();
-                
-	protected:
+        const QList<QString> &getLanguages() const;
 
-		virtual QString getLang();
-		QString getCurrentYearDateFormat();
-		QString getOtherYearsDateFormat();
-	};
+    protected:
+
+        virtual QString getLang() const;
+        QString getCurrentYearDateFormat() const;
+        QString getOtherYearsDateFormat() const;
+    };
 }

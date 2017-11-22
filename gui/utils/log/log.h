@@ -5,21 +5,21 @@
 #endif //_DEBUG
 
 #ifdef __ENABLE_LOG
-	#define __LOG(x) { x }
-	#define __WRITE_LOG(type, area, params)									\
-	{																		\
-		QString fmt;														\
-		fmt.reserve(512);													\
-																			\
-		QTextStream out(&fmt);												\
-		out << __FUNCTION__ << ", " __FILE__ ", line " __LINEA__ "\n"			\
-			<< params;														\
-																			\
-		Log::type((area), fmt);												\
-	}
+    #define __LOG(x) { x }
+    #define __WRITE_LOG(type, area, params)\
+    {\
+        QString fmt;\
+        fmt.reserve(512);\
+\
+        QTextStream out(&fmt);\
+        out << __FUNCTION__ << ", " __FILE__ ", line " __LINEA__ "\n"\
+            << params;\
+\
+        Log::type((area), fmt);\
+    }
 #else
-	#define __LOG(x) {}
-	#define __WRITE_LOG(type, area, params) {}
+    #define __LOG(x) {}
+    #define __WRITE_LOG(type, area, params) {}
 #endif
 
 #define __TRACE(area, params) __WRITE_LOG(trace, (area), params)
@@ -32,13 +32,13 @@
 namespace Log
 {
 
-	void trace(const QString& area, const QString& text);
+    void trace(const QString& area, const QString& text);
 
-	void info(const QString& area, const QString& text);
+    void info(const QString& area, const QString& text);
 
-	void warn(const QString& area, const QString& text);
+    void warn(const QString& area, const QString& text);
 
-	void error(const QString& area, const QString& text);
+    void error(const QString& area, const QString& text);
 
 }
 

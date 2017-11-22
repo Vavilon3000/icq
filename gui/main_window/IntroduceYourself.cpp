@@ -19,7 +19,8 @@ namespace Ui
         QHBoxLayout *horizontal_layout = Utils::emptyHLayout(this);
 
         auto main_widget_ = new QWidget(this);
-        main_widget_->setStyleSheet("background-color: #ffffff; border: 0;");
+        main_widget_->setStyleSheet(qsl("background-color: %1; border: 0;")
+        .arg(CommonStyle::getFrameColor().name()));
         horizontal_layout->addWidget(main_widget_);
 
         {
@@ -62,7 +63,7 @@ namespace Ui
                 name_edit_->setSizePolicy(QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Preferred);
                 name_edit_->setAttribute(Qt::WA_MacShowFocusRect, false);
                 name_edit_->setFont(Fonts::appFontScaled(18));
-                Utils::ApplyStyle(name_edit_, Ui::CommonStyle::getLineEditStyle());
+                Utils::ApplyStyle(name_edit_, CommonStyle::getLineEditStyle());
                 middle_layout->addWidget(name_edit_);
             }
 
@@ -74,13 +75,12 @@ namespace Ui
                 pl->setAlignment(Qt::AlignCenter);
 
                 next_button_ = new QPushButton(middle_widget);
-                Utils::ApplyStyle(next_button_, Ui::CommonStyle::getDisabledButtonStyle());
+                Utils::ApplyStyle(next_button_, CommonStyle::getDisabledButtonStyle());
                 setButtonActive(false);
                 next_button_->setFlat(true);
-                next_button_->setText(QT_TRANSLATE_NOOP("placeholders", "Continue"));
+                next_button_->setText(QT_TRANSLATE_NOOP("placeholders", "CONTINUE"));
                 next_button_->setCursor(QCursor(Qt::PointingHandCursor));
                 next_button_->setSizePolicy(QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Preferred);
-                connect(next_button_, SIGNAL(clicked()), this, SLOT(accept()), Qt::QueuedConnection);
 
                 name_edit_->setAlignment(Qt::AlignCenter);
                 pl->addWidget(next_button_);
@@ -88,13 +88,10 @@ namespace Ui
             }
 
             {
-                error_label_ = new QLabel(middle_widget);
+                error_label_ = new LabelEx(middle_widget);
                 error_label_->setAlignment(Qt::AlignCenter);
-
-                QString error_style = "font-size: 15dip;\
-                                      background-color: transparent;\
-                                      color: #d0021b;";
-                Utils::ApplyStyle(error_label_, error_style);
+                error_label_->setFont(Fonts::appFontScaled(15));
+                error_label_->setColor(CommonStyle::getColor(CommonStyle::Color::TEXT_RED));
                 UpdateError(false);
                 middle_layout->addWidget(error_label_);
             }
@@ -132,7 +129,7 @@ namespace Ui
         }
         else
         {
-            error_label_->setText("");
+            error_label_->setText(QString());
         }
     }
 
@@ -140,36 +137,25 @@ namespace Ui
     {
         int max_nickname_length = 20;
 
-        bool any_non_space = false;
+        const auto text = name_edit_->text();
 
-        for (auto symb : name_edit_->text())
-        {
-            if (!symb.isSpace())
-            {
-                any_non_space = true;
-                break;
-            }
-        }
-
-        setButtonActive(name_edit_->text().length() <= max_nickname_length
-            && !name_edit_->text().isEmpty()
-            && any_non_space);
-        UpdateError(name_edit_->text().length() > max_nickname_length);
+        setButtonActive(text.length() <= max_nickname_length
+            && !text.isEmpty()
+            && std::any_of(text.begin(), text.end(), [](auto symb) { return !symb.isSpace(); }));
+        UpdateError(text.length() > max_nickname_length);
     }
 
     void IntroduceYourself::setButtonActive(bool _is_active)
     {
         next_button_->setEnabled(_is_active);
-        Utils::ApplyStyle(next_button_, _is_active ? Ui::CommonStyle::getGreenButtonStyle() : Ui::CommonStyle::getDisabledButtonStyle());
+        Utils::ApplyStyle(next_button_, _is_active ? CommonStyle::getGreenButtonStyle() : CommonStyle::getDisabledButtonStyle());
     }
 
     void IntroduceYourself::UpdateProfile()
     {
         setButtonActive(false);
         name_edit_->setEnabled(false);
-        std::vector<std::pair<std::string, QString>> fields;
-        fields.push_back(std::make_pair(std::string("friendlyName"), name_edit_->text()));
-        Utils::UpdateProfile(fields);
+        Utils::UpdateProfile({ std::make_pair(std::string("friendlyName"), name_edit_->text()) });
         Ui::GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::introduce_name_set);
     }
 

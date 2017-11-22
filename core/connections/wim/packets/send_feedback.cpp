@@ -13,8 +13,8 @@
 using namespace core;
 using namespace wim;
 
-send_feedback::send_feedback(const wim_packet_params& _params, const std::string &url, const std::map<std::string, std::string>& fields, const std::vector<std::string>& attachments)
-    : wim_packet(_params)
+send_feedback::send_feedback(wim_packet_params _params, const std::string &url, const std::map<std::string, std::string>& fields, const std::vector<std::string>& attachments)
+    : wim_packet(std::move(_params))
     , url_(url)
     , result_(0)
 {
@@ -39,7 +39,7 @@ int32_t send_feedback::init_request(std::shared_ptr<core::http_request_simple> _
     long sizeLeft = sizeMax;
     std::stack<std::vector<char>> logChunks;
     std::vector<char> fullLog;
-    
+
     auto logFilenames = g_core->get_network_log().file_names_history_copy();
     while (!logFilenames.empty())
     {
@@ -58,7 +58,7 @@ int32_t send_feedback::init_request(std::shared_ptr<core::http_request_simple> _
                     boost::filesystem::remove(l, e);
                 }
             }
-            
+
             // capture log file data
             boost::system::error_code e;
             auto logTmp = logPath.parent_path().append(L"feedbacklog.processing.tmp");
@@ -85,7 +85,7 @@ int32_t send_feedback::init_request(std::shared_ptr<core::http_request_simple> _
         logFilenames.pop();
     }
     fullLog.resize(sizeMax - sizeLeft);
-    
+
     // accumulate data
     {
         long previousSize = 0;
@@ -97,7 +97,7 @@ int32_t send_feedback::init_request(std::shared_ptr<core::http_request_simple> _
             logChunks.pop();
         }
     }
-    
+
     // zip output and remove txt
     if (!fullLog.empty())
     {
@@ -124,9 +124,9 @@ int32_t send_feedback::init_request(std::shared_ptr<core::http_request_simple> _
     }
 
     // fill in post fields
-    for (auto f: fields_)
+    for (const auto& f: fields_)
         _request->push_post_form_parameter(f.first, f.second);
-    for (auto a: attachments_)
+    for (const auto& a: attachments_)
         _request->push_post_form_filedata(L"fb.attachement", tools::from_utf8(a));
     if (core::tools::system::is_exist(log_))
         _request->push_post_form_filedata(L"fb.attachement", log_);

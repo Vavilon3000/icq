@@ -26,14 +26,14 @@ int32_t fetch_event_hidden_chat::parse(const rapidjson::Value& _node_event_data)
         auto iter_last_msg_id = _node_event_data.FindMember("lastMsgId");
 
         if (
-            iter_aimid == _node_event_data.MemberEnd() || 
-            iter_last_msg_id == _node_event_data.MemberEnd() || 
-            !iter_aimid->value.IsString() || 
+            iter_aimid == _node_event_data.MemberEnd() ||
+            iter_last_msg_id == _node_event_data.MemberEnd() ||
+            !iter_aimid->value.IsString() ||
             !iter_last_msg_id->value.IsInt64())
             return wpie_error_parse_response;
 
 
-        aimid_ = iter_aimid->value.GetString();
+        aimid_ = rapidjson_get_string(iter_aimid->value);
         last_msg_id_ = iter_last_msg_id->value.GetInt64();
     }
     catch (const std::exception&)

@@ -46,16 +46,18 @@ public:
 
     virtual void setTextOpacity(double opacity) override;
 
-    virtual ContentType getContentType() const { return IItemBlock::Text; }
+    virtual ContentType getContentType() const override { return IItemBlock::Text; }
 
-    virtual QString getTrimmedText() const { return TrimmedText_; }
+    virtual QString getTrimmedText() const override { return TrimmedText_; }
 
-    virtual void connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover);
+    virtual void connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover) override;
 
     virtual bool isBubbleRequired() const override;
 
+    virtual QString linkAtPos(const QPoint& pos) const override;
+
 protected:
-    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_color) override;
+    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& _quoteColor) override;
 
     virtual void initialize() override;
 
@@ -81,9 +83,6 @@ private:
     double TextOpacity_;
 
     const bool hideLinks_;
-
-private Q_SLOTS:
-    void onAnchorClicked(const QUrl &_url);
 };
 
 UI_COMPLEX_MESSAGE_NS_END

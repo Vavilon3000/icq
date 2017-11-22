@@ -2,13 +2,13 @@
 
 namespace Themes
 {
-	enum class PixmapResourceId
-	{
-		Invalid,
-		Min,
+    enum class PixmapResourceId
+    {
+        Invalid,
+        Min,
 
-		FileSharingDownload,
-		FileSharingPlainCancel,
+        FileSharingDownload,
+        FileSharingPlainCancel,
         FileSharingMediaCancel,
         FileSharingMediaCancelActive,
         FileSharingMediaCancelHover,
@@ -19,7 +19,6 @@ namespace Themes
         FileSharingShareContentHover,
         FileSharingBlankButtonIcon48,
         FileSharingBlankButtonIcon24,
-        FileSharingSnapExpired,
 
         FileSharingPttPause,
         FileSharingPttPauseActive,
@@ -51,7 +50,7 @@ namespace Themes
         FileSharingFileTypeIconWord,
         FileSharingFileTypeIconZip,
 
-		PreviewerClose,
+        PreviewerClose,
 
         VoipEventMissedIcon,
         VoipEventIncomingCallIcon,
@@ -59,11 +58,12 @@ namespace Themes
         VoipEventCallEndedIcon,
 
         StickerHistoryPlaceholder,
+        StickerHistoryFailed,
         StickerPickerPlaceholder,
 
         PreviewerReload,
         PreviewerReloadHover,
 
-		Max
-	};
+        Max
+    };
 }

@@ -65,7 +65,7 @@ namespace core
 
         static std::chrono::system_clock::duration get_request_period();
 
-        static int32_t get_first_request_timeout_ms();
+        static std::chrono::milliseconds get_first_request_timeout();
     };
 }
 

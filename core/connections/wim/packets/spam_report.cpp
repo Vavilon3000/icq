@@ -11,12 +11,12 @@ const std::string spam_report_url = "https://mlink.mail.ru/complaint/icq";
 //const std::string spam_report_url = "http://mras-test1.mail.ru/complaint/icq";
 
 spam_report::spam_report(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _message_text,
     const std::string& _uin_spam,
     const std::string& _uin_from,
     time_t _message_time)
-    :	wim_packet(_params),
+    :	wim_packet(std::move(_params)),
         message_text_(_message_text),
         uin_spam_(_uin_spam),
         uin_from_(_uin_from),
@@ -30,7 +30,7 @@ spam_report::~spam_report()
 }
 
 
-std::string encrypt_report(const std::string& _key, const std::string& _report_xml)
+static std::string encrypt_report(const std::string& _key, const std::string& _report_xml)
 {
     std::stringstream out_data;
 
@@ -69,7 +69,7 @@ std::string encrypt_report(const std::string& _key, const std::string& _report_x
     return out_data.str();
 }
 
-std::string spam_report::get_report_xml(time_t _current_time)
+std::string spam_report::get_report_xml(time_t _current_time) const
 {
     boost::property_tree::ptree xml;
     {
@@ -96,12 +96,12 @@ std::string spam_report::get_report_xml(time_t _current_time)
 }
 
 
-std::string spam_report::get_report()
+std::string spam_report::get_report() const
 {
     time_t current_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) - params_.time_offset_;
 
-    std::string salt = std::to_string(static_cast<int32_t>(current_time / 86400));
-    std::string key = std::string("{49712A6B-E30F-4EF9-82BF-AC4133DEDF8C}") + salt;
+    const std::string salt = std::to_string(static_cast<int32_t>(current_time / 86400));
+    std::string key = "{49712A6B-E30F-4EF9-82BF-AC4133DEDF8C}" + salt;
 
     return encrypt_report(key, get_report_xml(current_time));
 }

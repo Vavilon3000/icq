@@ -99,7 +99,7 @@
 		B2ADEBE41DC23525001E2CF9 /* url_parser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = url_parser.cpp; path = ../../common.shared/url_parser/url_parser.cpp; sourceTree = "<group>"; };
 		B2ADEBE51DC23525001E2CF9 /* url_parser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = url_parser.h; path = ../../common.shared/url_parser/url_parser.h; sourceTree = "<group>"; };
 		D55389AB1BC7E05B0088FBA6 /* core.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = core.xcodeproj; path = ../../core/core.xcodeproj; sourceTree = "<group>"; };
-		D5E14CD51BC683F9007F8671 /* libcorelib.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libcorelib.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		D5E14CD51BC683F9007F8671 /* libcorelib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libcorelib.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D5E14CDC1BC6840A007F8671 /* collection_helper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = collection_helper.h; path = ../collection_helper.h; sourceTree = "<group>"; };
 		D5E14CDD1BC6840A007F8671 /* collection.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = collection.cpp; path = ../collection.cpp; sourceTree = "<group>"; };
 		D5E14CDE1BC6840A007F8671 /* collection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = collection.h; path = ../collection.h; sourceTree = "<group>"; };
@@ -213,7 +213,7 @@
 		D5E14CD61BC683F9007F8671 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D5E14CD51BC683F9007F8671 /* libcorelib.dylib */,
+				D5E14CD51BC683F9007F8671 /* libcorelib.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -258,8 +258,8 @@
 			);
 			name = corelib;
 			productName = corelib;
-			productReference = D5E14CD51BC683F9007F8671 /* libcorelib.dylib */;
-			productType = "com.apple.product-type.library.dynamic";
+			productReference = D5E14CD51BC683F9007F8671 /* libcorelib.a */;
+			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
 
@@ -370,6 +370,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACH_O_TYPE = staticlib;
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -406,6 +407,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACH_O_TYPE = staticlib;
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
@@ -415,6 +417,7 @@
 		D5E14CDA1BC683F9007F8671 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				EXECUTABLE_PREFIX = lib;
@@ -422,6 +425,11 @@
 				FRAMEWORK_SEARCH_PATHS = ../../external/mac/;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "corelib-Prefix.pch";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+					ICQ_CORELIB_STATIC_LINKING,
+				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = ../../external/boost/include/;
 				LIBRARY_SEARCH_PATHS = (
@@ -448,6 +456,7 @@
 		D5E14CDB1BC683F9007F8671 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				EXECUTABLE_PREFIX = lib;
@@ -455,6 +464,7 @@
 				FRAMEWORK_SEARCH_PATHS = ../../external/mac/;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "corelib-Prefix.pch";
+				GCC_PREPROCESSOR_DEFINITIONS = ICQ_CORELIB_STATIC_LINKING;
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = ../../external/boost/include/;
 				LIBRARY_SEARCH_PATHS = (

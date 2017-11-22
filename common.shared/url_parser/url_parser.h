@@ -48,11 +48,11 @@ namespace common
                 wmv
             };
 
-            std::string original_;
-            std::string url_;
             type type_;
             protocol protocol_;
             extension extension_;
+            std::string url_;
+            std::string original_;
 
             url();
             url(const std::string& _url, type _type, protocol _protocol, extension _extension);
@@ -181,7 +181,7 @@ namespace common
 
             url make_url(url::type _type) const;
 
-            bool is_ipv4_segment(const std::string _name) const;
+            bool is_ipv4_segment(const std::string& _name) const;
 
         private:
             states state_;

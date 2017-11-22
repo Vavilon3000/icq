@@ -8,9 +8,9 @@ using namespace core;
 using namespace wim;
 
 update_profile::update_profile(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::vector<std::pair<std::string, std::string>>& _fields)
-    :	wim_packet(_params),
+    :	wim_packet(std::move(_params)),
     fields_(_fields)
 {
 }
@@ -32,14 +32,21 @@ int32_t update_profile::init_request(std::shared_ptr<core::http_request_simple> 
         "&aimsid=" << get_params().aimsid_ <<
         "&r=" <<  core::tools::system::generate_guid();
 
-    std::for_each(fields_.begin(), fields_.end(), [&ss_url](const std::pair<std::string, std::string> item){ ss_url << "&set=" << item.first << "=" << escape_symbols(item.second); });
+    std::for_each(fields_.begin(), fields_.end(), [&ss_url](const std::pair<std::string, std::string>& item){ ss_url << "&set=" << item.first << '=' << escape_symbols(item.second); });
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }
 
-int32_t update_profile::parse_response_data(const rapidjson::Value& _data)
+int32_t update_profile::parse_response_data(const rapidjson::Value& /*_data*/)
 {
     return 0;
 }

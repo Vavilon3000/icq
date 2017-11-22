@@ -31,7 +31,6 @@ struct upload_progress_handler;
 struct download_progress_handler;
 struct download_image_handler;
 struct download_link_metainfo_handler;
-struct download_snap_metainfo_handler;
 struct get_file_direct_uri_handler;
 class loader_task;
 enum class tasks_runner_slot;
@@ -51,8 +50,6 @@ class loader : public std::enable_shared_from_this<loader>
     typedef fs_tasks_queue::const_iterator const_fs_tasks_iter;
 
     typedef std::unique_ptr<tasks_runner> tasks_runner_uptr;
-
-    static const_fs_tasks_iter find_task_by_id(const fs_tasks_queue &_tasks, const std::string &_id);
 
     fs_tasks_queue file_sharing_tasks_;
 

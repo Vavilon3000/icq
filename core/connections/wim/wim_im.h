@@ -6,6 +6,8 @@
 #include "../../archive/history_message.h"
 #include "../../archive/opened_dialog.h"
 #include "events/fetch_event_diff.h"
+#include "../../../corelib/collection_helper.h"
+#include "../../tools/event.h"
 
 
 #ifdef _DEBUG
@@ -33,7 +35,7 @@ namespace core
     class phone_info;
 
     enum class file_sharing_content_type;
-    
+
     enum class typing_status;
 
     class masks;
@@ -98,7 +100,8 @@ namespace core
         class fetch_event_permit;
         class fetch_event_imstate;
         class fetch_event_notification;
-        class fetch_event_snaps;
+        class fetch_event_appsdata;
+        class fetch_event_mention_me;
 
         struct auth_parameters;
         struct fetch_parameters;
@@ -119,7 +122,6 @@ namespace core
         class fetch;
         class chat_params;
         class mailbox_storage;
-        class snaps_storage;
 
         namespace holes
         {
@@ -133,6 +135,23 @@ namespace core
         public:
 
             std::function<void(int32_t _error, const send_message& _packet)> on_result;
+        };
+
+        struct dlg_state_cache_item
+        {
+            std::string aimid_;
+            core::icollection* dlg_state_coll_;
+            dlg_state_cache_item(const std::string& _aimid, core::icollection* _dlg_state)
+                : aimid_(_aimid), dlg_state_coll_(_dlg_state)
+            {
+                _dlg_state->addref();
+            }
+        };
+
+        enum class force_save
+        {
+            no,
+            yes
         };
 
         //////////////////////////////////////////////////////////////////////////
@@ -256,6 +275,31 @@ namespace core
             int32_t count_of_yet_no_sent_msgs;
         };
 
+        class gui_message
+        {
+            const std::string message_;
+            const int64_t seq_;
+            const coll_helper data_;
+
+        public:
+            gui_message(
+                const std::string& _message,
+                const int64_t _seq,
+                const coll_helper& _data)
+                :
+                message_(_message)
+                , seq_(_seq)
+                , data_(_data)
+            {
+            }
+
+            const std::string& get_message() const { return message_; }
+            int64_t get_seq() const { return seq_; }
+            const coll_helper& get_data() const { return data_; }
+        };
+
+        typedef std::list<gui_message> gui_messages_list;
+
         //////////////////////////////////////////////////////////////////////////
         // class im
         //////////////////////////////////////////////////////////////////////////
@@ -263,24 +307,29 @@ namespace core
         {
             friend class core::masks;
 
+            enum class poll_reason
+            {
+                normal = 0,
+                after_network_error = 1,
+                resend = 2
+            };
+
             // stop signal
             struct stop_objects
             {
-                std::mutex stop_mutex_;
-                uint64_t active_session_id_;
-                std::condition_variable condition_poll_;
+                std::mutex session_mutex_;
+                uint64_t active_session_id_ = 0;
 
-                stop_objects() : active_session_id_(0) {}
+                tools::autoreset_event poll_event_;
+                tools::autoreset_event startsession_event_;
             };
 
             std::shared_ptr<stop_objects> stop_objects_;
-            std::weak_ptr<stop_objects> stop_objects_weak_; 
             std::shared_ptr<wim::contactlist> contact_list_;
             std::shared_ptr<wim::active_dialogs> active_dialogs_;
             std::shared_ptr<wim::my_info_cache> my_info_cache_;
             std::shared_ptr<wim::favorites> favorites_;
             std::shared_ptr<wim::mailbox_storage> mailbox_storage_;
-            std::shared_ptr<wim::snaps_storage> snaps_storage_;
 
             // authorization parameters
             std::shared_ptr<auth_parameters> auth_params_;
@@ -313,6 +362,8 @@ namespace core
             uint32_t dlg_state_timer_;
 
             bool im_created_;
+
+            std::string stickers_size_;
 
             // archive
             std::shared_ptr<archive::face> archive_;
@@ -349,9 +400,12 @@ namespace core
             bool dlg_state_agregate_mode_;
             std::chrono::system_clock::time_point agregate_start_time_;
             std::chrono::system_clock::time_point last_network_activity_time_;
-            std::list<core::icollection*> cached_dlg_states_;
+            std::list<dlg_state_cache_item> cached_dlg_states_;
+            // syncronized with dlg_state messages
+            gui_messages_list gui_messages_queue_;
 
-            const robusto_packet_params make_robusto_params();
+
+            robusto_packet_params make_robusto_params() const;
 
             std::shared_ptr<async_task_handlers> post_wim_packet(std::shared_ptr<wim_packet> _packet);
             std::shared_ptr<async_task_handlers> post_robusto_packet(std::shared_ptr<robusto_packet> packet);
@@ -369,27 +423,36 @@ namespace core
             std::wstring get_exported_muted_chats_filename();
 
             void save_my_info();
-            void save_contact_list();
+            void save_contact_list(force_save _force);
             void save_active_dialogs();
             void save_favorites();
             void save_mailboxes();
-            void save_snaps_storage();
 
             std::shared_ptr<async_task_handlers> load_active_dialogs();
             std::shared_ptr<async_task_handlers> load_contact_list();
             std::shared_ptr<async_task_handlers> load_my_info();
             std::shared_ptr<async_task_handlers> load_favorites();
             std::shared_ptr<async_task_handlers> load_mailboxes();
-            std::shared_ptr<async_task_handlers> load_snaps_storage();
 
             // stickers
-            void load_stickers_data(int64_t _seq, const std::string _size);
-            void download_stickers(int64_t _seq, const std::string _size);
-            void download_stickers_metadata(int64_t _seq, const std::string _size);
+            void load_stickers_data(int64_t _seq, const std::string _size, const bool _up_to_date);
+            void download_stickers_metadata(int64_t _seq, const std::string _size, const bool _up_to_date);
             void download_stickers_metafile(int64_t _seq, const std::string& _size, const std::string& _md5);
+
+
+            void download_stickers(const bool _recursive = false);
+
+
             virtual void get_stickers_meta(int64_t _seq, const std::string& _size) override;
-            virtual void get_sticker(int64_t _seq, int32_t _set_id, int32_t _sticker_id, core::sticker_size _size) override;
+            virtual void get_sticker(const int64_t _seq, const int32_t _set_id, const int32_t _sticker_id, const core::sticker_size _size) override;
+            virtual void get_stickers_pack_info(const int64_t _seq, const int32_t _set_id, const std::string& _store_id) override;
+            virtual void add_stickers_pack(const int64_t _seq, const int32_t _set_id, const std::string _store_id) override;
+            virtual void remove_stickers_pack(const int64_t _seq, const int32_t _set_id, const std::string _store_id) override;
+            virtual void get_set_icon_big(const int64_t _seq, const int32_t _set_id) override;
             void post_stickers_meta_to_gui(int64_t _seq, const std::string& _size);
+            void post_stickers_store_to_gui(int64_t _seq);
+            void reload_stickers_meta(const int64_t _seq, const std::string& _size);
+            void get_stickers_store(const int64_t _seq) override;
 
             virtual void get_chat_home(int64_t _seq, const std::string& _tag) override;
             virtual void get_chat_info(int64_t _seq, const std::string& _aimid, const std::string& _stamp, int32_t _limit) override;
@@ -419,7 +482,7 @@ namespace core
             void download_themes(int64_t _seq);
 
             void load_cached_objects();
-            void save_cached_objects();
+            void save_cached_objects(force_save _force = force_save::no);
 
             void post_my_info_to_gui();
             void post_contact_list_to_gui();
@@ -431,22 +494,22 @@ namespace core
             virtual void logout(std::function<void()> _on_result) override;
 
             void login_by_password(
-                int64_t _seq, 
-                const std::string& login, 
-                const std::string& password, 
-                const bool save_auth_data, 
+                int64_t _seq,
+                const std::string& login,
+                const std::string& password,
+                const bool save_auth_data,
                 const bool start_session,
                 const bool _from_export_login);
 
             void login_by_agent_token(
-                const std::string& _login, 
-                const std::string& _token, 
+                const std::string& _login,
+                const std::string& _token,
                 const std::string& _guid);
 
             void login_by_password_and_attach_uin(
-                int64_t _seq, 
-                const std::string& login, 
-                const std::string& password, 
+                int64_t _seq,
+                const std::string& login,
+                const std::string& password,
                 const wim_packet_params& _from_params);
 
             void start_session(bool _is_ping = false) override;
@@ -455,12 +518,14 @@ namespace core
 
             void cancel_requests();
             bool is_session_valid(uint64_t _session_id);
-            void poll(bool _is_first, bool _after_network_error, int32_t _failed_network_error_count = 0);
+            void poll(bool _is_first, poll_reason _reason, int32_t _failed_network_error_count = 0);
 
             void dispatch_events(std::shared_ptr<fetch> _fetch_packet, std::function<void(int32_t)> _on_complete = [](int32_t){});
 
             void schedule_store_timer();
             void stop_store_timer();
+
+            void stop_waiters();
 
             loader& get_loader();
             async_loader& get_async_loader();
@@ -488,8 +553,9 @@ namespace core
                 const std::string& _message,
                 const core::message_type _type,
                 const std::string& _internal_id,
-                const core::archive::quotes_vec& _quotes) override;
-                
+                const core::archive::quotes_vec& _quotes,
+                const core::archive::mentions_map& _mentions) override;
+
             virtual void send_message_typing(const int64_t _seq, const std::string& _contact, const core::typing_status& _status) override;
 
             virtual void send_feedback(const int64_t, const std::string &url, const std::map<std::string, std::string> &fields, const std::vector<std::string> &files) override;
@@ -508,7 +574,8 @@ namespace core
                 const std::string& _message,
                 const std::string& _internal_id,
                 const core::message_type _type,
-                core::archive::quotes_vec _quotes);
+                const core::archive::quotes_vec& _quotes,
+                const core::archive::mentions_map& _mentions);
 
             void post_not_sent_message_to_gui(int64_t _seq, const archive::not_sent_message_sptr& _message);
 
@@ -532,15 +599,15 @@ namespace core
             void get_archive_images(int64_t _seq, const std::string& _contact, int64_t _from, int64_t _count) override;
             void repair_archive_images(int64_t _seq, const std::string& _contact) override;
             void get_archive_index(int64_t _seq, const std::string& _contact, int64_t _from, int64_t _count, int32_t _recursion, std::function<void(int64_t)> last_message_catcher);
-            void get_archive_messages(int64_t _seq, const std::string& _contact, int64_t _from, int64_t _count_early, int64_t _count_later, int32_t _recursion, bool _need_prefetch, std::function<void(int64_t)> last_message_catcher);
+            void get_archive_messages(int64_t _seq, const std::string& _contact, int64_t _from, int64_t _count_early, int64_t _count_later, int32_t _recursion, bool _need_prefetch, bool _first_request, std::function<void(int64_t)> last_message_catcher);
             std::shared_ptr<async_task_handlers> get_archive_messages_get_messages(int64_t _seq, const std::string& _contact
-                , int64_t _from, int64_t _count_early, int64_t _count_later, int32_t _recursion, bool _need_prefetch, std::function<void(int64_t)> last_message_catcher);
-            virtual void get_archive_messages(int64_t _seq, const std::string& _contact, int64_t _from, int64_t _count_early, int64_t _count_later, bool _need_prefetch, std::function<void(int64_t)> last_message_catcher) override;
+                , int64_t _from, int64_t _count_early, int64_t _count_later, int32_t _recursion, bool _need_prefetch, bool _first_request, std::function<void(int64_t)> last_message_catcher);
+            virtual void get_archive_messages(int64_t _seq, const std::string& _contact, int64_t _from, int64_t _count_early, int64_t _count_later, bool _need_prefetch, bool _first_request, std::function<void(int64_t)> last_message_catcher) override;
             virtual void get_archive_index(int64_t _seq_, const std::string& _contact, int64_t _from, int64_t _count, std::function<void(int64_t)> last_message_catcher) override;
             virtual void get_archive_messages_buddies(int64_t _seq, const std::string& _contact, std::shared_ptr<archive::msgids_list> _ids) override;
 
             std::shared_ptr<async_task_handlers> get_history_from_server(const get_history_params& _params, std::function<void(int64_t)> last_message_catcher);
-            std::shared_ptr<async_task_handlers> set_dlg_state(const set_dlg_state_params& _params);
+            std::shared_ptr<async_task_handlers> set_dlg_state(set_dlg_state_params _params);
             virtual void add_opened_dialog(const std::string& _contact) override;
             virtual void remove_opened_dialog(const std::string& _contact) override;
             virtual void set_first_message(const std::string& _contact, int64_t _message) override;
@@ -557,8 +624,8 @@ namespace core
             virtual void clear_search_params() override;
 
             void download_failed_holes();
-			void download_holes(const std::string& _contact, std::function<void(int64_t)> last_message_catcher);
-			void download_holes(const std::string& _contact, int64_t _depth = -1, std::function<void(int64_t)> last_message_catcher = [](int64_t){});
+            void download_holes(const std::string& _contact, std::function<void(int64_t)> last_message_catcher);
+            void download_holes(const std::string& _contact, int64_t _depth = -1, std::function<void(int64_t)> last_message_catcher = [](int64_t) {});
             void download_holes(const std::string& _contact, int64_t _from, int64_t _depth = -1, int32_t _recursion = 0, std::function<void(int64_t)> last_message_catcher = [](int64_t){});
 
             virtual std::string _get_protocol_uid() override;
@@ -577,20 +644,27 @@ namespace core
             virtual void get_ignore_list(int64_t _seq) override;
             virtual void favorite(const std::string& _contact) override;
             virtual void unfavorite(const std::string& _contact) override;
+            virtual void update_outgoing_msg_count(const std::string& _aimid, int _count) override;
 
             std::shared_ptr<async_task_handlers> post_dlg_state_to_gui(
-                const std::string _contact, 
-                const bool _add_to_active_dialogs = false, 
-                const bool _serialize_message = true, 
+                const std::string _contact,
+                const bool _add_to_active_dialogs = false,
+                const bool _serialize_message = true,
                 const bool _force = false /*need for favorites*/);
 
-            void post_dlg_state_to_gui(core::icollection* _dlg_state);
+            void post_dlg_state_to_gui(const std::string& _aimid, core::icollection* _dlg_state);
+            void sync_message_with_dlg_state_queue(const std::string& _message, const int64_t _seq, coll_helper _data);
+
+            void post_queued_messages_to_gui();
+            void post_queued_objects_to_gui();
+
             void post_cached_dlg_states_to_gui();
+            void remove_from_cached_dlg_states(const std::string& _aimid);
             void stop_dlg_state_timer();
             void check_need_agregate_dlg_state();
 
 
-            std::shared_ptr<async_task_handlers> post_history_search_result_msg_to_gui(const std::string _contact
+            void post_history_search_result_msg_to_gui(const std::string _contact
                 , bool _serialize_message
                 , bool _from_search
                 , int64_t _req_id
@@ -606,7 +680,7 @@ namespace core
                 , int64_t _req_id
                 , bool _is_contact
                 , const std::string& term
-                , int32_t _priority);
+                , int32_t _priority) const;
 
             // ------------------------------------------------------------------------------
             // files functions
@@ -642,6 +716,7 @@ namespace core
                 const bool _download_preview,
                 const int32_t _preview_width,
                 const int32_t _preview_height,
+                const bool _ext_resource,
                 const bool _raise_priority) override;
 
             virtual void download_link_preview(
@@ -677,8 +752,6 @@ namespace core
                 const std::string& _contact_aimid,
                 const preview_proxy::link_meta &_meta);
 
-            void request_snap_metainfo(const int64_t _seq, const std::string &_uri, const std::string& _ttl_id);
-
             virtual void set_played(const std::string& url, bool played) override;
             virtual void speech_to_text(int64_t _seq, const std::string& _url, const std::string& _locale) override;
 
@@ -706,6 +779,7 @@ namespace core
             void on_history_patch_version_changed(const std::string& _aimid, const std::string& _history_patch_version);
             void on_del_up_to_changed(const std::string& _aimid, const int64_t _del_up_to, const auto_callback_sptr& _on_complete);
 
+            void merge_account(const auth_parameters& _merge_params);
             void merge_account();
             void attach_uin(int64_t _seq);
             void attach_phone(int64_t _seq, const auth_parameters& auth_params, const phone_info& _info);
@@ -740,7 +814,9 @@ namespace core
 
             void need_update_search_cache();
 
-            bool wait_function(int32_t _timeout);
+            void post_presence_to_gui(const std::string& _aimid);
+            void post_themes_meta_get_result_to_gui(const int64_t _seq);
+            void post_outgoing_count_to_gui(const std::string& _aimid);
 
         public:
 
@@ -768,16 +844,19 @@ namespace core
                 const std::string& _aimid,
                 const archive::dlg_state& _local_dlg_state,
                 archive::dlg_state _server_dlg_state,
-                const archive::history_block_sptr& _messages
+                const archive::history_block_sptr& _tail_messages,
+                const archive::history_block_sptr& _intro_messages
                 );
             void on_event_dlg_state_process_messages(
-                const archive::history_block& _messages,
+                const archive::history_block& _tail_messages,
+                const archive::history_block& _intro_messages,
                 const std::string& _aimid,
                 InOut archive::dlg_state& _server_dlg_state
                 );
             void on_event_dlg_state_local_state_updated(
                 const auto_callback_sptr& _on_complete,
-                const archive::history_block_sptr& _messages,
+                const archive::history_block_sptr& _tail_messages,
+                const archive::history_block_sptr& _intro_messages,
                 const std::string& _aimid,
                 const archive::dlg_state& _local_dlg_state,
                 const bool _patch_version_changed,
@@ -801,36 +880,31 @@ namespace core
             void on_event_permit(fetch_event_permit* _event, std::shared_ptr<auto_callback> _on_complete);
             void on_event_imstate(fetch_event_imstate* _event, std::shared_ptr<auto_callback> _on_complete);
             void on_event_notification(fetch_event_notification* _event, std::shared_ptr<auto_callback> _on_complete);
-            void on_event_snaps(fetch_event_snaps* _event, std::shared_ptr<auto_callback> _on_complete);
+            void on_event_appsdata(fetch_event_appsdata* _event, std::shared_ptr<auto_callback> _on_complete);
+            void on_event_mention_me(fetch_event_mention_me* _event, std::shared_ptr<auto_callback> _on_complete);
 
             virtual void search_contacts(int64_t _seq, const std::string& keyword, const std::string& phonenumber, const std::string& tag) override;
             virtual void get_profile(int64_t _seq, const std::string& _contact) override;
 
-            virtual const wim_packet_params make_wim_params() override;
-            virtual const wim_packet_params make_wim_params_general(bool _is_current_auth_params) override;
-            const wim_packet_params make_wim_params_from_auth(const auth_parameters& _auth_params);
+            virtual wim_packet_params make_wim_params() override;
+            virtual wim_packet_params make_wim_params_general(bool _is_current_auth_params) override;
+            wim_packet_params make_wim_params_from_auth(const auth_parameters& _auth_params);
 
             im(const im_login_id& _login, std::shared_ptr<voip_manager::VoipManager> _voip_manager);
             virtual ~im();
             virtual void load_flags(const int64_t _seq) override;
             virtual void set_avatar(const int64_t _seq, tools::binary_stream image, const std::string& _aimId, const bool _chat) override;
 
+            virtual void save_auth_params_to_file(std::shared_ptr<auth_parameters> auth_params, const std::wstring& _file_name, std::function<void()> _on_result) override;
             virtual void save_auth_to_export(std::function<void()> _on_result) override;
-
-            virtual void read_snap(const uint64_t _snap_id, const std::string& _aimId, const bool _mark_prev_snaps_read, const bool _refresh_storage) override;
-            virtual void delete_snap(const uint64_t _snap_id) override;
-            virtual void download_snap_metainfo(const int64_t _seq, const std::string& _contact_aimid, const std::string &_ttl_id, bool _raise_priority) override;
 
             virtual void get_mask_id_list(int64_t _seq) override;
             virtual void get_mask_preview(int64_t _seq, const std::string& mask_id) override;
             virtual void get_mask_model(int64_t _seq) override;
             virtual void get_mask(int64_t _seq, const std::string& mask_id) override;
 
-            virtual void refresh_snaps_storage() override;
-            virtual void refresh_user_snaps(const std::string& _aimId) override;
-            virtual void remove_from_snaps_storage(const std::string& _aimId) override;
-
             virtual bool has_valid_login() const override;
+            virtual void merge_exported_account(core::wim::auth_parameters& _params) override;
         };
     }
 }

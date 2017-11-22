@@ -26,7 +26,7 @@ namespace core
 
         public:
 
-            block_chat_member(const wim_packet_params& _params, const std::string& _aimId, const std::string& _contact, bool _block);
+            block_chat_member(wim_packet_params _params, const std::string& _aimId, const std::string& _contact, bool _block);
             virtual ~block_chat_member();
         };
 

@@ -2,102 +2,135 @@
 #include "../../controls/CustomButton.h"
 namespace Ui
 {
-	class smiles_Widget;
-	class CustomButton;
+    class smiles_Widget;
+    class CustomButton;
 
-	namespace Smiles
-	{
-		class AttachedView
-		{
-			QWidget*	view_;
-			QWidget*	view_parent_;
+    namespace Smiles
+    {
+        class AttachedView
+        {
+            QWidget* View_;
+            QWidget* ViewParent_;
 
-		public:
+        public:
 
-			AttachedView(QWidget* _view, QWidget* _view_parent = nullptr);
+            AttachedView(QWidget* _view, QWidget* _viewParent = nullptr);
 
-			QWidget* get_view();
-			QWidget* get_view_parent();
-		};
+            QWidget* getView();
+            QWidget* getViewParent();
+        };
 
-		class TabButton : public CustomButton
-		{
-			Q_OBJECT
 
-			void Init();
+        class AddButton : public QWidget
+        {
+            Q_OBJECT
 
-			const QString	resource_;
+            Q_SIGNALS :
 
-			AttachedView	attached_view_;
+            void clicked();
 
-		public:
+        public:
 
-			TabButton(QWidget* _parent);
-			TabButton(QWidget* _parent, const QString& _resource);
-			
-			void AttachView(const AttachedView& _view);
-			const AttachedView& GetAttachedView() const;
+            AddButton(QWidget* _parent);
 
-			~TabButton();
-		};
+        protected:
 
-		enum buttons_align
-		{
-			center	= 1,
-			left	= 2,
-			right	= 3
-		};
+            virtual void paintEvent(QPaintEvent* _e) override;
+            virtual void resizeEvent(QResizeEvent * _e) override;
+        };
 
-		
-		class Toolbar : public QFrame
-		{
-			Q_OBJECT
-					
-		private:
 
-			enum direction
-			{
-				left	= 0,
-				right	= 1
-			};
+        //////////////////////////////////////////////////////////////////////////
+        // TabButton
+        //////////////////////////////////////////////////////////////////////////
+        class TabButton : public CustomButton
+        {
+            Q_OBJECT
 
-			buttons_align			align_;
-			QHBoxLayout*			hor_layout_;
-			QList<TabButton*>		buttons_;
-			QScrollArea*			view_area_;
+            void Init();
 
-			CustomButton*			button_left_;
-			QWidget*				button_left_cap_;
-			CustomButton*			button_right_;
-			QWidget*				button_right_cap_;
-			QPropertyAnimation*		anim_scroll_;
-			
+            const QString resource_;
 
-			void addButton(TabButton* _button);
-			void initScroll();
-			void scrollStep(direction _direction);
-			void showButtons(int _min, int _max, int _cur);
+            AttachedView AttachedView_;
 
-		private Q_SLOTS:
-			void touchScrollStateChanged(QScroller::State);
+            bool Fixed_;
 
-		protected:
+        public:
 
-			virtual void paintEvent(QPaintEvent* _e) override;
-			virtual void resizeEvent(QResizeEvent * _e) override;
-			virtual void wheelEvent(QWheelEvent* _e) override;
-		public:
+            TabButton(QWidget* _parent);
+            TabButton(QWidget* _parent, const QString& _resource);
 
-			Toolbar(QWidget* _parent, buttons_align _align);
-			~Toolbar();
+            void AttachView(const AttachedView& _view);
+            const AttachedView& GetAttachedView() const;
 
-			TabButton* addButton(const QString& _resource);
-			TabButton* addButton(const QPixmap& _icon);
+            void setFixed(const bool _isFixed);
+            bool isFixed() const;
 
-			void scrollToButton(TabButton* _button);
+            ~TabButton();
+        };
 
-			const QList<TabButton*>& GetButtons() const;
-            void updateArrowButtonsVisibility();
-		};
-	}
+        enum buttons_align
+        {
+            center = 1,
+            left = 2,
+            right = 3
+        };
+
+
+
+
+        //////////////////////////////////////////////////////////////////////////
+        // Toolbar
+        //////////////////////////////////////////////////////////////////////////
+        class Toolbar : public QFrame
+        {
+            Q_OBJECT
+
+        private:
+
+            enum direction
+            {
+                left = 0,
+                right = 1
+            };
+
+            buttons_align align_;
+            QHBoxLayout* horLayout_;
+            std::list<TabButton*> buttons_;
+            QScrollArea* viewArea_;
+
+            AddButton* buttonStore_;
+
+            QPropertyAnimation* AnimScroll_;
+
+            void addButton(TabButton* _button);
+            void initScroll();
+            void scrollStep(direction _direction);
+
+        private Q_SLOTS:
+            void touchScrollStateChanged(QScroller::State);
+            void buttonStoreClick();
+
+        protected:
+
+            virtual void paintEvent(QPaintEvent* _e) override;
+            virtual void resizeEvent(QResizeEvent * _e) override;
+            virtual void wheelEvent(QWheelEvent* _e) override;
+        public:
+
+            Toolbar(QWidget* _parent, buttons_align _align);
+            ~Toolbar();
+
+            void Clear(const bool _delFixed = false);
+
+            TabButton* addButton(const QString& _resource);
+            TabButton* addButton(const QPixmap& _icon);
+
+            void scrollToButton(TabButton* _button);
+
+            const std::list<TabButton*>& GetButtons() const;
+
+            void addButtonStore();
+        };
+    }
 }

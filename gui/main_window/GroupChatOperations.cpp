@@ -22,22 +22,23 @@
 
 namespace Ui
 {
-    GroupChatSettings::GroupChatSettings(QWidget *parent, const QString &buttonText, const QString &headerText, GroupChatOperations::ChatData &chatData): editorIsShown_(false), chatData_(chatData)
+    GroupChatSettings::GroupChatSettings(QWidget *parent, const QString &buttonText, const QString &headerText, GroupChatOperations::ChatData &chatData)
+        : chatData_(chatData), editorIsShown_(false)
     {
         content_ = new QWidget(parent);
         content_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
-        content_->setMinimumWidth(Utils::scale_value(360));
-        Utils::ApplyStyle(content_, "height: 10dip;");
+        content_->setFixedWidth(Utils::scale_value(360));
+        Utils::ApplyStyle(content_, qsl("height: 10dip;"));
 
         auto layout = Utils::emptyVLayout(content_);
-        layout->setContentsMargins(Utils::scale_value(24), Utils::scale_value(16), Utils::scale_value(24), 0);
-        
+        layout->setContentsMargins(Utils::scale_value(16), Utils::scale_value(12), Utils::scale_value(16), 0);
+
         // name and photo
         auto subContent = new QWidget(content_);
         subContent->setSizePolicy(QSizePolicy::Policy::Preferred, QSizePolicy::Policy::Preferred);
         auto subLayout = new QHBoxLayout(subContent);
         subLayout->setSpacing(Utils::scale_value(16));
-        subLayout->setContentsMargins(0, 0, 0, Utils::scale_value(16));
+        subLayout->setContentsMargins(0, 0, 0, Utils::scale_value(12));
         subLayout->setAlignment(Qt::AlignTop);
         {
             photo_ = new ContactAvatarWidget(subContent, QString(), QString(), Utils::scale_value(56), true);
@@ -45,13 +46,13 @@ namespace Ui
             photo_->SetVisibleShadow(false);
             photo_->SetVisibleSpinner(false);
             subLayout->addWidget(photo_);
-            
+
             chatName_ = new TextEditEx(subContent, Fonts::appFontScaled(18), MessageStyle::getTextColor(), true, true);
-            Utils::ApplyStyle(chatName_, CommonStyle::getLineEditStyle());
+            Utils::ApplyStyle(chatName_, CommonStyle::getTextEditStyle());
             chatName_->setWordWrapMode(QTextOption::NoWrap);//WrapAnywhere);
-            chatName_->setObjectName("chat_name");
+            chatName_->setObjectName(qsl("chat_name"));
             chatName_->setPlaceholderText(QT_TRANSLATE_NOOP("groupchats", "Chat name"));
-            chatName_->setPlainText("");//chatData.name);
+            chatName_->setPlainText(QString());//chatData.name);
             chatName_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
             chatName_->setAutoFillBackground(false);
             chatName_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -59,85 +60,54 @@ namespace Ui
             chatName_->setTextInteractionFlags(Qt::TextEditable | Qt::TextEditorInteraction);
             chatName_->setCatchEnter(true);
             chatName_->setMinimumWidth(Utils::scale_value(200));
-            Utils::ApplyStyle(chatName_, "padding: 0; margin: 0;");
-            {
-                auto chatNameLayout = Utils::emptyVLayout(chatName_);
-                chatNameLayout->setAlignment(Qt::AlignBottom);
-                
-                auto horizontalLineWidget = new QWidget(chatName_);
-                horizontalLineWidget->setFixedHeight(Utils::scale_value(1));
-                Utils::ApplyStyle(horizontalLineWidget, "background-color: #579e1c;");
-                chatNameLayout->addWidget(horizontalLineWidget);
-            }
+            chatName_->document()->setDocumentMargin(0);
+            chatName_->addSpace(Utils::scale_value(4));
             subLayout->addWidget(chatName_);
         }
         layout->addWidget(subContent);
-        
+
         // settings
-        static auto createItem = [](QWidget *parent, const QString &iconPath, const QString &topic, const QString &text, QCheckBox *&switcher)
+        static auto createItem = [](QWidget *parent, const QString &topic, const QString &text, QCheckBox *&switcher)
         {
             auto whole = new QWidget(parent);
             auto wholelayout = new QHBoxLayout(whole);
             whole->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Preferred);
-            wholelayout->setContentsMargins(0, 0, 0, Utils::scale_value(8));
+            wholelayout->setContentsMargins(0, 0, 0, Utils::scale_value(12));
             {
-                auto iconpart = new QWidget(whole);
-                auto iconpartlayout = Utils::emptyVLayout(iconpart);
-                iconpart->setSizePolicy(QSizePolicy::Policy::Preferred, QSizePolicy::Policy::Expanding);
-                iconpartlayout->setContentsMargins(0, Utils::scale_value(4), 0, 0);
-                iconpartlayout->setAlignment(Qt::AlignTop);
-                Utils::ApplyStyle(iconpart, "background-color: transparent; border: none;");
-                {
-                    auto i = new QPushButton(iconpart);
-                    i->setFlat(true);
-                    i->setObjectName("icon");
-                    i->setFixedSize(Utils::scale_value(24), Utils::scale_value(24));
-                    Utils::ApplyStyle(i, QString("QPushButton { image: url(%1); border: none; }").arg(iconPath));
-                    iconpartlayout->addWidget(i);
-                }
-                wholelayout->addWidget(iconpart);
-                
                 auto textpart = new QWidget(whole);
                 auto textpartlayout = Utils::emptyVLayout(textpart);
                 textpart->setSizePolicy(QSizePolicy::Policy::Preferred, QSizePolicy::Policy::Expanding);
                 textpartlayout->setAlignment(Qt::AlignTop);
-                Utils::ApplyStyle(textpart, "background-color: transparent; border: none;");
+                Utils::ApplyStyle(textpart, qsl("background-color: transparent; border: none;"));
                 {
                     {
-                        auto t = new TextEditEx(textpart, Fonts::appFontScaled(16), CommonStyle::getTextCommonColor(), false, true);
-                        t->setPlainText(topic, false, QTextCharFormat::AlignNormal);
-                        t->setObjectName("topic");
-                        t->setAlignment(Qt::AlignLeft);
-                        t->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-                        t->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-                        t->setFrameStyle(QFrame::NoFrame);
+                        auto t = new TextEmojiWidget(textpart, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(16));
+                        t->setText(topic);
+                        t->setObjectName(qsl("topic"));
                         t->setContentsMargins(0, 0, 0, 0);
                         t->setContextMenuPolicy(Qt::NoContextMenu);
                         textpartlayout->addWidget(t);
                     }
                     {
-                        auto t = new TextEditEx(textpart, Fonts::appFontScaled(13), QColor("#767676"), false, true);
-                        t->setPlainText(text, false, QTextCharFormat::AlignNormal);
-                        t->setObjectName("text");
-                        t->setAlignment(Qt::AlignLeft);
-                        t->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-                        t->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-                        t->setFrameStyle(QFrame::NoFrame);
+                        auto t = new TextEmojiWidget(textpart, Fonts::appFontScaled(13), CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT), Utils::scale_value(16));
+                        t->setText(text);
+                        t->setObjectName(qsl("text"));
                         t->setContentsMargins(0, 0, 0, 0);
                         t->setContextMenuPolicy(Qt::NoContextMenu);
+                        t->setMultiline(true);
                         textpartlayout->addWidget(t);
                     }
                 }
                 wholelayout->addWidget(textpart);
-                
+
                 auto switchpart = new QWidget(whole);
                 auto switchpartlayout = Utils::emptyVLayout(switchpart);
                 switchpart->setSizePolicy(QSizePolicy::Policy::Preferred, QSizePolicy::Policy::Expanding);
                 switchpartlayout->setAlignment(Qt::AlignTop);
-                Utils::ApplyStyle(switchpart, "background-color: transparent;");
+                Utils::ApplyStyle(switchpart, qsl("background-color: transparent;"));
                 {
                     switcher = new QCheckBox(switchpart);
-                    switcher->setObjectName("greenSwitcher");
+                    switcher->setObjectName(qsl("greenSwitcher"));
                     switcher->setSizePolicy(QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed);
                     switcher->setCursor(QCursor(Qt::CursorShape::PointingHandCursor));
                     switcher->setChecked(false);
@@ -147,61 +117,60 @@ namespace Ui
             }
             return whole;
         };
-        QCheckBox *publicChat;
-        layout->addWidget(createItem(content_,
-                                     ":/resources/livechat_public_100.png",
-                                     QT_TRANSLATE_NOOP("groupchats", "Public chat"),
-                                     QT_TRANSLATE_NOOP("groupchats", "Chat will be visible to everyone"),
-                                     publicChat));
-        publicChat->setChecked(chatData.publicChat);
-        connect(publicChat, &QCheckBox::toggled, publicChat, [&chatData](bool checked){ chatData.publicChat = checked; });
         QCheckBox *approvedJoin;
         layout->addWidget(createItem(content_,
-                                     ":/resources/livechat_approve_100.png",
-                                     QT_TRANSLATE_NOOP("groupchats", "Join with Approval"),
-                                     QT_TRANSLATE_NOOP("groupchats", "New members are waiting for admin approval"),
-                                     approvedJoin));
+            QT_TRANSLATE_NOOP("groupchats", "Join with Approval"),
+            QT_TRANSLATE_NOOP("groupchats", "New members are waiting for admin approval"),
+            approvedJoin));
         approvedJoin->setChecked(chatData.approvedJoin);
         connect(approvedJoin, &QCheckBox::toggled, approvedJoin, [&chatData](bool checked){ chatData.approvedJoin = checked; });
 
         QCheckBox *readOnly;
         layout->addWidget(createItem(content_,
-                                     ":/resources/livechat_readonly_100.png",
-                                     QT_TRANSLATE_NOOP("groupchats", "Read only"),
-                                     QT_TRANSLATE_NOOP("groupchats", "New members can read, approved by admin members can send"),
-                                     readOnly));
+            QT_TRANSLATE_NOOP("groupchats", "Read only"),
+            QT_TRANSLATE_NOOP("groupchats", "New members can read, approved by admin members can send"),
+            readOnly));
         readOnly->setChecked(chatData.readOnly);
         connect(readOnly, &QCheckBox::toggled, readOnly, [&chatData](bool checked){ chatData.readOnly = checked; });
 
+        QCheckBox *publicChat;
+        layout->addWidget(createItem(content_,
+            QT_TRANSLATE_NOOP("groupchats", "Public chat"),
+            QT_TRANSLATE_NOOP("groupchats", "The chat will appear in the app's showcase and any user can find it in the list"),
+            publicChat));
+        publicChat->setChecked(chatData.publicChat);
+        connect(publicChat, &QCheckBox::toggled, publicChat, [&chatData](bool checked) { chatData.publicChat = checked; });
+
+
         // general dialog
-        dialog_.reset(new Ui::GeneralDialog(content_, Utils::InterConnector::instance().getMainWindow()));
-        dialog_->setObjectName("chat.creation.settings");
+        dialog_ = std::make_unique<Ui::GeneralDialog>(content_, Utils::InterConnector::instance().getMainWindow());
+        dialog_->setObjectName(qsl("chat.creation.settings"));
         dialog_->addHead();
         dialog_->addLabel(headerText);
-        dialog_->addAcceptButton(buttonText, Utils::scale_value(24), true);
-        
-        QObject::connect(chatName_, SIGNAL(enter()), dialog_.get(), SLOT(accept()));
-        
+        dialog_->addButtonsPair(QT_TRANSLATE_NOOP("popup_window", "CANCEL"), buttonText, true);
+
+        QObject::connect(chatName_, &TextEditEx::enter, dialog_.get(), &Ui::GeneralDialog::accept);
+
         QTextCursor cursor = chatName_->textCursor();
         cursor.select(QTextCursor::Document);
         chatName_->setTextCursor(cursor);
         chatName_->setFrameStyle(QFrame::NoFrame);
-        
+
         chatName_->setFocus();
-        
+
         // editor
         auto hollow = new QWidget(dialog_->parentWidget());
-        hollow->setObjectName("hollow");
+        hollow->setObjectName(qsl("hollow"));
         hollow->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-        Utils::ApplyStyle(hollow, "background-color: transparent; margin: 0; padding: 0; border: none;");
+        Utils::ApplyStyle(hollow, qsl("background-color: transparent; margin: 0; padding: 0; border: none;"));
         {
             auto hollowlayout = Utils::emptyVLayout(hollow);
             hollowlayout->setAlignment(Qt::AlignLeft);
-            
+
             auto editor = new QWidget(hollow);
-            editor->setObjectName("editor");
+            editor->setObjectName(qsl("editor"));
             editor->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-            Utils::ApplyStyle(editor, "background-color: #fffff; margin: 0; padding: 0dip; border: none;");
+            Utils::ApplyStyle(editor, qsl("background-color: #fffff; margin: 0; padding: 0dip; border: none;"));
             photo_->SetImageCropHolder(editor);
             {
                 auto effect = new QGraphicsOpacityEffect(editor);
@@ -209,7 +178,7 @@ namespace Ui
                 editor->setGraphicsEffect(effect);
             }
             hollowlayout->addWidget(editor);
-            
+
             // events
 
             QWidget::connect(photo_, &ContactAvatarWidget::avatarDidEdit, this, [=]()
@@ -252,7 +221,7 @@ namespace Ui
         }
         hollow->show();
     }
-    
+
     GroupChatSettings::~GroupChatSettings()
     {
         //
@@ -272,19 +241,19 @@ namespace Ui
 
     void GroupChatSettings::showImageCropDialog()
     {
-        auto editor = dialog_->parentWidget()->findChild<QWidget *>("editor");
+        auto editor = dialog_->parentWidget()->findChild<QWidget *>(qsl("editor"));
         if (!editor)
             return;
-        auto hollow = dialog_->parentWidget()->findChild<QWidget *>("hollow");
+        auto hollow = dialog_->parentWidget()->findChild<QWidget *>(qsl("hollow"));
         if (!hollow)
             return;
-        
+
         static const auto time = 200;
         const auto needHideEditor = editorIsShown_;
         editorIsShown_ = !editorIsShown_;
         // move settings
         {
-            auto geometry = new QPropertyAnimation(dialog_.get(), "geometry", Utils::InterConnector::instance().getMainWindow());
+            auto geometry = new QPropertyAnimation(dialog_.get(), QByteArrayLiteral("geometry"), Utils::InterConnector::instance().getMainWindow());
             geometry->setDuration(time);
             auto rect = dialog_->geometry();
             geometry->setStartValue(rect);
@@ -311,7 +280,7 @@ namespace Ui
         {
             auto effect = new QGraphicsOpacityEffect(Utils::InterConnector::instance().getMainWindow());
             editor->setGraphicsEffect(effect);
-            auto fading = new QPropertyAnimation(effect, "opacity", Utils::InterConnector::instance().getMainWindow());
+            auto fading = new QPropertyAnimation(effect, QByteArrayLiteral("opacity"), Utils::InterConnector::instance().getMainWindow());
             fading->setEasingCurve(QEasingCurve::InOutQuad);
             fading->setDuration(time);
             if (needHideEditor)
@@ -330,18 +299,16 @@ namespace Ui
         }
     }
 
-    void createGroupChat(QStringList _members_aimIds)
+    void createGroupChat(const std::vector<QString>& _members_aimIds)
     {
         GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::chats_create_open);
 
-        SelectContactsWidget select_members_dialog(nullptr, Logic::MembersWidgetRegim::SELECT_MEMBERS, QT_TRANSLATE_NOOP("groupchats", "Select members"), QT_TRANSLATE_NOOP("groupchats", "Next"), QString(), Ui::MainPage::instance());
+        SelectContactsWidget select_members_dialog(nullptr, Logic::MembersWidgetRegim::SELECT_MEMBERS, QT_TRANSLATE_NOOP("groupchats", "Select members"), QT_TRANSLATE_NOOP("popup_window", "NEXT"), Ui::MainPage::instance());
         emit Utils::InterConnector::instance().searchEnd();
 
-        for (auto& member_aimId : _members_aimIds)
-        {
+        for (const auto& member_aimId : _members_aimIds)
             Logic::getContactListModel()->setChecked(member_aimId, true /* is_checked */);
-        }
-        
+
         if (select_members_dialog.show() == QDialog::Accepted)
         {
             //select_members_dialog.close();
@@ -370,7 +337,7 @@ namespace Ui
                             Ui::MainPage::instance()->clearSearchMembers();
                             QWidget::disconnect(*connection);
                         });
-                        groupChatSettings->photo()->UpdateParams("", "");
+                        groupChatSettings->photo()->UpdateParams(QString(), QString());
                         groupChatSettings->photo()->applyAvatar(cropped);
                     }
                     else
@@ -392,17 +359,17 @@ namespace Ui
 
     bool callChatNameEditor(QWidget* _parent, GroupChatOperations::ChatData &chatData, Out std::shared_ptr<GroupChatSettings> &groupChatSettings)
     {
-        auto selectedContacts = Logic::getContactListModel()->GetCheckedContacts();
+        const auto selectedContacts = Logic::getContactListModel()->GetCheckedContacts();
         chatData.name = MyInfo()->friendlyName();
         if (chatData.name.isEmpty())
             chatData.name = MyInfo()->aimId();
         for (int i = 0, contactsSize = std::min((int)selectedContacts.size(), 2); i < contactsSize; ++i)
         {
-            chatData.name += ", " + selectedContacts[i].Get()->GetDisplayName();
+            chatData.name += ql1s(", ") % selectedContacts[i].Get()->GetDisplayName();
         }
         auto chat_name = chatData.name;
         {
-            groupChatSettings.reset(new GroupChatSettings(_parent, QT_TRANSLATE_NOOP("groupchats","Done"), QT_TRANSLATE_NOOP("popup_window", "Chat settings"), chatData));
+            groupChatSettings = std::make_shared<GroupChatSettings>(_parent, QT_TRANSLATE_NOOP("popup_window","DONE"), QT_TRANSLATE_NOOP("popup_window", "Chat settings"), chatData);
             auto result = groupChatSettings->show();
             if (chat_name != chatData.name)
                 GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::chats_create_rename);
@@ -411,7 +378,7 @@ namespace Ui
         }
     }
 
-    void postCreateChatInfoToCore(const QString &_aimId, const GroupChatOperations::ChatData &chatData, QString avatarId)
+    void postCreateChatInfoToCore(const QString &_aimId, const GroupChatOperations::ChatData &chatData, const QString& avatarId)
     {
         if (chatData.publicChat)
             GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::chats_create_public);
@@ -419,25 +386,23 @@ namespace Ui
             GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::chats_create_approval);
         if (chatData.readOnly)
             GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::chats_create_readonly);
-        
+
         Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
-        collection.set_value_as_string("aimid", _aimId.toUtf8().data(), _aimId.toUtf8().size());
-        collection.set_value_as_string("name", chatData.name.toUtf8().data(), chatData.name.toUtf8().size());
-        collection.set_value_as_string("avatar", avatarId.toUtf8().data(), avatarId.toUtf8().size());
+        const auto aimIdAsUtf8 = _aimId.toUtf8();
+        collection.set_value_as_string("aimid", aimIdAsUtf8.data(), aimIdAsUtf8.size());
+        const auto nameAsUtf8 = chatData.name.toUtf8();
+        collection.set_value_as_string("name", nameAsUtf8.data(), nameAsUtf8.size());
+        const auto avatarIdAsUtf8 = avatarId.toUtf8();
+        collection.set_value_as_string("avatar", avatarIdAsUtf8.data(), avatarIdAsUtf8.size());
         {
-            QStringList chat_members;
-            auto selectedContacts = Logic::getContactListModel()->GetCheckedContacts();
+            const auto selectedContacts = Logic::getContactListModel()->GetCheckedContacts();
+            core::ifptr<core::iarray> members_array(collection->create_array());
+            members_array->reserve(static_cast<int>(selectedContacts.size()));
             for (const auto& contact : selectedContacts)
             {
-                chat_members.push_back(contact.get_aimid());
-            }
-            core::ifptr<core::iarray> members_array(collection->create_array());
-            members_array->reserve((int)chat_members.size());
-            for (int i = 0; i < chat_members.size(); ++i)
-            {
-                auto member = chat_members[i];
+                const auto member = contact.get_aimid().toUtf8();
                 core::ifptr<core::ivalue> val(collection->create_value());
-                val->set_as_string(member.toStdString().c_str(), (int)member.length());
+                val->set_as_string(member.data(), member.size());
                 members_array->push_back(val.get());
             }
             collection.set_value_as_array("members", members_array.get());
@@ -447,30 +412,31 @@ namespace Ui
         collection.set_value_as_bool("link", chatData.joiningByLink);
         collection.set_value_as_bool("ro", chatData.readOnly);
         collection.set_value_as_bool("age", chatData.ageGate);
-        Ui::GetDispatcher()->post_message_to_core("chats/create", collection.get());
+        Ui::GetDispatcher()->post_message_to_core(qsl("chats/create"), collection.get());
     }
 
-    void postAddChatMembersFromCLModelToCore(QString _aimId)
+    void postAddChatMembersFromCLModelToCore(const QString& _aimId)
     {
-        auto selectedContacts = Logic::getContactListModel()->GetCheckedContacts();
+        const auto selectedContacts = Logic::getContactListModel()->GetCheckedContacts();
         Logic::getContactListModel()->clearChecked();
 
         Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
 
         QStringList chat_members;
+        chat_members.reserve(static_cast<int>(selectedContacts.size()));
         for (const auto& contact : selectedContacts)
-        {
             chat_members.push_back(contact.get_aimid());
-        }
-        collection.set_value_as_string("aimid", _aimId.toUtf8().data(), _aimId.toUtf8().size());
-        collection.set_value_as_string("m_chat_members_to_add", chat_members.join(";").toStdString());
-        Ui::GetDispatcher()->post_message_to_core("add_members", collection.get());
+
+        const auto aimIdAsUtf8 = _aimId.toUtf8();
+        collection.set_value_as_string("aimid", aimIdAsUtf8.data(), aimIdAsUtf8.size());
+        collection.set_value_as_string("m_chat_members_to_add", chat_members.join(ql1c(';')).toStdString());
+        Ui::GetDispatcher()->post_message_to_core(qsl("add_members"), collection.get());
     }
 
     void deleteMemberDialog(Logic::ChatMembersModel* _model, const QString& current, int _regim, QWidget* _parent)
     {
         QString text;
-        
+
         const bool isVideoConference = _regim == Logic::MembersWidgetRegim::VIDEO_CONFERENCE;
 
         if (_regim == Logic::MembersWidgetRegim::MEMBERS_LIST || _regim == Logic::MembersWidgetRegim::SELECT_MEMBERS)
@@ -480,8 +446,8 @@ namespace Ui
         else if (isVideoConference)
             text = QT_TRANSLATE_NOOP("popup_window", "Are you sure you want to delete user from this call?");
 
-        auto left_button_text = QT_TRANSLATE_NOOP("popup_window", "Cancel");
-        auto right_button_text = QT_TRANSLATE_NOOP("popup_window", "Delete");
+        auto left_button_text = QT_TRANSLATE_NOOP("popup_window", "CANCEL");
+        auto right_button_text = QT_TRANSLATE_NOOP("popup_window", "DELETE");
 
         auto member = _model->getMemberItem(current);
         if (!member)
@@ -497,9 +463,9 @@ namespace Ui
         {
             if (_regim == Logic::MembersWidgetRegim::MEMBERS_LIST || _regim == Logic::MembersWidgetRegim::SELECT_MEMBERS)
             {
-                auto aimId_ = _model->getChatAimId();
+                const auto aimIdAsUtf8 = _model->getChatAimId().toUtf8();
                 ::Ui::gui_coll_helper collection(::Ui::GetDispatcher()->create_collection(), true);
-                collection.set_value_as_string("aimid", aimId_.toUtf8().data(), aimId_.toUtf8().size());
+                collection.set_value_as_string("aimid", aimIdAsUtf8.data(), aimIdAsUtf8.size());
                 collection.set_value_as_string("m_chat_members_to_remove", current.toStdString());
                 Ui::GetDispatcher()->post_message_to_core("remove_members", collection.get());
             }
@@ -515,33 +481,55 @@ namespace Ui
             }
         }
     }
-    
 
 
-    void forwardMessage(QList<Data::Quote> quotes, bool fromMenu)
+
+    void forwardMessage(const QVector<Data::Quote>& quotes, bool fromMenu)
     {
         SelectContactsWidget shareDialog(QT_TRANSLATE_NOOP("popup_window", "Forward"), Ui::MainPage::instance());
-        shareDialog.setSort(false /* isClSorting */);
-        
+
         emit Utils::InterConnector::instance().searchEnd();
         const auto action = shareDialog.show();
         if (action == QDialog::Accepted)
         {
             const auto contact = shareDialog.getSelectedContact();
-            
-            if (contact != "")
+
+            if (!contact.isEmpty())
             {
                 Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
                 collection.set<QString>("contact", contact);
-                collection.set_value_as_string("message", "");
+                collection.set_value_as_string("message", std::string());
                 if (!quotes.isEmpty())
                 {
                     core::ifptr<core::iarray> quotesArray(collection->create_array());
                     quotesArray->reserve(quotes.size());
+
+                    const auto senderChat = Logic::getContactListModel()->getContactItem(quotes.first().chatId_);
+                    QString chatName(senderChat? senderChat->Get()->GetDisplayName(): QString());
+                    QString chatStamp;
+                    if (senderChat && senderChat->is_chat())
+                        chatStamp = senderChat->get_stamp();
+
                     for (auto quote : quotes)
                     {
                         core::ifptr<core::icollection> quoteCollection(collection->create_collection());
                         quote.isForward_ = true;
+
+                        // fix before new forward and quote logic
+                        quote.chatName_ = chatName;
+                        quote.chatStamp_ = chatStamp;
+                        if (quote.chatId_ != quotes.first().chatId_)
+                            quote.chatId_ = quotes.first().chatId_;
+
+                        // uncomment when new forward logic arrives
+                        //const auto senderChat = Logic::getContactListModel()->getContactItem(quote.chatId_);
+                        //if (senderChat)
+                        //{
+                        //    quote.chatName_ = senderChat->Get()->GetDisplayName();
+                        //    if (senderChat->is_chat())
+                        //        quote.chatStamp_ = senderChat->get_stamp();
+                        //}
+
                         quote.serialize(quoteCollection.get());
                         core::coll_helper coll(collection->create_collection(), true);
                         core::ifptr<core::ivalue> val(collection->create_value());
@@ -549,16 +537,39 @@ namespace Ui
                         quotesArray->push_back(val.get());
                     }
                     collection.set_value_as_array("quotes", quotesArray.get());
+
+                    Data::MentionMap mentions;
+                    for (const auto& q : quotes)
+                        mentions.insert(q.mentions_.begin(), q.mentions_.end());
+
+                    if (!mentions.empty())
+                    {
+                        core::ifptr<core::iarray> mentArray(collection->create_array());
+                        mentArray->reserve(mentions.size());
+                        for (const auto& m : mentions)
+                        {
+                            core::ifptr<core::icollection> mentCollection(collection->create_collection());
+                            Ui::gui_coll_helper coll(mentCollection.get(), false);
+                            coll.set_value_as_qstring("aimid", m.first);
+                            coll.set_value_as_qstring("friendly", m.second);
+
+                            core::ifptr<core::ivalue> val(collection->create_value());
+                            val->set_as_collection(mentCollection.get());
+                            mentArray->push_back(val.get());
+                        }
+                        collection.set_value_as_array("mentions", mentArray.get());
+                    }
                 }
-                
-                Ui::GetDispatcher()->post_message_to_core("send_message", collection.get());
+
+                Ui::GetDispatcher()->post_message_to_core(qsl("send_message"), collection.get());
 
                 core::stats::event_props_type props;
                 props.push_back(std::make_pair("Forward_MessagesCount", std::to_string(quotes.size())));
                 Ui::GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::forward_messagescount, props);
 
                 Ui::GetDispatcher()->post_stats_to_core(fromMenu ? core::stats::stats_event_names::forward_send_frommenu : core::stats::stats_event_names::forward_send_frombutton);
-                
+
+                emit Utils::InterConnector::instance().addPageToDialogHistory(Logic::getContactListModel()->selectedContact());
                 Logic::getContactListModel()->setCurrent(contact, -1, true);
 
                 Utils::InterConnector::instance().onSendMessage(contact);
@@ -569,7 +580,6 @@ namespace Ui
     void forwardMessage(const QString& _message, bool fromMenu)
     {
         SelectContactsWidget shareDialog(QT_TRANSLATE_NOOP("popup_window", "Forward"), Ui::MainPage::instance());
-        shareDialog.setSort(false /* isClSorting */);
 
         emit Utils::InterConnector::instance().searchEnd();
         const auto action = shareDialog.show();
@@ -582,15 +592,17 @@ namespace Ui
                 Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
 
                 collection.set<QString>("contact", contact);
-                collection.set_value_as_string("message", _message.toUtf8().data(), _message.toUtf8().size());
+                const auto messageAsoUtf8 = _message.toUtf8();
+                collection.set_value_as_string("message", messageAsoUtf8.data(), messageAsoUtf8.size());
 
-                Ui::GetDispatcher()->post_message_to_core("send_message", collection.get());
+                Ui::GetDispatcher()->post_message_to_core(qsl("send_message"), collection.get());
 
                 core::stats::event_props_type props;
                 props.push_back(std::make_pair("Forward_MessagesCount", "1"));
                 Ui::GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::forward_messagescount, props);
                 Ui::GetDispatcher()->post_stats_to_core(fromMenu ? core::stats::stats_event_names::forward_send_frommenu : core::stats::stats_event_names::forward_send_frombutton);
 
+                emit Utils::InterConnector::instance().addPageToDialogHistory(Logic::getContactListModel()->selectedContact());
                 Logic::getContactListModel()->setCurrent(contact, -1, true);
 
                 Utils::InterConnector::instance().onSendMessage(contact);

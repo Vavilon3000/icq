@@ -9,7 +9,7 @@ using namespace wim;
 
 get_permit_deny::get_permit_deny(const wim_packet_params& _params)
     :	wim_packet(_params)
-    , permit_info_(new permit_info)
+    , permit_info_(std::make_unique<permit_info>())
 {
 }
 
@@ -27,6 +27,13 @@ int32_t get_permit_deny::init_request(std::shared_ptr<core::http_request_simple>
 
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

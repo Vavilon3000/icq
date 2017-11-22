@@ -1,11 +1,11 @@
 QPushButton#backButton
 {
-    height: 40dip;
-	width: 40dip;
+    width: 28dip;
+    height: 24dip;
     border: none;
-    border-image: url(:/resources/basic_elements/contr_back_100.png);
+    border-image: url(:/controls/back_100);
 }
 QPushButton#backButton:hover
 {
-    border-image: url(:/resources/basic_elements/contr_back_100_hover.png);
+    border-image: url(:/controls/back_100_hover);
 }

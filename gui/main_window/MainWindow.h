@@ -2,6 +2,7 @@
 
 #ifdef __APPLE__
 class MacSupport;
+class MacMigrationManager;
 #endif
 #include "../voip/CallPanelMain.h"
 
@@ -26,7 +27,6 @@ namespace Ui
 {
     class MainPage;
     class LoginPage;
-    class PromoPage;
 #ifdef __APPLE__
     class AccountsPage;
 #endif
@@ -37,7 +37,7 @@ namespace Ui
     class UnreadMailWidget;
     class UnreadMsgWidget;
     class MainWindow;
-    
+
     class ShadowWindow : public QWidget
     {
         Q_OBJECT
@@ -62,7 +62,7 @@ namespace Ui
     class TitleWidgetEventFilter : public QObject
     {
         Q_OBJECT
-    
+
     Q_SIGNALS:
         void doubleClick();
         void logoDoubleClick();
@@ -97,14 +97,13 @@ namespace Ui
         void needActivate();
 
     public Q_SLOTS:
-        void showPromoPage();
-        void closePromoPage();
         void showLoginPage(const bool _is_auth_error);
         void showMainPage();
-        void showMigrateAccountPage(QString _accountId);
+        void showMigrateAccountPage(const QString& _accountId);
         void checkForUpdates();
         void showIconInTaskbar(bool);
         void activate();
+        void activateFromEventLoop();
         void updateMainMenu();
         void gotoSleep();
         void gotoWake();
@@ -114,7 +113,7 @@ namespace Ui
         void maximize();
         void moveRequest(QPoint);
         void minimize();
-        void guiSettingsChanged(QString);
+        void guiSettingsChanged(const QString&);
         void onVoipResetComplete();
         void hideWindow();
         void copy();
@@ -133,12 +132,14 @@ namespace Ui
         void toggleFullScreen();
         void pasteEmoji();
         void checkPosition();
+        void updateTitleButtons();
+        void hideTitleButtons();
 
         void onOpenChat(const std::string& _contact);
         void onVoipCallIncomingAccepted(const voip_manager::ContactEx& _contact_ex);
         void onVoipCallCreated(const voip_manager::ContactEx& _contact_ex);
         void onVoipCallDestroyed(const voip_manager::ContactEx& _contact_ex);
-		void onShowVideoWindow();
+        void onShowVideoWindow();
         void onMyInfoReceived();
 
     public:
@@ -148,7 +149,6 @@ namespace Ui
         void openGallery(const QString& _aimId, const Data::Image& _image, const QString& _localPath);
         void closeGallery();
 
-        void activateFromEventLoop();
         bool isActive() const;
         bool isMainPage() const;
         void setBackgroundPixmap(QPixmap& _pixmap, const bool _tiling);
@@ -162,7 +162,7 @@ namespace Ui
         HistoryControlPage* getHistoryPage(const QString& _aimId) const;
         MainPage* getMainPage() const;
         QPushButton* getWindowLogo() const;
-        
+
         void insertTopWidget(const QString& _aimId, QWidget* _widget);
         void removeTopWidget(const QString& _aimId);
 
@@ -185,8 +185,9 @@ namespace Ui
         void initSettings();
         void resize(int w, int h);
         void showMaximized();
-        void showNormal();        
+        void showNormal();
         void updateState();
+        void upgradeStuff();
 
     protected:
         bool nativeEventFilter(const QByteArray &, void* _message, long* _result);
@@ -207,7 +208,6 @@ namespace Ui
         Previewer::GalleryWidget* gallery_;
         MainPage* mainPage_;
         LoginPage* loginPage_;
-        PromoPage* promoPage_;
         QApplication* app_;
         TitleWidgetEventFilter* eventFilter_;
         TrayIcon* trayIcon_;
@@ -218,8 +218,8 @@ namespace Ui
         QHBoxLayout *titleLayout_;
         QPushButton *logo_;
         QLabel *title_;
-        UnreadMsgWidget *unreadMsg_;
-        UnreadMailWidget *unreadMail_;
+        QPointer<UnreadMsgWidget> unreadMsg_;
+        QPointer<UnreadMailWidget> unreadMail_;
         QSpacerItem *spacer_;
         QPushButton *hideButton_;
         QPushButton *maximizeButton_;
@@ -239,6 +239,7 @@ namespace Ui
 #ifdef __APPLE__
         MacSupport* getMacSupport();
         AccountsPage* accounts_page_;
+        MacMigrationManager* migrationManager_;
 #endif
-	};
+    };
 }

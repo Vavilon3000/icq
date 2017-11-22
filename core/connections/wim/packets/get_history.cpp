@@ -23,7 +23,8 @@ get_history_params::get_history_params(
     const int64_t _till_msg_id,
     const int32_t _count,
     const std::string &_patch_version,
-    bool _init
+    bool _init,
+    bool _from_deleted
     )
     : aimid_(_aimid)
     , till_msg_id_(_till_msg_id)
@@ -31,17 +32,18 @@ get_history_params::get_history_params(
     , count_(_count)
     , patch_version_(_patch_version)
     , init_(_init)
+    , from_deleted_(_from_deleted)
 {
     assert(!aimid_.empty());
     assert(!patch_version_.empty());
 }
 
-get_history::get_history(const wim_packet_params& _params, const get_history_params& _hist_params, const std::string& _locale)
-    :	robusto_packet(_params),
-    hist_params_(_hist_params),
-    messages_(new archive::history_block()),
-    dlg_state_(new archive::dlg_state()),
+get_history::get_history(wim_packet_params _params, const get_history_params& _hist_params, const std::string& _locale)
+    :	robusto_packet(std::move(_params)),
     older_msgid_(-1),
+    hist_params_(_hist_params),
+    messages_(std::make_shared<archive::history_block>()),
+    dlg_state_(std::make_shared<archive::dlg_state>()),
     locale_(_locale)
 {
 }
@@ -78,13 +80,17 @@ int32_t get_history::init_request(std::shared_ptr<core::http_request_simple> _re
     if (!locale_.empty())
         node_params.AddMember("lang", locale_ , a);
 
-    doc.AddMember("params", node_params, a);
+    rapidjson::Value ment_params(rapidjson::Type::kObjectType);
+    ment_params.AddMember("resolve", false, a);
+    node_params.AddMember("mentions", std::move(ment_params), a);
+
+    doc.AddMember("params", std::move(node_params), a);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
 
-    _request->push_post_parameter(buffer.GetString(), "");
+    _request->push_post_parameter(buffer.GetString(), std::string());
 
     __INFO(
         "delete_history",
@@ -96,7 +102,12 @@ int32_t get_history::init_request(std::shared_ptr<core::http_request_simple> _re
 
     if (!params_.full_log_)
     {
-        _request->set_replace_log_function(std::bind(wim_packet::replace_log_messages, std::placeholders::_1));
+        log_replace_functor f;
+        f.add_json_marker("aimSid");
+        f.add_json_marker("text");
+        f.add_json_marker("message");
+        f.add_json_marker("authToken");
+        _request->set_replace_log_function(f);
     }
 
     return 0;
@@ -113,7 +124,6 @@ int32_t get_history::parse_results(const rapidjson::Value& _node_results)
     if (iter_older_msgid != _node_results.MemberEnd() && iter_older_msgid->value.IsInt64())
     {
         older_msgid_ = iter_older_msgid->value.GetInt64();
-        
     }
 
     auto iter_last_msgid = _node_results.FindMember("lastMsgId");
@@ -144,12 +154,12 @@ int32_t get_history::parse_results(const rapidjson::Value& _node_results)
     if ((iter_patch_version != _node_results.MemberEnd()) &&
         iter_patch_version->value.IsString())
     {
-        const std::string patch_version = iter_patch_version->value.GetString();
+        std::string patch_version = rapidjson_get_string(iter_patch_version->value);
 
         assert(!patch_version.empty());
         if (!patch_version.empty())
         {
-            dlg_state_->set_history_patch_version(patch_version);
+            dlg_state_->set_history_patch_version(std::move(patch_version));
         }
     }
 
@@ -167,8 +177,8 @@ int32_t get_history::parse_results(const rapidjson::Value& _node_results)
         parse_patches(iter_patch->value);
     }
 
-    core::archive::persons_map persons;
-    if (!parse_history_messages_json(_node_results, older_msgid_, hist_params_.aimid_, *messages_, persons))
+    const core::archive::persons_map persons = parse_persons(_node_results);
+    if (!parse_history_messages_json(_node_results, older_msgid_, hist_params_.aimid_, *messages_, persons, message_order::reverse))
     {
         return wpie_http_parse_response;
     }
@@ -265,7 +275,7 @@ void get_history::parse_patches(const rapidjson::Value& _node_patch)
         const auto msg_id = iter_msg_id->value.GetInt64();
         assert(msg_id > 0);
 
-        const std::string type = iter_type->value.GetString();
+        const std::string type = rapidjson_get_string(iter_type->value);
         assert(!type.empty());
 
         if (type == "delete")

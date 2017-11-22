@@ -3,9 +3,9 @@
 
 #pragma once
 
-
 namespace core
 {
+    class coll_helper;
     namespace wim
     {
         typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::system_clock::duration> timepoint;
@@ -24,7 +24,7 @@ namespace core
 
             time_t exipired_in_;
             time_t time_offset_;
-                        
+
             std::string robusto_token_;
             int32_t robusto_client_id_;
             std::string version_;
@@ -49,6 +49,8 @@ namespace core
 
             bool unserialize(const rapidjson::Value& _node);
             void serialize(rapidjson::Value& _node, rapidjson_allocator& _a) const;
+
+            bool unserialize(coll_helper& _params);
         };
 
         struct fetch_parameters

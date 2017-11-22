@@ -14,10 +14,6 @@ namespace
 
     #define COM_URI_PREFIX "^http(s?)://icq\\.com/files"
 
-    const auto new_id_regex_a = sregex::compile(NET_URI_PREFIX "/(?P<id>\\w{33,})$");
-
-    const auto new_id_regex_b = sregex::compile(COM_URI_PREFIX "/(?P<id>\\w{33,})$");
-
     const auto NEW_ID_LENGTH_MIN = 33;
 }
 
@@ -27,12 +23,12 @@ std::string format_file_sharing_preview_uri(const std::string &_id, const file_s
     assert(_size > file_sharing_preview_size::min);
     assert(_size < file_sharing_preview_size::max);
 
+    std::string result;
     if (_id.length() < NEW_ID_LENGTH_MIN)
     {
-        return std::string();
+        return result;
     }
 
-    std::string result;
     result.reserve(128);
 
     result.append("https://files.icq.com/preview/max/");
@@ -75,28 +71,7 @@ bool get_content_type_from_file_sharing_id(const std::string& _file_id, Out core
 
     const auto id0 = _file_id[0];
 
-    const auto is_snap_image = (id0 == '1');
-    if (is_snap_image)
-    {
-        Out _type = core::file_sharing_content_type::snap_image;
-        return true;
-    }
-
-    const auto is_snap_gif = (id0 == '5');
-    if (is_snap_gif)
-    {
-        Out _type = core::file_sharing_content_type::snap_gif;
-        return true;
-    }
-
-    const auto is_snap_video = (id0 == '9');
-    if (is_snap_video)
-    {
-        Out _type = core::file_sharing_content_type::snap_video;
-        return true;
-    }
-
-    const auto is_gif = (id0 == '4');
+    const auto is_gif = ((id0 >= '4') && (id0 <= '5'));
     if (is_gif)
     {
         Out _type = core::file_sharing_content_type::gif;
@@ -133,6 +108,10 @@ bool get_content_type_from_file_sharing_id(const std::string& _file_id, Out core
 bool parse_new_file_sharing_uri(const std::string &_uri, Out std::string &_fileId)
 {
     assert(!_uri.empty());
+
+    static auto new_id_regex_a = sregex::compile(NET_URI_PREFIX "/(?P<id>\\w{33,})$");
+
+    static auto new_id_regex_b = sregex::compile(COM_URI_PREFIX "/(?P<id>\\w{33,})$");
 
     smatch m;
     if (!regex_match(_uri, m, new_id_regex_a) &&

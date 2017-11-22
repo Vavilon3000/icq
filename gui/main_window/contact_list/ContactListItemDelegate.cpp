@@ -47,7 +47,7 @@ namespace Logic
                 hasMouseOver = customModel->customFlagIsSet(Logic::CustomAbstractListModelFlags::HasMouseOver);
         }
 
-        Data::Contact* contact_in_cl = NULL;
+        Data::Contact* contact_in_cl = nullptr;
         QString role;
 
         if (membersModel || searchMemberModel)
@@ -66,7 +66,8 @@ namespace Logic
             if (aimId != Ui::MyInfo()->aimId())
             {
                 auto contact_item = Logic::getContactListModel()->getContactItem(aimId);
-                contact_in_cl = contact_item == NULL ? NULL : contact_item->Get();
+                if (contact_item)
+                    contact_in_cl = contact_item->Get();
             }
         }
         else if (searchModel)
@@ -76,7 +77,8 @@ namespace Logic
 
             aimId = cont.AimId_;
             auto contact_item = Logic::getContactListModel()->getContactItem(aimId);
-            contact_in_cl = contact_item == NULL ? NULL : contact_item->Get();
+            if (contact_item)
+                contact_in_cl = contact_item->Get();
         }
         else
         {
@@ -97,16 +99,12 @@ namespace Logic
 
         }
 
-        if ((state == "online" || state == "mobile") && (option.state & QStyle::State_Selected))
-            state += "_active";
+        if ((option.state & QStyle::State_Selected) && (state == ql1s("online") || state == ql1s("mobile")))
+            state += ql1s("_active");
 
-        // For video conference we use own chatModel.
-        auto chatMembersModel = Logic::is_video_conference_regim(viewParams_.regim_) ?
-            chatMembersModel_ : Logic::getChatMembersModel();
-
-        if (!!chatMembersModel)
+        if (!!chatMembersModel_)
         {
-            isChatMember = chatMembersModel->isContactInChat(aimId);
+            isChatMember = chatMembersModel_->isContactInChat(aimId);
         }
 
         const bool isSelected = ((option.state & QStyle::State_Selected) && !isGroup) && !StateBlocked_;
@@ -123,13 +121,15 @@ namespace Logic
         else
         {
             const auto isMultichat = Logic::getContactListModel()->isChat(aimId);
-            const auto isFilled = !isMultichat;
             auto isDefault = false;
 
-            const auto &avatar = Logic::GetAvatarStorage()->GetRounded(aimId, displayName, Utils::scale_bitmap(ContactList::GetContactListParams().avatarSize())
-                , isMultichat ? QString() : state, isFilled, isDefault, false /* _regenerate */ , ContactList::GetContactListParams().isCL());
+            const auto &avatar = Logic::GetAvatarStorage()->GetRounded(
+                aimId, displayName, Utils::scale_bitmap(ContactList::GetContactListParams().getAvatarSize()),
+                isMultichat ? QString() : state,
+                isDefault, false /* _regenerate */ ,
+                ContactList::GetContactListParams().isCL());
             const ContactList::VisualDataBase visData(aimId, *avatar, state, status, isHovered, isSelected, displayName, hasLastSeen, lastSeen
-                , isChecked, isChatMember, isOfficial, false /* draw last read */, QPixmap() /* last seen avatar*/, role, 0 /* unread count */, "" /* search_term */);
+                , isChecked, isChatMember, isOfficial, false /* draw last read */, QPixmap() /* last seen avatar*/, role, 0 /* unread count */, QString() /* search_term */, false, false);
 
             ContactList::ViewParams viewParams(viewParams_.regim_, viewParams_.fixedWidth_, viewParams_.leftMargin_, viewParams_.rightMargin_);
             ContactList::RenderContactItem(*painter, visData, viewParams);
@@ -145,7 +145,7 @@ namespace Logic
 
     QSize ContactListItemDelegate::sizeHint(const QStyleOptionViewItem&, const QModelIndex &index) const
     {
-    	// For custom widget 
+    	// For custom widget
 		auto customWidget = index.data().value<QWidget*>();
 		if (customWidget)
 		{

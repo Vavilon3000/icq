@@ -25,8 +25,10 @@ using namespace core;
 
 namespace fs = boost::filesystem;
 
-namespace {
-    void __on_voip_user_bitmap(std::shared_ptr<voip_manager::VoipManager> vm, const std::string& contact, voip2::AvatarType type, const unsigned char* data, unsigned size, unsigned h, unsigned w) {
+namespace
+{
+    void __on_voip_user_bitmap(std::shared_ptr<voip_manager::VoipManager> vm, const std::string& contact, voip2::AvatarType type, const unsigned char* data, unsigned size, unsigned h, unsigned w)
+    {
 #ifndef STRIP_VOIP
         voip_manager::UserBitmap bmp;
         bmp.bitmap.data = (void*)data;
@@ -48,7 +50,8 @@ base_im::base_im(const im_login_id& _login, std::shared_ptr<voip_manager::VoipMa
 }
 
 
-base_im::~base_im() {
+base_im::~base_im()
+{
 }
 
 void base_im::set_id(int32_t _id)
@@ -64,7 +67,7 @@ int32_t base_im::get_id() const
 std::shared_ptr<stickers::face> base_im::get_stickers()
 {
     if (!stickers_)
-        stickers_.reset(new stickers::face(get_stickers_path()));
+        stickers_ = std::make_shared<stickers::face>(get_stickers_path());
 
     return stickers_;
 }
@@ -72,7 +75,7 @@ std::shared_ptr<stickers::face> base_im::get_stickers()
 std::shared_ptr<themes::face> base_im::get_themes()
 {
     if (!themes_)
-        themes_.reset(new themes::face(get_themes_path()));
+        themes_ = std::make_shared<themes::face>(get_themes_path());
 
     return themes_;
 }
@@ -82,66 +85,64 @@ void base_im::connect()
 
 }
 
-std::wstring core::base_im::get_contactlist_file_name()
+std::wstring core::base_im::get_contactlist_file_name() const
 {
-    return (get_im_data_path() + L"/" + L"contacts" + L"/" + L"cache.cl");
+    return (get_im_data_path() + L"/contacts/cache.cl");
 }
 
-std::wstring core::base_im::get_my_info_file_name()
+std::wstring core::base_im::get_my_info_file_name() const
 {
-    return (get_im_data_path() + L"/" + L"info" + L"/" + L"cache");
+    return (get_im_data_path() + L"/info/cache");
 }
 
-std::wstring base_im::get_active_dilaogs_file_name()
+std::wstring base_im::get_active_dilaogs_file_name() const
 {
-    return (get_im_data_path() + L"/" + L"dialogs" + L"/" + archive::cache_filename());
+    return (get_im_data_path() + L"/dialogs/" + archive::cache_filename());
 }
 
-std::wstring base_im::get_favorites_file_name()
+std::wstring base_im::get_favorites_file_name() const
 {
-    return (get_im_data_path() + L"/" + L"favorites" + L"/" + archive::cache_filename());
+    return (get_im_data_path() + L"/favorites/" + archive::cache_filename());
 }
 
-std::wstring base_im::get_mailboxes_file_name()
+std::wstring base_im::get_mailboxes_file_name() const
 {
-    return (get_im_data_path() + L"/" + L"mailboxes" + L"/" + archive::cache_filename());
+    return (get_im_data_path() + L"/mailboxes/" + archive::cache_filename());
 }
 
-std::wstring core::base_im::get_im_data_path()
+std::wstring core::base_im::get_im_data_path() const
 {
-    return (utils::get_product_data_path() + L"/" + get_im_path());
+    return (utils::get_product_data_path() + L'/' + get_im_path());
 }
 
-std::wstring base_im::get_file_name_by_url(const std::string& _url)
+std::wstring base_im::get_file_name_by_url(const std::string& _url) const
 {
-    return (get_content_cache_path() + L"/" + core::tools::from_utf8(core::tools::md5(_url.c_str(), (int32_t)_url.length())));
+    return (get_content_cache_path() + L'/' + core::tools::from_utf8(core::tools::md5(_url.c_str(), (int32_t)_url.length())));
 }
 
 void base_im::create_masks(std::weak_ptr<wim::im> _im)
 {
-#ifndef __linux__
     const auto& path = get_masks_path();
     const auto version = voip_manager_->get_mask_manager()->version();
-    masks_.reset(new masks(_im, path, version));
-#endif //__linux__
+    masks_ = std::make_unique<masks>(_im, path, version);
 }
 
-std::wstring base_im::get_masks_path()
+std::wstring base_im::get_masks_path() const
 {
-    return (get_im_data_path() + L"/" + L"masks");
+    return (get_im_data_path() + L"/masks");
 }
 
-std::wstring base_im::get_stickers_path()
+std::wstring base_im::get_stickers_path() const
 {
-    return (get_im_data_path() + L"/" + L"stickers");
+    return (get_im_data_path() + L"/stickers");
 }
 
-std::wstring base_im::get_themes_path()
+std::wstring base_im::get_themes_path() const
 {
-    return (utils::get_product_data_path() + L"/" + L"themes");
+    return (utils::get_product_data_path() + L"/themes");
 }
 
-std::wstring base_im::get_im_downloads_path(const std::string &alt)
+std::wstring base_im::get_im_downloads_path(const std::string &alt) const
 {
 #ifdef __linux__
     typedef std::wstring_convert<std::codecvt_utf8<wchar_t>> converter_t;
@@ -170,7 +171,7 @@ std::wstring base_im::get_im_downloads_path(const std::string &alt)
     return (user_downloads_path + (build::is_icq() ? L"/ICQ" : L"/Mail.ru Agent"));
 }
 
-std::wstring base_im::get_content_cache_path()
+std::wstring base_im::get_content_cache_path() const
 {
     boost::filesystem::wpath path = get_im_data_path();
 
@@ -179,27 +180,26 @@ std::wstring base_im::get_content_cache_path()
     return path.wstring();
 }
 
-std::wstring base_im::get_snaps_storage_filename()
-{
-    return (get_im_data_path() + L"/" + L"snaps" + L"/" + L"cache");
-}
-
 // voip
-void core::base_im::on_voip_call_set_proxy(const voip_manager::VoipProxySettings& proxySettings) {
+void core::base_im::on_voip_call_set_proxy(const voip_manager::VoipProxySettings& proxySettings)
+{
 #ifndef STRIP_VOIP
     auto call_manager = voip_manager_->get_call_manager();
     assert(!!call_manager);
 
-    if (!!call_manager) {
+    if (!!call_manager)
+    {
         call_manager->call_set_proxy(proxySettings);
     }
 #endif
 }
 
-void core::base_im::on_voip_call_start(std::string contact, bool video, bool attach) {
+void core::base_im::on_voip_call_start(std::string contact, bool video, bool attach)
+{
 #ifndef STRIP_VOIP
     assert(!contact.empty());
-    if (contact.empty()) {
+    if (contact.empty())
+    {
         return;
     }
 
@@ -209,25 +209,29 @@ void core::base_im::on_voip_call_start(std::string contact, bool video, bool att
     auto account = _get_protocol_uid();
     assert(!account.empty());
 
-    if (!!call_manager && !account.empty() && !contact.empty()) {
+    if (!!call_manager && !account.empty() && !contact.empty())
+    {
         call_manager->call_create(voip_manager::Contact(account, contact), video, attach);
     }
 #endif
 }
 
-void core::base_im::on_voip_call_request_calls() {
+void core::base_im::on_voip_call_request_calls()
+{
 #ifndef STRIP_VOIP
     voip_manager_->get_call_manager()->call_request_calls();
 #endif
 }
 
-void core::base_im::on_voip_window_set_offsets(void* hwnd, unsigned l, unsigned t, unsigned r, unsigned b) {
+void core::base_im::on_voip_window_set_offsets(void* hwnd, unsigned l, unsigned t, unsigned r, unsigned b)
+{
 #ifndef STRIP_VOIP
     voip_manager_->get_window_manager()->window_set_offsets(hwnd, l, t, r, b);
 #endif
 }
 
-bool core::base_im::on_voip_avatar_actual_for_voip(const std::string& contact, unsigned avatar_size) {
+bool core::base_im::on_voip_avatar_actual_for_voip(const std::string& contact, unsigned avatar_size)
+{
 #ifndef STRIP_VOIP
     auto account = _get_protocol_uid();
     assert(!account.empty());
@@ -238,59 +242,77 @@ bool core::base_im::on_voip_avatar_actual_for_voip(const std::string& contact, u
 #endif
 }
 
-void core::base_im::on_voip_user_update_avatar_no_video(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w) {
+void core::base_im::on_voip_user_update_avatar_no_video(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w)
+{
     __on_voip_user_bitmap(voip_manager_, contact, voip2::AvatarType_UserNoVideo, data, size, h, w);
 }
 
-void core::base_im::on_voip_user_update_avatar_camera_off(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w) {
+void core::base_im::on_voip_user_update_avatar_camera_off(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w)
+{
     __on_voip_user_bitmap(voip_manager_, contact, voip2::AvatarType_Camera, data, size, h, w);
 }
 
-void core::base_im::on_voip_user_update_avatar_no_camera(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w) {
+void core::base_im::on_voip_user_update_avatar_no_camera(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w)
+{
     __on_voip_user_bitmap(voip_manager_, contact, voip2::AvatarType_CameraCrossed, data, size, h, w);
 }
 
-void core::base_im::on_voip_user_update_avatar_text(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w) {
+void core::base_im::on_voip_user_update_avatar_text(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w)
+{
     __on_voip_user_bitmap(voip_manager_, contact, voip2::AvatarType_UserText, data, size, h, w);
 }
 
-void core::base_im::on_voip_user_update_avatar_text_header(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w) {
+void core::base_im::on_voip_user_update_avatar_text_header(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w)
+{
     __on_voip_user_bitmap(voip_manager_, contact, voip2::AvatarType_Header, data, size, h, w);
 }
 
-void core::base_im::on_voip_user_update_avatar(const std::string& contact, const unsigned char* data, unsigned size, unsigned avatar_h, unsigned avatar_w) {
+void core::base_im::on_voip_user_update_avatar(const std::string& contact, const unsigned char* data, unsigned size, unsigned avatar_h, unsigned avatar_w)
+{
     return __on_voip_user_bitmap(voip_manager_, contact, voip2::AvatarType_UserMain, data, size, avatar_h, avatar_w);
 }
 
-void core::base_im::on_voip_user_update_avatar_background(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w) {
+void core::base_im::on_voip_user_update_avatar_background(const std::string& contact, const unsigned char* data, unsigned size, unsigned h, unsigned w)
+{
     return __on_voip_user_bitmap(voip_manager_, contact, voip2::AvatarType_Background, data, size, h, w);
 }
 
-void core::base_im::on_voip_call_end(std::string contact, bool busy) {
+void core::base_im::on_voip_call_end(std::string contact, bool busy)
+{
 #ifndef STRIP_VOIP
     auto account = _get_protocol_uid();
     assert(!account.empty());
-    if (!account.empty() && !contact.empty()) {
+    if (!account.empty() && !contact.empty())
+    {
         voip_manager_->get_call_manager()->call_decline(voip_manager::Contact(account, contact), false);
     }
 #endif
 }
 
-void core::base_im::on_voip_device_changed(const std::string& dev_type, const std::string& uid) {
+void core::base_im::on_voip_device_changed(const std::string& dev_type, const std::string& uid)
+{
 #ifndef STRIP_VOIP
-    if ("audio_playback" == dev_type) {
+    if ("audio_playback" == dev_type)
+    {
         voip_manager_->get_device_manager()->set_device(voip2::AudioPlayback, uid);
-    } else if ("audio_capture" == dev_type) {
+    }
+    else if ("audio_capture" == dev_type)
+    {
         voip_manager_->get_device_manager()->set_device(voip2::AudioRecording, uid);
-    } else if ("video_capture" == dev_type) {
+    }
+    else if ("video_capture" == dev_type)
+    {
         voip_manager_->get_device_manager()->set_device(voip2::VideoCapturing, uid);
-    } else {
+    }
+    else
+    {
         assert(false);
     }
 #endif
 }
 
-void core::base_im::on_voip_window_update_background(void* hwnd, const unsigned char* data, unsigned size, unsigned w, unsigned h) {
+void core::base_im::on_voip_window_update_background(void* hwnd, const unsigned char* data, unsigned size, unsigned w, unsigned h)
+{
 #ifndef STRIP_VOIP
     voip_manager::WindowBitmap bmp;
     bmp.hwnd = hwnd;
@@ -303,61 +325,73 @@ void core::base_im::on_voip_window_update_background(void* hwnd, const unsigned 
 #endif
 }
 
-void core::base_im::on_voip_call_accept(std::string contact, bool video) {
+void core::base_im::on_voip_call_accept(std::string contact, bool video)
+{
 #ifndef STRIP_VOIP
     auto account = _get_protocol_uid();
     assert(!account.empty());
 
-    if (!account.empty() && !contact.empty()) {
+    if (!account.empty() && !contact.empty())
+    {
         voip_manager_->get_call_manager()->call_accept(voip_manager::Contact(account, contact), video);
     }
 #endif
 }
 
-void core::base_im::on_voip_add_window(voip_manager::WindowParams& windowParams) {
+void core::base_im::on_voip_add_window(voip_manager::WindowParams& windowParams)
+{
 #ifndef STRIP_VOIP
     voip_manager_->get_window_manager()->window_add(windowParams);
 #endif
 }
 
-void core::base_im::on_voip_remove_window(void* hwnd) {
+void core::base_im::on_voip_remove_window(void* hwnd)
+{
 #ifndef STRIP_VOIP
     voip_manager_->get_window_manager()->window_remove(hwnd);
 #endif
 }
 
-void core::base_im::on_voip_call_stop() {
+void core::base_im::on_voip_call_stop()
+{
 #ifndef STRIP_VOIP
     voip_manager_->get_call_manager()->call_stop();
 #endif
 }
 
-void core::base_im::on_voip_switch_media(bool video) {
+void core::base_im::on_voip_switch_media(bool video)
+{
 #ifndef STRIP_VOIP
-    if (video) {
+    if (video)
+    {
         const bool enabled = voip_manager_->get_media_manager()->local_video_enabled();
         voip_manager_->get_media_manager()->media_video_en(!enabled);
-    } else {
+    }
+    else
+    {
         const bool enabled = voip_manager_->get_media_manager()->local_audio_enabled();
         voip_manager_->get_media_manager()->media_audio_en(!enabled);
     }
 #endif
 }
 
-void core::base_im::on_voip_mute_incoming_call_sounds(bool mute) {
+void core::base_im::on_voip_mute_incoming_call_sounds(bool mute)
+{
 #ifdef _WIN32
     voip_manager_->get_call_manager()->mute_incoming_call_sounds(mute);
 #endif
 }
 
-void core::base_im::on_voip_volume_change(int vol) {
+void core::base_im::on_voip_volume_change(int vol)
+{
 #ifndef STRIP_VOIP
     const float vol_fp = std::max(std::min(vol, 100), 0) / 100.0f;
     voip_manager_->get_device_manager()->set_device_volume(voip2::AudioPlayback, vol_fp);
 #endif
 }
 
-void core::base_im::on_voip_mute_switch() {
+void core::base_im::on_voip_mute_switch()
+{
 #ifndef STRIP_VOIP
     const bool mute = voip_manager_->get_device_manager()->get_device_mute(voip2::AudioPlayback);
     voip_manager_->get_device_manager()->set_device_mute(voip2::AudioPlayback, !mute);
@@ -367,22 +401,25 @@ void core::base_im::on_voip_mute_switch() {
 void core::base_im::on_voip_set_mute(bool mute)
 {
 #ifndef STRIP_VOIP
-	voip_manager_->get_device_manager()->set_device_mute(voip2::AudioPlayback, mute);
+    voip_manager_->get_device_manager()->set_device_mute(voip2::AudioPlayback, mute);
 #endif
 }
 
-void core::base_im::on_voip_reset() {
+void core::base_im::on_voip_reset()
+{
 #ifndef STRIP_VOIP
     voip_manager_->get_voip_manager()->reset();
 #endif
 }
 
-void core::base_im::on_voip_proto_ack(const voip_manager::VoipProtoMsg& msg, bool success) {
+void core::base_im::on_voip_proto_ack(const voip_manager::VoipProtoMsg& msg, bool success)
+{
 #ifndef STRIP_VOIP
     auto account = _get_protocol_uid();
     assert(!account.empty());
 
-    if (!account.empty()) {
+    if (!account.empty())
+    {
         voip_manager_->get_connection_manager()->ProcessVoipAck(account.c_str(), msg, success);
     }
 #endif
@@ -392,7 +429,8 @@ void core::base_im::on_voip_proto_msg(bool allocate, const char* data, unsigned 
 #ifndef STRIP_VOIP
     auto account = _get_protocol_uid();
     assert(!account.empty());
-    if (!account.empty()) {
+    if (!account.empty())
+    {
         const auto msg_type = allocate ? voip2::WIM_Incoming_allocated : voip2::WIM_Incoming_fetch_url;
         voip_manager_->get_connection_manager()->ProcessVoipMsg(account.c_str(), msg_type, data, len);
     }
@@ -400,40 +438,46 @@ void core::base_im::on_voip_proto_msg(bool allocate, const char* data, unsigned 
 #endif
 }
 
-void core::base_im::on_voip_update() {
+void core::base_im::on_voip_update()
+{
 #ifndef STRIP_VOIP
     voip_manager_->get_device_manager()->update();
 #endif
 }
 
-void core::base_im::on_voip_minimal_bandwidth_switch() {
+void core::base_im::on_voip_minimal_bandwidth_switch()
+{
 #ifndef STRIP_VOIP
     voip_manager_->get_call_manager()->minimal_bandwidth_switch();
 #endif
 }
 
-void core::base_im::on_voip_load_mask(const std::string& path) {
+void core::base_im::on_voip_load_mask(const std::string& path)
+{
 #ifndef STRIP_VOIP
-	voip_manager_->get_mask_manager()->load_mask(path);
+    voip_manager_->get_mask_manager()->load_mask(path);
 #endif
 }
 
-void core::base_im::voip_set_model_path(const std::string& _local_path) {
+void core::base_im::voip_set_model_path(const std::string& _local_path)
+{
 #ifndef STRIP_VOIP
     voip_manager_->get_mask_manager()->set_model_path(_local_path);
 #endif
 }
 
-bool core::base_im::has_created_call() {
+bool core::base_im::has_created_call()
+{
 #ifndef STRIP_VOIP
     return voip_manager_->get_call_manager()->has_created_call();
 #endif
     return false;
 }
 
-void core::base_im::on_voip_window_set_primary(void* hwnd, const std::string& contact) {
+void core::base_im::on_voip_window_set_primary(void* hwnd, const std::string& contact)
+{
 #ifndef STRIP_VOIP
-	voip_manager_->get_window_manager()->window_set_primary(hwnd, contact);
+    voip_manager_->get_window_manager()->window_set_primary(hwnd, contact);
 #endif
 }
 

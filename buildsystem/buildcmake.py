@@ -76,7 +76,7 @@ elif sys.argv[2] == development_build_string:
 else:
 	print_usage()
 	
-build_path = os.getenv('MSBUILD', 'C:/Program Files (x86)/MSBuild/14.0/Bin/')
+build_path = os.getenv('MSBUILD17', 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/MSBuild/15.0/Bin')
 build_path = '"' + build_path + '/MSBuild.exe"'
 
 build_number = os.getenv('BUILD_NUMBER', '1999')
@@ -91,7 +91,7 @@ def sign_file(file_name):
 		os.system("signtool.exe sign /t http://timestamp.verisign.com/scripts/timstamp.dll  /v " + file_name)
 		os.system("signtool.exe sign /fd sha256 /tr http://timestamp.globalsign.com/?signature=sha2  /td sha256 /as /v " + file_name)
 	else:
-		execute_command = "curl.exe -F file=@" + file_name + " http://sign.corp.mail.ru/sign_agent_sha1 -o " + file_name + ".tmp"
+		execute_command = "curl.exe -F file=@" + file_name + " http://sign.corp.mail.ru/sign_agent_comodo_sha2 -o " + file_name + ".tmp"
 		print(execute_command)
 		os.system(execute_command)
 		shutil.move(file_name + ".tmp", file_name)
@@ -103,21 +103,21 @@ log_and_exec('sign_file(os.path.abspath("../bin/Release/libvoip_x86.dll"))')
 
 
 if is_icq:
-	if log_and_eval('os.system(build_path + " ../installer/installer_icq.sln /t:Rebuild /p:Configuration=Release;Platform=Win32")') != 0:
+	if log_and_eval('os.system(build_path + " ../installer/installer_icq.sln /t:Rebuild /p:Configuration=Release;Platform=Win32;VisualStudioVersion=15.0")') != 0:
 		sys.exit(1)	
 else:
-	if log_and_eval('os.system(build_path + " ../installer/installer_agent.sln /t:Rebuild /p:Configuration=Release;Platform=Win32")') != 0:
+	if log_and_eval('os.system(build_path + " ../installer/installer_agent.sln /t:Rebuild /p:Configuration=Release;Platform=Win32;VisualStudioVersion=15.0")') != 0:
 		sys.exit(1)
 
 log_and_exec('sign_file(os.path.abspath("../bin/Release/installer/installer.exe"))')
 
 if (is_icq):
-	if log_and_eval('os.system(build_path + " ../installerpack/installerpack.sln /t:Rebuild /p:Configuration=Release;Platform=Win32")') != 0:
+	if log_and_eval('os.system(build_path + " ../installerpack/installerpack.sln /t:Rebuild /p:Configuration=Release;Platform=Win32;VisualStudioVersion=15.0")') != 0:
 		sys.exit(1)
 
 	log_and_exec('sign_file(os.path.abspath("../bin/Release/installer/icqsetup.exe"))')
 else:
-	if log_and_eval('os.system(build_path + " ../installerpack_agent/installerpack.sln /t:Rebuild /p:Configuration=Release;Platform=Win32")') != 0:
+	if log_and_eval('os.system(build_path + " ../installerpack_agent/installerpack.sln /t:Rebuild /p:Configuration=Release;Platform=Win32;VisualStudioVersion=15.0")') != 0:
 		sys.exit(1)
 
 	log_and_exec('sign_file(os.path.abspath("../bin/Release/installer/magentsetup.exe"))')

@@ -9,7 +9,7 @@ using namespace core;
 using namespace wim;
 
 fetch_event_diff::fetch_event_diff()
-    :   diff_(new diffs_map())
+    :   diff_(std::make_shared<diffs_map>())
 {
 }
 
@@ -25,19 +25,19 @@ int32_t fetch_event_diff::parse(const rapidjson::Value& _node_event_data)
         if (!_node_event_data.IsArray())
             return wpie_error_parse_response;
 
-        for (auto iter = _node_event_data.Begin(); iter != _node_event_data.End(); ++iter)
+        for (auto iter = _node_event_data.Begin(), end = _node_event_data.End(); iter != end; ++iter)
         {
             std::string type;
-            auto iter_type = iter->FindMember("type");
+            const auto iter_type = iter->FindMember("type");
             if (iter_type != iter->MemberEnd() && iter_type->value.IsString())
-                type = iter_type->value.GetString();
+                type = rapidjson_get_string(iter_type->value);
 
-            auto iter_data = iter->FindMember("data");
+            const auto iter_data = iter->FindMember("data");
             if (iter_data != iter->MemberEnd() && iter_data->value.IsArray())
             {
                 auto cl = std::make_shared<contactlist>();
                 cl->unserialize_from_diff(iter_data->value);
-                diff_->insert(std::make_pair(type, cl));
+                diff_->insert(std::make_pair(std::move(type), std::move(cl)));
             }
         }
     }

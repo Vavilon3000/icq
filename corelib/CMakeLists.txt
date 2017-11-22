@@ -24,7 +24,7 @@ add_definitions(-DCORELIB_EXPORTS)
 
 if(MSVC)
     set(SYSTEM_LIBRARIES Ws2_32 Wldap32)
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /NODEFAULTLIB:LIBCMTD.lib")
+    set (CMAKE_CXX_FLAGS "/Zc:threadSafeInit- /EHsc")
 elseif(APPLE)
     find_library(MAC_VIDEO_TOOLBOX VideoToolbox)
     find_library(MAC_CORE_VIDEO CoreVideo)

@@ -46,7 +46,7 @@ namespace
 
     std::map<int64_t, process_info> process_info_accum_;
 
-    std::mutex process_info_accum_mutex_;
+    boost::mutex process_info_accum_mutex_;
 
     bool is_profiling_enabled_ = false;
 }
@@ -140,7 +140,7 @@ namespace core
                 return;
             }
 
-            std::unique_lock<std::mutex> lock(process_info_accum_mutex_);
+            boost::unique_lock<boost::mutex> lock(process_info_accum_mutex_);
 
             std::map<std::string, process_stat> stats;
 
@@ -225,7 +225,7 @@ namespace
         assert(_process_id > 0);
         assert(_ts > 0);
 
-        std::unique_lock<std::mutex> lock(process_info_accum_mutex_);
+        boost::unique_lock<boost::mutex> lock(process_info_accum_mutex_);
 
         const auto insertion_result = process_info_accum_.emplace(_process_id, process_info(_name, _ts));
         assert(insertion_result.second);
@@ -236,7 +236,7 @@ namespace
         assert(_process_id > 0);
         assert(_ts > 0);
 
-        std::unique_lock<std::mutex> lock(process_info_accum_mutex_);
+        boost::unique_lock<boost::mutex> lock(process_info_accum_mutex_);
 
         auto iter = process_info_accum_.find(_process_id);
         assert(iter != process_info_accum_.end());

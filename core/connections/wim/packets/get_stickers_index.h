@@ -24,8 +24,8 @@ namespace core
     {
         class get_stickers_index : public wim_packet
         {
-            const std::string									md5_;
-            std::shared_ptr<core::tools::binary_stream>			response_;
+            const std::string md5_;
+            std::shared_ptr<core::tools::binary_stream> response_;
 
             virtual int32_t init_request(std::shared_ptr<core::http_request_simple> _request) override;
             virtual int32_t parse_response(std::shared_ptr<core::tools::binary_stream> _response) override;
@@ -34,7 +34,7 @@ namespace core
 
             bool support_async_execution() const override;
 
-            get_stickers_index(const wim_packet_params& _params, const std::string& _md5);
+            get_stickers_index(wim_packet_params _params, const std::string& _md5);
             virtual ~get_stickers_index();
 
             std::shared_ptr<core::tools::binary_stream> get_response();

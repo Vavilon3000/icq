@@ -46,7 +46,7 @@ int32_t get_gateway::init_request(std::shared_ptr<core::http_request_simple> _re
     params["sig_sha256"] = sha256;
 
     std::stringstream ss_url;
-    ss_url << host << "?" << format_get_params(params);
+    ss_url << host << '?' << format_get_params(params);
 
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
@@ -80,12 +80,12 @@ int32_t get_gateway::parse_response(std::shared_ptr<core::tools::binary_stream> 
         auto iter_host = iter_data->value.FindMember("host");
         auto iter_url = iter_data->value.FindMember("url");
 
-        if (iter_host == iter_data->value.MemberEnd() || iter_url == iter_data->value.MemberEnd() || 
+        if (iter_host == iter_data->value.MemberEnd() || iter_url == iter_data->value.MemberEnd() ||
             !iter_host->value.IsString() || !iter_url->value.IsString())
             return wpie_http_parse_response;
 
-        host_ = iter_host->value.GetString();
-        url_ = iter_url->value.GetString();
+        host_ = rapidjson_get_string(iter_host->value);
+        url_ = rapidjson_get_string(iter_url->value);
     }
 
     return 0;

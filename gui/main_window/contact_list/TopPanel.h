@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../../cache/avatars/AvatarStorage.h"
-#include "../../types/snap.h"
 
 namespace Ui
 {
@@ -36,8 +35,7 @@ namespace Ui
     Q_SIGNALS:
         void back();
         void burgerClicked();
-        void discoverClicked();
-        
+
     public:
         enum Mode
         {
@@ -52,17 +50,24 @@ namespace Ui
         void setBack(bool _back);
         void searchActivityChanged(bool _active);
 
+	    void addWidget(QWidget* w);
 
     protected:
         virtual void paintEvent(QPaintEvent* _e) override;
+
+    private Q_SLOTS:
+        void searchActiveChanged(bool);
+        void titleButtonsUpdated();
 
     private:
         BurgerWidget* Burger_;
         QWidget* LeftSpacer_;
         QWidget* RightSpacer_;
+        QWidget* AdditionalSpacerLeft_;
+        QWidget* AdditionalSpacerRight_;
         QHBoxLayout* mainLayout;
-        CustomButton* Discover_;
         SearchWidget* Search_;
         Mode Mode_;
+	    QHBoxLayout* Additional_;
     };
 }

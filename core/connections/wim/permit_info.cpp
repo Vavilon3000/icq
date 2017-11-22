@@ -22,10 +22,7 @@ int32_t permit_info::parse_response_data(const rapidjson::Value& _node_results)
 
     ignore_aimid_list_.reserve(ignores->value.Size());
     for (auto iter = ignores->value.Begin(); iter != ignores->value.End(); ++iter)
-    {
-        std::string aimid = iter->GetString();
-        ignore_aimid_list_.emplace(aimid);
-    }
+        ignore_aimid_list_.emplace(rapidjson_get_string(*iter));
 
     return 0;
 }

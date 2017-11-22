@@ -6,17 +6,20 @@
 #include "../../utils/utils.h"
 #include "../../cache/avatars/AvatarStorage.h"
 #include "MessageStyle.h"
+#include "LastStatusAnimation.h"
 
 namespace Ui
 {
 	HistoryControlPageItem::HistoryControlPageItem(QWidget *parent)
 		: QWidget(parent)
-        , QuoteAnimation_(parent)
+        , Selected_(false)
         , HasTopMargin_(false)
         , HasAvatar_(false)
         , HasAvatarSet_(false)
-        , Selected_(false)
         , isDeleted_(false)
+        , lastStatus_(LastStatus::None)
+        , lastStatusAnimation_(nullptr)
+        , QuoteAnimation_(parent)
 	{
 	}
 
@@ -76,7 +79,7 @@ namespace Ui
     {
     }
 
-    void HistoryControlPageItem::onDistanceToViewportChanged(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect)
+    void HistoryControlPageItem::onDistanceToViewportChanged(const QRect& /*_widgetAbsGeometry*/, const QRect& /*_viewportVisibilityAbsRect*/)
     {}
 
     void HistoryControlPageItem::setHasAvatar(const bool value)
@@ -102,35 +105,65 @@ namespace Ui
         return get_qt_theme_settings()->themeForContact(aimId_);
     }
 
-    bool HistoryControlPageItem::setLastRead(const bool /*_isLastRead*/)
-    {
-        return false;
-    }
-
     void HistoryControlPageItem::setDeliveredToServer(const bool _delivered)
     {
 
     }
 
-    void HistoryControlPageItem::drawLastReadAvatar(QPainter& _p, const QString& _aimid, const QString& _friendly, const int _rightPadding, const int _bottomPadding)
+    void HistoryControlPageItem::drawLastReadAvatar(QPainter& _p, const QString& _aimid, const QString& _friendly, int _rightPadding)
     {
         const QRect rc = rect();
 
-        const int size = Utils::scale_bitmap(MessageStyle::getLastReadAvatarSize());
+        const int avatarSize = MessageStyle::getLastReadAvatarSize();
+        const int size = Utils::scale_bitmap(avatarSize);
 
         bool isDefault = false;
-        QPixmap avatar = *Logic::GetAvatarStorage()->GetRounded(_aimid, _friendly, size, QString(), true, isDefault, false, false);
-
-        const int avatarSize = MessageStyle::getLastReadAvatarSize();
+        QPixmap avatar = *Logic::GetAvatarStorage()->GetRounded(_aimid, _friendly, size, QString(), isDefault, false, false);
 
         if (!avatar.isNull())
         {
             _p.drawPixmap(
-                rc.right() - avatarSize - _rightPadding,
-                rc.bottom() - avatarSize - _bottomPadding,
+                rc.right() - avatarSize - MessageStyle::getLastReadAvatarMargin() - _rightPadding,
+                rc.bottom() - avatarSize,
                 avatarSize,
                 avatarSize,
                 avatar);
+        }
+    }
+
+    void HistoryControlPageItem::drawLastStatusIconImpl(QPainter& _p, int _rightPadding, int _bottomPadding)
+    {
+        if (lastStatusAnimation_)
+        {
+            const QRect rc = rect();
+
+            const auto iconSize = MessageStyle::getLastStatusIconSize();
+
+            lastStatusAnimation_->drawLastStatus(
+                _p,
+                rc.right() - iconSize.width() - _rightPadding,
+                rc.bottom() - iconSize.height() - _bottomPadding,
+                iconSize.width(),
+                iconSize.height());
+        }
+    }
+
+    void HistoryControlPageItem::drawLastStatusIcon(QPainter& _p,  LastStatus _lastStatus, const QString& _aimid, const QString& _friendly, int _rightPadding)
+    {
+        switch (lastStatus_)
+        {
+        case LastStatus::None:
+            break;
+        case LastStatus::Pending:
+        case LastStatus::DeliveredToServer:
+        case LastStatus::DeliveredToPeer:
+            drawLastStatusIconImpl(_p, _rightPadding + MessageStyle::getLastStatusIconMargin(), 0);
+            break;
+        case LastStatus::Read:
+            drawLastReadAvatar(_p, _aimid, _friendly, _rightPadding);
+            break;
+        default:
+            break;
         }
     }
 
@@ -138,7 +171,6 @@ namespace Ui
     {
         return -1;
     }
-
 
     void HistoryControlPageItem::setDeleted(const bool _isDeleted)
     {
@@ -148,6 +180,26 @@ namespace Ui
     bool HistoryControlPageItem::isDeleted() const
     {
         return isDeleted_;
+    }
+
+    void HistoryControlPageItem::setLastStatus(LastStatus _lastStatus)
+    {
+        if (lastStatus_ == _lastStatus)
+            return;
+
+        lastStatus_ = _lastStatus;
+        if (lastStatus_ != LastStatus::None)
+        {
+            if (!lastStatusAnimation_)
+                lastStatusAnimation_ = new LastStatusAnimation(this);
+        }
+        if (lastStatusAnimation_)
+            lastStatusAnimation_->setLastStatus(lastStatus_);
+    }
+
+    LastStatus HistoryControlPageItem::getLastStatus() const
+    {
+        return lastStatus_;
     }
 
     void HistoryControlPageItem::setAimid(const QString &aimId)
@@ -161,5 +213,24 @@ namespace Ui
 
         assert(aimId_.isEmpty());
         aimId_ = aimId;
+    }
+
+    void HistoryControlPageItem::showMessageStatus()
+    {
+        if (lastStatus_ == LastStatus::DeliveredToPeer || lastStatus_ == LastStatus::DeliveredToServer)
+        {
+            if (lastStatusAnimation_)
+                lastStatusAnimation_->showStatus();
+        }
+    }
+
+
+    void HistoryControlPageItem::hideMessageStatus()
+    {
+        if (lastStatus_ == LastStatus::DeliveredToPeer || lastStatus_ == LastStatus::DeliveredToServer)
+        {
+            if (lastStatusAnimation_)
+                lastStatusAnimation_->hideStatus();
+        }
     }
 }

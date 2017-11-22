@@ -10,7 +10,7 @@ class del_history: public robusto_packet
 {
 public:
     del_history(
-        const wim_packet_params& _params,
+        wim_packet_params _params,
         const int64_t _up_to_id,
         const std::string &_contact_aimid
     );

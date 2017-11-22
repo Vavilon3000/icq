@@ -5,12 +5,14 @@ namespace Ui
 {
     class CompiledText;
 
-    class PushButton_t : public QPushButton {
+    class PushButton_t : public QPushButton
+    {
     public:
-        enum eButtonState {
-            normal = 0, 
-            hovered, 
-            pressed, 
+        enum eButtonState
+        {
+            normal = 0,
+            hovered,
+            pressed,
             //--------
             total
         };
@@ -47,8 +49,8 @@ namespace Ui
         Qt::Alignment alignment_;
         QString       postfix_;
         QColor        postfixColor_;
-        std::unique_ptr<CompiledText>	compiledText_;
-    };   
+        std::unique_ptr<CompiledText> compiledText_;
+    };
 }
 
 #endif//__PUSH_BUTTON_T_H__

@@ -9,14 +9,14 @@ using namespace wim;
 
 web_file_info::web_file_info()
     :	file_size_(0),
-    bytes_transfer_(0),
     is_previewable_(false),
-    played_(false)
+    played_(false),
+    bytes_transfer_(0)
 {
 
 }
 
-std::string web_file_info::get_file_url() const
+const std::string& web_file_info::get_file_url() const
 {
     return file_url_;
 }
@@ -41,7 +41,7 @@ void web_file_info::set_file_name(const std::wstring& _name)
     file_name_ = _name;
 }
 
-std::wstring web_file_info::get_file_name() const
+const std::wstring& web_file_info::get_file_name() const
 {
     return file_name_;
 }
@@ -82,7 +82,7 @@ void web_file_info::set_file_dlink(const std::string& _dlink)
     file_dlink_ = _dlink;
 }
 
-std::string web_file_info::get_file_dlink() const
+const std::string& web_file_info::get_file_dlink() const
 {
     return file_dlink_;
 }
@@ -92,7 +92,7 @@ void web_file_info::set_mime(const std::string& _mime)
     mime_ = _mime;
 }
 
-std::string web_file_info::get_mime() const
+const std::string& web_file_info::get_mime() const
 {
     return mime_;
 }
@@ -102,7 +102,7 @@ void web_file_info::set_md5(const std::string& _md5)
     md5_ = _md5;
 }
 
-std::string web_file_info::get_md5() const
+const std::string& web_file_info::get_md5() const
 {
     return md5_;
 }
@@ -122,12 +122,12 @@ void web_file_info::set_file_preview_2k(const std::string& _val)
     file_preview_2k_ = _val;
 }
 
-std::string web_file_info::get_file_preview_2k() const
+const std::string& web_file_info::get_file_preview_2k() const
 {
     return file_preview_2k_;
 }
 
-std::string web_file_info::get_file_id() const
+const std::string& web_file_info::get_file_id() const
 {
     return file_id_;
 }
@@ -142,7 +142,7 @@ void web_file_info::set_file_name_short(const std::string& _file_name_short)
     file_name_short_ = _file_name_short;
 }
 
-std::string web_file_info::get_file_name_short() const
+const std::string& web_file_info::get_file_name_short() const
 {
     return file_name_short_;
 }

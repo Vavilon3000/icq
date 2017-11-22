@@ -9,12 +9,6 @@
 
 #include "InterConnector.h"
 
-namespace
-{
-    const QString hostIcqCom  = "icq.com";
-    const QString liveChatPrefix = "/chat/";
-}
-
 namespace Utils
 {
     InterConnector& InterConnector::instance()
@@ -24,9 +18,8 @@ namespace Utils
     }
 
     InterConnector::InterConnector()
-        : dragOverlay_(false)
-        , semiWindowsCount_(0)
-        , semiWindowsTouchSwallowed_(false)
+        : MainWindow_(nullptr)
+        , dragOverlay_(false)
     {
         //
     }
@@ -104,7 +97,7 @@ namespace Utils
 
         return false;
     }
-    
+
     void InterConnector::restoreSidebar()
     {
         if (MainWindow_)
@@ -121,70 +114,6 @@ namespace Utils
         return dragOverlay_;
     }
 
-    bool InterConnector::parseLocalUrl(const QString& _urlString)
-    {
-        QUrl url(_urlString);
-
-        const QString hostString = url.host(); //icq.com
-        const QString path = url.path(); // /chat/novosibisk
-
-        if (hostString == hostIcqCom && path.length() > liveChatPrefix.length() && path.mid(0, liveChatPrefix.length()) == liveChatPrefix)
-        {
-            QString stamp = path.mid(liveChatPrefix.length());
-            if (stamp[stamp.length() - 1] == '/')
-                stamp = stamp.mid(0, stamp.length() - 1);
-
-            Logic::getContactListModel()->joinLiveChat(stamp, false);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    void InterConnector::open_url(const QUrl& url)
-    {
-        QString urlStr = url.toString(QUrl::FullyEncoded);
-        if (urlStr.isEmpty())
-            return;
-
-        QString decoded = url.fromPercentEncoding(urlStr.toUtf8());
-        decoded.remove(QString(QChar::SoftHyphen));
-
-        if (parseLocalUrl(decoded))
-        {
-            return;
-        }
-        
-#ifdef __APPLE__
-        if (url.scheme().isEmpty())
-        {
-            MacSupport::openLink(decoded);
-            return;
-        }
-#endif //__APPLE__
-
-        QDesktopServices::openUrl(decoded);
-    }
-
-    void InterConnector::setUrlHandler()
-    {
-#ifdef __APPLE__
-        QDesktopServices::setUrlHandler("", this, "open_url");
-#endif //__APPLE__
-        QDesktopServices::setUrlHandler("http", this, "open_url");
-        QDesktopServices::setUrlHandler("https", this, "open_url");
-    }
-
-    void InterConnector::unsetUrlHandler()
-    {
-#ifdef __APPLE__
-        QDesktopServices::unsetUrlHandler("");
-#endif //__APPLE__
-        QDesktopServices::unsetUrlHandler("http");
-        QDesktopServices::unsetUrlHandler("https");
-    }
-
     void InterConnector::setFocusOnInput()
     {
         if (MainWindow_)
@@ -195,35 +124,5 @@ namespace Utils
     {
         if (MainWindow_)
             MainWindow_->onSendMessage(contact);
-    }
-
-    int InterConnector::getSemiwindowsCount() const
-    {
-        return semiWindowsCount_;
-    }
-
-    void InterConnector::incSemiwindowsCount()
-    {
-        ++semiWindowsCount_;
-    }
-
-    void InterConnector::decSemiwindowsCount()
-    {
-        --semiWindowsCount_;
-        if (semiWindowsCount_ < 0)
-            semiWindowsCount_ = 0;
-
-        if (semiWindowsCount_ == 0)
-            setSemiwindowsTouchSwallowed(false);
-    }
-
-    bool InterConnector::isSemiWindowsTouchSwallowed() const
-    {
-        return semiWindowsTouchSwallowed_;
-    }
-
-    void InterConnector::setSemiwindowsTouchSwallowed(bool _val)
-    {
-        semiWindowsTouchSwallowed_ = _val;
     }
 }

@@ -12,9 +12,9 @@ using namespace wim;
 #define WIM_API_REPLACE_ACCOUNT_HOST "https://www.icq.com/mergeAccount"
 
 merge_account::merge_account(
-    const wim_packet_params& _from_params, const wim_packet_params& _to_params)
-    :   wim_packet(_to_params)
-    ,   from_params_(_from_params)
+    wim_packet_params _from_params, wim_packet_params _to_params)
+    :   wim_packet(std::move(_to_params))
+    ,   from_params_(std::move(_from_params))
 {
 }
 
@@ -38,10 +38,7 @@ int32_t merge_account::init_request(std::shared_ptr<core::http_request_simple> _
         time_t ts = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) - from_params_.time_offset_;
         request_from.push_post_parameter("ts", tools::from_int64(ts));
 
-        std::map<std::string, std::string> post_params;
-        request_from.get_post_parameters(post_params);
-
-        request_from.push_post_parameter("sig_sha256", escape_symbols(get_url_sign(host, post_params, from_params_, true)));
+        request_from.push_post_parameter("sig_sha256", escape_symbols(get_url_sign(host, request_from.get_post_parameters(), from_params_, true)));
         from_uin_signed_url = request_from.get_post_url();
     }
 
@@ -59,10 +56,7 @@ int32_t merge_account::init_request(std::shared_ptr<core::http_request_simple> _
 
         _request->push_post_parameter("fromUinSignedUrl", escape_symbols(from_uin_signed_url));
 
-        std::map<std::string, std::string> post_params;
-        _request->get_post_parameters(post_params);
-
-        _request->push_post_parameter("sig_sha256", escape_symbols(get_url_sign(host, post_params, params_, true)));
+        _request->push_post_parameter("sig_sha256", escape_symbols(get_url_sign(host, _request->get_post_parameters(), params_, true)));
     }
     return 0;
 }

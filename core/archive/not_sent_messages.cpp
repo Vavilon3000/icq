@@ -95,7 +95,7 @@ not_sent_message_sptr not_sent_message::make_incoming_file_sharing(
 }
 
 not_sent_message::not_sent_message()
-    :   message_(new history_message()),
+    :   message_(std::make_shared<history_message>()),
         duplicated_(false)
 {
 }
@@ -106,8 +106,8 @@ not_sent_message::not_sent_message(
     const message_type _type,
     const uint64_t _time,
     const std::string& _internal_id)
-    : message_(new history_message())
-    , aimid_(_aimid)
+    : aimid_(_aimid)
+    , message_(std::make_shared<history_message>())
     , duplicated_(false)
 {
     auto internal_id = _internal_id;
@@ -135,7 +135,7 @@ not_sent_message::not_sent_message(
 }
 
 not_sent_message::not_sent_message(const not_sent_message_sptr& _message, const std::string& _wimid, const uint64_t time)
-    :   message_(new history_message()),
+    :   message_(std::make_shared<history_message>()),
         duplicated_(false)
 {
     copy_from(_message);
@@ -184,9 +184,19 @@ core::archive::quotes_vec not_sent_message::get_quotes() const
     return message_->get_quotes();
 }
 
-void not_sent_message::attach_quotes(core::archive::quotes_vec _quotes)
+void not_sent_message::attach_quotes(const core::archive::quotes_vec& _quotes)
 {
     message_->attach_quotes(_quotes);
+}
+
+const core::archive::mentions_map& core::archive::not_sent_message::get_mentions() const
+{
+    return message_->get_mentions();
+}
+
+void core::archive::not_sent_message::set_mentions(const core::archive::mentions_map& _mentions)
+{
+    message_->set_mentions(_mentions);
 }
 
 bool not_sent_message::is_ready_to_send() const
@@ -267,7 +277,7 @@ const std::chrono::system_clock::time_point& not_sent_message::get_post_time() c
 
 
 not_sent_messages::not_sent_messages(const std::wstring& _file_name)
-    :	storage_(new storage(_file_name)),
+    :	storage_(std::make_unique<storage>(_file_name)),
     is_loaded_(false)
 {
 
@@ -435,7 +445,7 @@ void not_sent_messages::mark_duplicated(const std::string& _message_internal_id)
 }
 
 void not_sent_messages::update_message_post_time(
-    const std::string& _message_internal_id, 
+    const std::string& _message_internal_id,
     const std::chrono::system_clock::time_point& _time_point)
 {
     auto msg = get_by_internal_id(_message_internal_id);

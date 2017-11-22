@@ -5,6 +5,7 @@
 #include "../../utils/gui_coll_helper.h"
 #include "../../utils/utils.h"
 #include "../../utils/log/log.h"
+#include "../../controls/CommonStyle.h"
 
 UI_THEMES_NS_BEGIN
 std::unique_ptr<cache> t_cache;
@@ -23,37 +24,43 @@ QPixmap CopyOnWriteLoadFromData(const uchar* _data, uint _len, const char* _form
     return pixmap;
 }
 
-theme::theme(int _id, QString _tintColorString, QByteArray& _imageData, QByteArray& _thumbData, const bool _tile) 
+theme::theme(int _id, const QString& _tintColorString, QByteArray& _imageData, QByteArray& _thumbData, const bool _tile)
     : position_(0)
     , isImageLoaded_(false)
+    , delivery_status_light_(false)
 {
     *this = getDefaultTheme();
     tile_ = _tile;
     id_ = _id;
 
-    tint_color_ = colorFromString(_tintColorString.toLatin1().data());
+    tint_color_ = colorFromString(_tintColorString);
     image_ = CopyOnWriteLoadFromData(_imageData);
-    
+
     if (!image_.isNull())
     {
         isImageLoaded_ = true;
     }
-    
+
     thumb_ = CopyOnWriteLoadFromData(_thumbData);
     Utils::check_pixel_ratio(thumb_);
 }
 
 QColor theme::colorFromString(const char* _colorString)
 {
-    return QColor("#" + QString(_colorString));
+    return QColor(ql1c('#') % ql1s(_colorString));
 }
 
-theme::theme() : image_(QPixmap()), thumb_(QPixmap()), tile_(false), id_(0), position_(0), isImageLoaded_(true)
+QColor theme::colorFromString(const QString& _colorString)
+{
+    return QColor(ql1c('#') % _colorString);
+}
+
+theme::theme() : id_(0), position_(0),  tile_(false), isImageLoaded_(true), delivery_status_light_(false)
 {
     *this = getDefaultTheme();
 }
 
-theme::theme(int) 
+theme::theme(int)
 {}
 
 theme theme::getDefaultTheme()
@@ -66,38 +73,39 @@ theme theme::getDefaultTheme()
         defaultTheme.tile_ = true;
         defaultTheme.tint_color_ = Qt::transparent;
 
-        defaultTheme.incoming_bubble_.bg1_color_ = MessageStyle::getIncomingBodyColorA();
-        defaultTheme.incoming_bubble_.bg2_color_ = MessageStyle::getIncomingBodyColorB();
+        defaultTheme.incoming_bubble_.bg_color_ = MessageStyle::getIncomingBodyColor();
         defaultTheme.incoming_bubble_.time_color_ = MessageStyle::getTimeColor();
-    
-        defaultTheme.outgoing_bubble_.bg1_color_ = MessageStyle::getOutgoingBodyColorA();
-        defaultTheme.outgoing_bubble_.bg2_color_ = MessageStyle::getOutgoingBodyColorB();
+
+        defaultTheme.outgoing_bubble_.bg_color_ = MessageStyle::getOutgoingBodyColor();
         defaultTheme.outgoing_bubble_.time_color_ = MessageStyle::getTimeColor();
-    
+
         defaultTheme.preview_stickers_.time_color_ = MessageStyle::getTimeColor();
-    
-        defaultTheme.date_.bg_color_ = QColor("#767676");
-        defaultTheme.date_.text_color_ = QColor("#ffffff");
-    
+
+        defaultTheme.date_.bg_color_ = CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY);
+        defaultTheme.date_.text_color_ = QColor(ql1s("#ffffff"));
+
         defaultTheme.chat_event_.bg_color_ = Qt::transparent;
-        defaultTheme.chat_event_.text_color_ = QColor("#767676");
-    
+
+        defaultTheme.chat_event_.text_color_ = CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY);
+
         defaultTheme.contact_name_.text_color_ = MessageStyle::getSenderColor();
 
-        QColor newMessagesColor("#579e1c");
-        newMessagesColor.setAlphaF(0.5);
+        QColor newMessagesColor(QColor(ql1s("#000000")));
+        newMessagesColor.setAlphaF(0.15);
         defaultTheme.new_messages_plate_.bg_color_ = newMessagesColor;
-        defaultTheme.new_messages_plate_.text_color_ = QColor("#ffffff");
-    
+        defaultTheme.new_messages_plate_.text_color_ = QColor(ql1s("#ffffff"));
+
         defaultTheme.typing_.text_color_ = MessageStyle::getTypingColor();
         defaultTheme.typing_.light_gif_ = 0;
-    
-        defaultTheme.image_ = QPixmap(Utils::parse_image_name(":/resources/main_window/pat_100.png"));
-        defaultTheme.thumb_ = QPixmap(Utils::parse_image_name(":/resources/main_window/pat_thumb_100.png"));
-    
+
+        defaultTheme.image_ = QPixmap(Utils::parse_image_name(qsl(":/resources/main_window/pat_100.png")));
+        defaultTheme.thumb_ = QPixmap(Utils::parse_image_name(qsl(":/resources/main_window/pat_thumb_100.png")));
+
+        defaultTheme.delivery_status_light_ = false;
+
         Utils::check_pixel_ratio(defaultTheme.image_);
         Utils::check_pixel_ratio(defaultTheme.thumb_);
-        
+
         isDefaultThemeConstructed = true;
     }
     return defaultTheme;
@@ -116,8 +124,7 @@ void theme::date::unserialize(Ui::gui_coll_helper& _coll)
 
 void theme::bubble::unserialize(Ui::gui_coll_helper& _coll)
 {
-    bg1_color_ = colorFromString(_coll.get_value_as_string("bg1_color"));
-    bg2_color_ = colorFromString(_coll.get_value_as_string("bg2_color"));
+    bg_color_ = colorFromString(_coll.get_value_as_string("bg_color"));
     time_color_ = colorFromString(_coll.get_value_as_string("time_color"));
 }
 
@@ -155,7 +162,8 @@ void theme::unserialize(core::coll_helper _coll)
     isImageLoaded_ = false;
     tint_color_ = colorFromString(_coll.get_value_as_string("tint_color"));
     tile_ = _coll.get_value_as_bool("tile");
-    
+    delivery_status_light_ = _coll.get_value_as_bool("delivery_status_light");
+
     if (_coll.is_value_exist("thumb"))
     {
         core::istream* thumbStream = _coll.get_value_as_stream("thumb");
@@ -168,25 +176,25 @@ void theme::unserialize(core::coll_helper _coll)
 
     Ui::gui_coll_helper coll_incoming_bubble(_coll.get_value_as_collection("incoming_bubble"), false);
     incoming_bubble_.unserialize(coll_incoming_bubble);
-    
+
     Ui::gui_coll_helper coll_outgoing_bubble(_coll.get_value_as_collection("outgoing_bubble"), false);
     outgoing_bubble_.unserialize(coll_outgoing_bubble);
-    
+
     Ui::gui_coll_helper coll_preview_stickers(_coll.get_value_as_collection("preview_stickers"), false);
     preview_stickers_.unserialize(coll_preview_stickers);
-    
+
     Ui::gui_coll_helper coll_data(_coll.get_value_as_collection("date"), false);
     date_.unserialize(coll_data);
-    
+
     Ui::gui_coll_helper coll_chat_event(_coll.get_value_as_collection("chat_event"), false);
     chat_event_.unserialize(coll_chat_event);
-    
+
     Ui::gui_coll_helper coll_contact_name(_coll.get_value_as_collection("contact_name"), false);
     contact_name_.unserialize(coll_contact_name);
-    
+
     Ui::gui_coll_helper coll_new_messages_plate(_coll.get_value_as_collection("new_messages_plate"), false);
     new_messages_plate_.unserialize(coll_new_messages_plate);
-    
+
     Ui::gui_coll_helper coll_typing(_coll.get_value_as_collection("typing"), false);
     typing_.unserialize(coll_typing);
 }
@@ -196,14 +204,14 @@ void cache::unserialize(const core::coll_helper& _coll)
     core::iarray* themes = _coll.get_value_as_array("themes");
     if (!themes)
         return;
-    
+
     auto defaultTheme = get_qt_theme_settings()->getDefaultTheme();
     int defaultThemeId = -1;
     if (defaultTheme)
     {
         defaultThemeId = defaultTheme->get_id();
     }
-    
+
     for (int32_t i = 0; i < themes->size(); i++)
     {
         core::coll_helper collSet(themes->get_at(i)->get_as_collection(), false);
@@ -213,7 +221,7 @@ void cache::unserialize(const core::coll_helper& _coll)
         int themeId = themeToInsert->get_id();
         themes_[themeId] = themeToInsert;
     }
-    
+
     get_qt_theme_settings()->themesDataUnserialized();
 }
 
@@ -221,7 +229,7 @@ void cache::setThemeData(core::coll_helper _coll)
 {
     const qint32 themeId = _coll.get_value_as_int("theme_id");
     core::istream* imageStream = _coll.get_value_as_stream("image");
-    
+
     auto &theme = themes_[themeId];
     if (theme && imageStream)
     {
@@ -263,7 +271,7 @@ cache& get_cache()
 {
     if (!t_cache)
         t_cache.reset(new cache());
-    
+
     return (*t_cache);
 }
 

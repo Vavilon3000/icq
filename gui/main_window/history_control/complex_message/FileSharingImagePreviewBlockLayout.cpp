@@ -27,10 +27,7 @@ QSize FileSharingImagePreviewBlockLayout::blockSizeForMaxWidth(const int32_t max
 {
     auto &block = *blockWidget<FileSharingBlock>();
 
-    auto previewSize = (
-        block.isFailedSnap() ?
-            Style::Snaps::getFailedSnapSizeMax() :
-            Utils::scale_value(block.getOriginalPreviewSize()));
+    auto previewSize = Utils::scale_value(block.getOriginalPreviewSize());
 
     const auto maxSizeWidth = std::min(Utils::scale_value(maxWidth), Style::Preview::getImageWidthMax());
     const QSize maxSize(maxSizeWidth, Style::Preview::getImageHeightMax());
@@ -48,27 +45,7 @@ QSize FileSharingImagePreviewBlockLayout::blockSizeForMaxWidth(const int32_t max
 
     QSize blockSize(previewSize);
 
-    if (block.isAuthorVisible())
-    {
-        AuthorAvatarRect_ = evaluateAuthorAvatarRect(block.isStandalone());
-
-        auto authorHeight = getAuthorAvatarRect().bottom();
-        authorHeight += Style::Snaps::getAuthorAvatarBottomMargin();
-
-        blockSize.rheight() += authorHeight;
-    }
-
     return blockSize;
-}
-
-QRect FileSharingImagePreviewBlockLayout::getAuthorAvatarRect() const
-{
-    return AuthorAvatarRect_;
-}
-
-QRect FileSharingImagePreviewBlockLayout::getAuthorNickRect() const
-{
-    return AuthorNickRect_;
 }
 
 const QRect& FileSharingImagePreviewBlockLayout::getContentRect() const
@@ -111,71 +88,19 @@ QSize FileSharingImagePreviewBlockLayout::setBlockGeometryInternal(const QRect &
 {
     auto &block = *blockWidget<FileSharingBlock>();
 
-    if (block.isAuthorVisible())
-    {
-        AuthorAvatarRect_ = evaluateAuthorAvatarRect(block.isStandalone());
-        AuthorNickRect_ = evaluateAuthorNickRect(block.isStandalone(), AuthorAvatarRect_, geometry.width());
-    }
-
     PreviewRect_ = evaluatePreviewRect(block, geometry.width());
     setCtrlButtonGeometry(block, PreviewRect_);
-    
-    if (block.isAuthorVisible())
-    {
-        AuthorNickRect_.setRight(PreviewRect_.right());
-        block.setAuthorNickGeometry(AuthorNickRect_);
-    }
 
     auto blockSize = PreviewRect_.size();
 
-    if (block.isAuthorVisible())
-    {
-        blockSize.rheight() += AuthorAvatarRect_.bottom();
-        blockSize.rheight() += Style::Snaps::getAuthorAvatarBottomMargin();
-    }
-
     return blockSize;
-}
-
-QRect FileSharingImagePreviewBlockLayout::evaluateAuthorAvatarRect(const bool isStandalone) const
-{
-    const auto top = (isStandalone ? Style::Snaps::getAuthorAvatarLeft(isStandalone) : 0);
-
-    const QPoint leftTop(Style::Snaps::getAuthorAvatarLeft(isStandalone), top);
-
-    QRect result(leftTop, Style::Snaps::getAuthorAvatarSizeInLayout());
-
-    return result;
-}
-
-QRect FileSharingImagePreviewBlockLayout::evaluateAuthorNickRect(const bool isStandalone, const QRect &authorAvatarRect, const int32_t blockWidth) const
-{
-    assert(authorAvatarRect.isValid());
-    assert(blockWidth > 0);
-
-    auto nickLeft = authorAvatarRect.right();
-    nickLeft += Style::Snaps::getAuthorNickLeftMargin();
-
-    const auto nickRight = blockWidth;
-
-    const auto nickTop = Style::Snaps::getAuthorNickTopMargin(isStandalone);
-
-    QRect result(
-        nickLeft, nickTop,
-        0, Style::Snaps::getAuthorNickBaseline());
-    result.setRight(nickRight);
-
-    return result;
 }
 
 QRect FileSharingImagePreviewBlockLayout::evaluatePreviewRect(const FileSharingBlock &block, const int32_t blockWidth) const
 {
     assert(blockWidth > 0);
 
-    auto previewSize = (
-        block.isFailedSnap() ?
-            Style::Snaps::getFailedSnapSizeMax() :
-            Utils::scale_value(block.getOriginalPreviewSize()));
+    auto previewSize = Utils::scale_value(block.getOriginalPreviewSize());
 
     auto maxSizeWidth = std::min(blockWidth, previewSize.width());
     if (block.getMaxPreviewWidth())
@@ -195,15 +120,6 @@ QRect FileSharingImagePreviewBlockLayout::evaluatePreviewRect(const FileSharingB
 
     QPoint leftTop;
 
-    if (block.isAuthorVisible())
-    {
-        const auto authorHeight = (
-            AuthorAvatarRect_.bottom() +
-            Style::Snaps::getAuthorAvatarBottomMargin());
-
-        leftTop.ry() = authorHeight;
-    }
-
     return QRect(leftTop, previewSize);
 }
 
@@ -211,11 +127,6 @@ void FileSharingImagePreviewBlockLayout::setCtrlButtonGeometry(FileSharingBlock 
 {
     assert(!previewRect.isEmpty());
     if (previewRect.isEmpty())
-    {
-        return;
-    }
-
-    if (block.isFailedSnap())
     {
         return;
     }

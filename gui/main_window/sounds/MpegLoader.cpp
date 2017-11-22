@@ -16,61 +16,61 @@ namespace
 namespace Ui
 {
     BaseMpegLoader::BaseMpegLoader(const QString &file, bool isRc)
-        : File_(QDir::toNativeSeparators(file))
-        , Freq_(OutFrequency)
+        : Freq_(OutFrequency)
         , Len_(0)
         , FmtContext_(0)
         , Codec_(0)
         , StreamId_(0)
+        , File_(QDir::toNativeSeparators(file))
         , Opened_(false)
         , IsRc_(isRc)
-        , RcContext_(0)
         , RcBuffer_(0)
+        , RcContext_(0)
     {
     }
-    
+
     int BaseMpegLoader::read_rc(void* opaque, uint8_t* buf, int buf_size)
     {
         BaseMpegLoader *l = reinterpret_cast<BaseMpegLoader*>(opaque);
         return int(l->Rc_.read((char*)(buf), buf_size));
     }
-    
+
     int64_t BaseMpegLoader::seek_rc(void* opaque, int64_t offset, int whence)
     {
         BaseMpegLoader *l = reinterpret_cast<BaseMpegLoader*>(opaque);
-        
+
         switch (whence)
         {
             case SEEK_SET: return l->Rc_.seek(offset) ? l->Rc_.pos() : -1;
             case SEEK_CUR: return l->Rc_.seek(l->Rc_.pos() + offset) ? l->Rc_.pos() : -1;
             case SEEK_END: return l->Rc_.seek(l->Rc_.size() + offset) ? l->Rc_.pos() : -1;
         }
-        
+
         return -1;
     }
-    
+
     bool BaseMpegLoader::open_file()
     {
         Rc_.setFileName(File_);
         if (!Rc_.open(QIODevice::ReadOnly))
             return false;
-        
+
         return true;
     }
 
-    bool BaseMpegLoader::open() 
+    bool BaseMpegLoader::open()
     {
         av_register_all();
         int res = 0;
         FmtContext_ = avformat_alloc_context();
-        if (!FmtContext_) 
+        if (!FmtContext_)
             return false;
-        
+
         if (IsRc_)
         {
             if (!open_file())
                 return false;
-            
+
             RcBuffer_ = (uchar*)av_malloc(BlockSize);
             RcContext_ = avio_alloc_context(RcBuffer_, BlockSize, 0, reinterpret_cast<void*>(this), &BaseMpegLoader::read_rc, 0, &BaseMpegLoader::seek_rc);
             FmtContext_->pb = RcContext_;
@@ -126,21 +126,22 @@ namespace Ui
     static const int64_t OutChannelLayout = AV_CH_LAYOUT_STEREO;
     static const qint32 OutChannels = 2;
 
-    MpegLoader::MpegLoader(const QString &file, bool isRc) : BaseMpegLoader(file, isRc)
-        , SampleSize_(2 * sizeof(quint16))
+    MpegLoader::MpegLoader(const QString &file, bool isRc)
+        : BaseMpegLoader(file, isRc)
         , Fmt_(AL_FORMAT_STEREO16)
         , SrcRate_(OutFrequency)
         , DstRate_(OutFrequency)
         , MaxResampleSamples_(1024)
+        , SampleSize_(2 * sizeof(quint16))
         , OutSamplesData_(0)
         , CodecContext_(0)
         , Frame_(0)
-        , SwrContext_(0) 
+        , SwrContext_(0)
     {
         Frame_ = av_frame_alloc();
     }
 
-    bool MpegLoader::open() 
+    bool MpegLoader::open()
     {
         if (!BaseMpegLoader::open())
             return false;
@@ -165,18 +166,18 @@ namespace Ui
         InputFormat_ = CodecContext_->sample_fmt;
         switch (layout) {
         case AV_CH_LAYOUT_MONO:
-            switch (InputFormat_) 
+            switch (InputFormat_)
             {
             case AV_SAMPLE_FMT_U8:
-            case AV_SAMPLE_FMT_U8P: 
-                Fmt_ = AL_FORMAT_MONO8; 
-                SampleSize_ = 1; 
+            case AV_SAMPLE_FMT_U8P:
+                Fmt_ = AL_FORMAT_MONO8;
+                SampleSize_ = 1;
                 break;
 
             case AV_SAMPLE_FMT_S16:
-            case AV_SAMPLE_FMT_S16P: 
-                Fmt_ = AL_FORMAT_MONO16; 
-                SampleSize_ = sizeof(quint16); 
+            case AV_SAMPLE_FMT_S16P:
+                Fmt_ = AL_FORMAT_MONO16;
+                SampleSize_ = sizeof(quint16);
                 break;
 
             default:
@@ -186,16 +187,16 @@ namespace Ui
             break;
 
         case AV_CH_LAYOUT_STEREO:
-            switch (InputFormat_) 
+            switch (InputFormat_)
             {
-            case AV_SAMPLE_FMT_U8: 
-                Fmt_ = AL_FORMAT_STEREO8; 
-                SampleSize_ = 2; 
+            case AV_SAMPLE_FMT_U8:
+                Fmt_ = AL_FORMAT_STEREO8;
+                SampleSize_ = 2;
                 break;
 
-            case AV_SAMPLE_FMT_S16: 
-                Fmt_ = AL_FORMAT_STEREO16; 
-                SampleSize_ = 2 * sizeof(quint16); 
+            case AV_SAMPLE_FMT_S16:
+                Fmt_ = AL_FORMAT_STEREO16;
+                SampleSize_ = 2 * sizeof(quint16);
                 break;
 
             default:
@@ -212,7 +213,7 @@ namespace Ui
         if (Freq_ != 44100 && Freq_ != 48000)
             SampleSize_ = -1;
 
-        if (SampleSize_ < 0) 
+        if (SampleSize_ < 0)
         {
             SwrContext_ = swr_alloc();
             if (!SwrContext_)
@@ -246,40 +247,40 @@ namespace Ui
         return true;
     }
 
-    qint32 MpegLoader::format() 
+    qint32 MpegLoader::format()
     {
         return Fmt_;
     }
 
-    int MpegLoader::readMore(QByteArray &result, qint64 &samplesAdded) 
+    int MpegLoader::readMore(QByteArray &result, qint64 &samplesAdded)
     {
         int res;
         if ((res = av_read_frame(FmtContext_, &Avpkt_)) < 0)
             return -1;
 
-        if (Avpkt_.stream_index == StreamId_) 
+        if (Avpkt_.stream_index == StreamId_)
         {
             av_frame_unref(Frame_);
             int got_frame = 0;
-            if ((res = avcodec_decode_audio4(CodecContext_, Frame_, &got_frame, &Avpkt_)) < 0) 
+            if ((res = avcodec_decode_audio4(CodecContext_, Frame_, &got_frame, &Avpkt_)) < 0)
             {
                 av_packet_unref(&Avpkt_);
-                if (res == AVERROR_INVALIDDATA) 
+                if (res == AVERROR_INVALIDDATA)
                     return 0;
                 return -1;
             }
 
-            if (got_frame) 
+            if (got_frame)
             {
-                if (OutSamplesData_) 
+                if (OutSamplesData_)
                 {
                     int64_t dstSamples = av_rescale_rnd(swr_get_delay(SwrContext_, SrcRate_) + Frame_->nb_samples, DstRate_, SrcRate_, AV_ROUND_UP);
-                    if (dstSamples > MaxResampleSamples_) 
+                    if (dstSamples > MaxResampleSamples_)
                     {
                         MaxResampleSamples_ = dstSamples;
                         av_free(OutSamplesData_[0]);
 
-                        if ((res = av_samples_alloc(OutSamplesData_, 0, OutChannels, MaxResampleSamples_, OutFormat, 1)) < 0) 
+                        if ((res = av_samples_alloc(OutSamplesData_, 0, OutChannels, MaxResampleSamples_, OutFormat, 1)) < 0)
                         {
                             OutSamplesData_[0] = 0;
                             av_packet_unref(&Avpkt_);
@@ -287,7 +288,7 @@ namespace Ui
                         }
                     }
 
-                    if ((res = swr_convert(SwrContext_, OutSamplesData_, dstSamples, (const uint8_t**)Frame_->extended_data, Frame_->nb_samples)) < 0) 
+                    if ((res = swr_convert(SwrContext_, OutSamplesData_, dstSamples, (const uint8_t**)Frame_->extended_data, Frame_->nb_samples)) < 0)
                     {
                         av_packet_unref(&Avpkt_);
                         return -1;
@@ -296,8 +297,8 @@ namespace Ui
                     qint32 resultLen = av_samples_get_buffer_size(0, OutChannels, res, OutFormat, 1);
                     result.append((const char*)OutSamplesData_[0], resultLen);
                     samplesAdded += resultLen / SampleSize_;
-                } 
-                else 
+                }
+                else
                 {
                     result.append((const char*)Frame_->extended_data[0], Frame_->nb_samples * SampleSize_);
                     samplesAdded += Frame_->nb_samples;
@@ -308,15 +309,15 @@ namespace Ui
         return 1;
     }
 
-    MpegLoader::~MpegLoader() 
+    MpegLoader::~MpegLoader()
     {
-        if (CodecContext_) 
+        if (CodecContext_)
             avcodec_close(CodecContext_);
-        if (SwrContext_) 
+        if (SwrContext_)
             swr_free(&SwrContext_);
-        if (OutSamplesData_) 
+        if (OutSamplesData_)
         {
-            if (OutSamplesData_[0]) 
+            if (OutSamplesData_[0])
                 av_freep(&OutSamplesData_[0]);
             av_freep(&OutSamplesData_);
         }

@@ -32,8 +32,6 @@ namespace Utils
 
         assert(rect.isValid());
         assert(borderRadius > 0);
-        assert((borderRadius * 2) <= rect.width());
-        assert((borderRadius * 2) <= rect.height());
 
         const auto borderDiameter = (borderRadius * 2);
 
@@ -42,9 +40,6 @@ namespace Utils
 
         const auto bottomMinusBorder = (y2 - borderDiameter);
         const auto rightMinusBorder = (x2 - borderDiameter);
-
-        assert(bottomMinusBorder >= 0);
-        assert(rightMinusBorder >= 0);
 
         QPainterPath clipPath;
 

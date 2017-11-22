@@ -85,12 +85,23 @@ QSize ImagePreviewBlockLayout::setBlockGeometryInternal(const QRect &blockLtr)
 
     setPreviewGeometry(blockLtr, block);
 
-    setTextControlGeometry(blockLtr);
+    if (MessageStyle::isShowLinksInImagePreview())
+    {
+        setTextControlGeometry(blockLtr);
+    }
 
     setActionButtonGeometry(previewRect_, block);
 
-    blockRect_ = QRect(previewRect_.topLeft(), 
-        QPoint(std::max(previewRect_.right(), textCtrlBubbleRect_.right()), previewRect_.bottom() + textCtrlBubbleRect_.height()));
+    if (MessageStyle::isShowLinksInImagePreview())
+    {
+        blockRect_ = QRect(previewRect_.topLeft(),
+            QPoint(std::max(previewRect_.right(), textCtrlBubbleRect_.right()), previewRect_.bottom() + textCtrlBubbleRect_.height()));
+    }
+    else
+    {
+        blockRect_ = previewRect_;
+    }
+
 
     return blockRect_.size();
 }

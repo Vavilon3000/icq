@@ -13,29 +13,26 @@
 
 namespace Ui
 {
-    qt_theme_settings::qt_theme_settings() 
-        : defaultTheme_(NULL)
-        , themesIdToLoad_(std::vector<int>())
-        , contactsThemes_(QMap<QString,int>())
-        , contactsThemesBackup_(QMap<QString,int>())
+    qt_theme_settings::qt_theme_settings()
+        : defaultTheme_(nullptr)
         , settingInProcess_(false)
         , isLoaded_(false)
     {
         themeRequest_.reset();
-        connect(Ui::GetDispatcher(), SIGNAL(onTheme(int,bool)), this, SLOT(onThemeImageArrived(int,bool)));
+        connect(Ui::GetDispatcher(), &Ui::core_dispatcher::onTheme, this, &qt_theme_settings::onThemeImageArrived);
     }
-    
+
     qt_theme_settings* get_qt_theme_settings()
     {
-        static std::unique_ptr<qt_theme_settings> settings(new qt_theme_settings());
+        static auto settings = std::make_unique<qt_theme_settings>();
         return settings.get();
     }
-    
+
     qt_theme_settings::~qt_theme_settings()
     {
     }
-    
-    themes::themePtr qt_theme_settings::initialTheme()
+
+    themes::themePtr qt_theme_settings::initialTheme() const
     {
         if (!initialTheme_)
         {
@@ -43,15 +40,15 @@ namespace Ui
         }
         return initialTheme_;
     }
-    
+
     void qt_theme_settings::postDefaultThemeIdToCore(const int _themeId) const
     {
         Ui::gui_coll_helper clColl(GetDispatcher()->create_collection(), true);
         clColl.set_value_as_int("id", _themeId);
-        
-        GetDispatcher()->post_message_to_core("themes/default/id", clColl.get());
+
+        GetDispatcher()->post_message_to_core(qsl("themes/default/id"), clColl.get());
     }
-    
+
     void qt_theme_settings::unserialize(core::coll_helper _collection)
     {
         core::iarray* valuesArray = _collection.get_value_as_array("values");
@@ -60,7 +57,7 @@ namespace Ui
             assert(false);
             return;
         }
-        
+
         QString tintColor;
         QByteArray imageDataArray;
         QByteArray thumbDataArray;
@@ -71,14 +68,14 @@ namespace Ui
         for (int i = 0; i < valuesArray->size(); ++i)
         {
             const core::ivalue* val = valuesArray->get_at(i);
-            
+
             gui_coll_helper collVal(val->get_as_collection(), false);
-            std::string name = collVal.get_value_as_string("name");
+            const std::string name = collVal.get_value_as_string("name");
             core::istream* idata = collVal.get_value_as_stream("value");
             int len = idata->size();
-            
+
             const char* data = (char *)idata->read(len);
-            
+
             if (name == "id")
             {
                 if (len == sizeof(int32_t))
@@ -104,11 +101,11 @@ namespace Ui
             }
             else if (name == "tint_color")
             {
-                tintColor = QString(std::string(data, len).c_str());
+                tintColor = QString::fromUtf8(data, len);
             }
             else if (name == "contacts_themes")
             {
-                contactsThemes = QString(std::string(data, len).c_str());
+                contactsThemes = QString::fromUtf8(data, len);
             }
             else if (name == "tile")
             {
@@ -118,25 +115,24 @@ namespace Ui
                 }
             }
         }
-        
+
         if (themeId != -1)
         {
             defaultTheme_ = std::make_shared<themes::theme>(themeId, tintColor, imageDataArray, thumbDataArray, tile);
         }
         if (contactsThemes.length() > 1)
         {
-            QStringList list = contactsThemes.split(",");
-            for (int i = 0; i < list.count(); ++i)
+            const auto list = contactsThemes.splitRef(ql1c(','));
+            for (const auto& item : list)
             {
-                QString item = list[i];
-                QStringList contactTheme = item.split(":");
+                const auto contactTheme = item.split(ql1c(':'));
                 if (contactTheme.count() == 2)
                 {
-                    QString aimId = contactTheme[0];
+                    const auto aimId = contactTheme[0];
                     int themeId = contactTheme[1].toInt();
                     if (themeId >= 0)
                     {
-                        contactsThemes_[aimId] = themeId;
+                        contactsThemes_[aimId.toString()] = themeId;
                         themesIdToLoad_.push_back(themeId);
                     }
                 }
@@ -144,8 +140,8 @@ namespace Ui
         }
         setIsLoaded(true);
     }
-    
-    std::unordered_map<int, int> qt_theme_settings::getThemeCounts()
+
+    std::unordered_map<int, int> qt_theme_settings::getThemeCounts() const
     {
         std::unordered_map<int, int> result;
 
@@ -174,7 +170,7 @@ namespace Ui
             themeRequest_.reset();
         }
     }
-    
+
     void qt_theme_settings::themesDataUnserialized()
     {
         if (defaultTheme_)
@@ -195,7 +191,7 @@ namespace Ui
             processNoDefaultThemeCase();
         }
     }
-    
+
     void qt_theme_settings::processNoDefaultThemeCase()
     {
         defaultTheme_ = initialTheme();
@@ -212,7 +208,7 @@ namespace Ui
 //            });
 //        }
     }
-    
+
     // preload used themes images
     void qt_theme_settings::flushThemesToLoad()
     {
@@ -223,7 +219,7 @@ namespace Ui
         }
         themesIdToLoad_.clear();
     }
-    
+
     bool qt_theme_settings::setThemeToWindow(std::shared_ptr<themes::theme> _theme)
     {
         if (_theme)
@@ -231,11 +227,11 @@ namespace Ui
             if (_theme->isImageLoaded())
             {
                 QPixmap pixmap = _theme->getImage();
-                
+
                 QPainter pixPaint(&pixmap);
                 QBrush brush(_theme->get_tint_color());
                 pixPaint.fillRect(pixmap.rect(), brush);
-                
+
                 Utils::InterConnector::instance().getMainWindow()->setBackgroundPixmap(pixmap, _theme->is_tile());
             }
             else
@@ -250,14 +246,14 @@ namespace Ui
         }
         return true;
     }
-    
+
     void qt_theme_settings::requestThemeImage(int _themeId, std::function<void(themes::themePtr, bool)> _callback)
     {
         Ui::GetDispatcher()->getTheme(_themeId);
         themeRequest_.requestedId_ = _themeId;
         themeRequest_.callback_ = _callback;
     }
-    
+
     void qt_theme_settings::setOrLoadDefaultTheme()
     {
         if (!setThemeToWindow(defaultTheme_))
@@ -271,8 +267,8 @@ namespace Ui
             });
         }
     }
-    
-    int qt_theme_settings::contactOpenned(QString _aimId)
+
+    int qt_theme_settings::contactOpenned(const QString& _aimId)
     {
         auto theme = themeForContact(_aimId);
         if (theme && theme->get_id() >= 0)
@@ -296,24 +292,25 @@ namespace Ui
         }
         return -1;
     }
-    
-    int qt_theme_settings::themeIdForContact(QString _aimId)
+
+    int qt_theme_settings::themeIdForContact(const QString& _aimId) const
     {
         return themeForContact(_aimId)->get_id();
     }
-    
-    themes::themePtr qt_theme_settings::themeForContact(QString _aimId)
+
+    themes::themePtr qt_theme_settings::themeForContact(const QString& _aimId) const
     {
-        if (!contactsThemes_.contains(_aimId))
+        const auto it = contactsThemes_.constFind(_aimId);
+        if (it == contactsThemes_.cend())
         {
             if (defaultTheme_)
             {
                 return defaultTheme_;
             }
         }
-        else if (contactsThemes_[_aimId] > 0)
+        else if (it.value() > 0)
         {
-            int themeId = contactsThemes_[_aimId];
+            int themeId = it.value();
             auto theme = Ui::themes::loadedThemes()[themeId];
             if (theme)
             {
@@ -322,14 +319,14 @@ namespace Ui
         }
         return initialTheme();
     }
-    
-    std::shared_ptr<themes::theme> qt_theme_settings::themeForId(int _themeId)
+
+    std::shared_ptr<themes::theme> qt_theme_settings::themeForId(int _themeId) const
     {
         if (_themeId == 0)
         {
             return initialTheme();
         }
-        
+
         auto themes = Ui::themes::loadedThemes();
         auto theme = themes[_themeId];
         if (theme)
@@ -338,7 +335,7 @@ namespace Ui
         }
         return defaultTheme_;
     }
-    
+
     void qt_theme_settings::setDefaultTheme(std::shared_ptr<themes::theme> _theme)
     {
         defaultTheme_ = _theme;
@@ -357,19 +354,19 @@ namespace Ui
         postContactsThemesToCore();
         postDefaultThemeIdToCore(themeId);
     }
-    
+
     void qt_theme_settings::themeSelected(int _themeId, const QString& _targetContact)
     {
         auto theme = themeForId(_themeId);
         QString contactToOpen = _targetContact;
         bool showSetThemeToCurrent = true;
-        if (contactToOpen == "")
+        if (contactToOpen.isEmpty())
         {
             contactToOpen = Logic::getContactListModel()->contactToTryOnTheme();
             showSetThemeToCurrent = false;
         }
-        
-        Logic::getContactListModel()->setCurrent(contactToOpen, -1, true, false, [this, theme, _targetContact, showSetThemeToCurrent, contactToOpen](HistoryControlPage *page)
+
+        Logic::getContactListModel()->setCurrent(contactToOpen, -1, true, [this, theme, _targetContact, showSetThemeToCurrent, contactToOpen](HistoryControlPage *page)
         {
             // consider peculiar case when themeSelected gets called without ThemePanelChoice-callback from previous call
             if (settingInProcess_)
@@ -377,12 +374,12 @@ namespace Ui
                 restoreThemesMapping();
             }
             settingInProcess_ = true;
-            
+
             page->update(_targetContact);
             saveThemesMapping();
             setThemeIdForContact(theme->get_id(), contactToOpen, false);
             page->updateWidgetsTheme();
-            page->showThemesTopPanel(showSetThemeToCurrent, [this, theme, _targetContact, page, contactToOpen](ThemePanelChoice res) 
+            page->showThemesTopPanel(showSetThemeToCurrent, [this, theme, _targetContact, page, contactToOpen](ThemePanelChoice res)
             {
                 if (res == ThemePanelCancel || res == ThemePanelBackToSettings)
                 {
@@ -405,11 +402,11 @@ namespace Ui
             });
         });
     }
-    
+
     void qt_theme_settings::setThemeIdForContact(int _themeId, const QString& _aimId, const bool _saveContactsThemes)
     {
         auto theme = themeForId(_themeId);
-        if (_aimId != "")
+        if (!_aimId.isEmpty())
         {
             if (!setThemeToWindow(theme))
             {
@@ -436,68 +433,68 @@ namespace Ui
         {
             setDefaultTheme(theme);
         }
-        
+
     }
-    
+
     QString qt_theme_settings::serializedContactsThemes() const
     {
         if (contactsThemes_.empty())
-            return "-";
+            return qsl("-");
 
         QString result;
 
-        for (auto iter = contactsThemes_.begin(); iter != contactsThemes_.end(); ++iter)
+        for (auto iter = contactsThemes_.cbegin(), end = contactsThemes_.cend(); iter != end; ++iter)
         {
             if (!result.isEmpty())
-                result += ",";
+                result += ql1c(',');
 
-            QString aimId = iter.key();
-            int themeId = iter.value();
-            result.append(QString("%1:%2").arg(aimId).arg(themeId));
+            const QString aimId = iter.key();
+            const int themeId = iter.value();
+            result.append(qsl("%1:%2").arg(aimId, QString::number(themeId)));
         }
-        
+
         return result;
     }
-    
+
     void qt_theme_settings::postContactsThemesToCore() const
     {
         Ui::gui_coll_helper clColl(GetDispatcher()->create_collection(), true);
-        
-        core::ifptr<core::istream> data_stream(clColl->create_stream());
-        
-        QString result = serializedContactsThemes();
 
-        uint size = result.toLatin1().size();
+        core::ifptr<core::istream> data_stream(clColl->create_stream());
+
+        const auto result = serializedContactsThemes().toLatin1(); // TODO maybe utf8 ?
+
+        uint size = result.size();
         if (size)
         {
-            data_stream->write((const uint8_t*) result.toLatin1().data(), size);
+            data_stream->write((const uint8_t*) result.data(), size);
         }
-        
-        clColl.set_value_as_qstring("name", "contacts_themes");
+
+        clColl.set_value_as_qstring("name", qsl("contacts_themes"));
         clColl.set_value_as_stream("value", data_stream.get());
 
-        GetDispatcher()->post_message_to_core("themes/settings/set", clColl.get());
+        GetDispatcher()->post_message_to_core(qsl("themes/settings/set"), clColl.get());
     }
-    
+
     void qt_theme_settings::saveThemesMapping()
     {
         contactsThemesBackup_ = contactsThemes_;
         if (defaultTheme_)
         {
-            contactsThemesBackup_["default"] = defaultTheme_->get_id();
+            contactsThemesBackup_[qsl("default")] = defaultTheme_->get_id();
         }
     }
-    
+
     void qt_theme_settings::restoreThemesMapping()
     {
-        int defaultThemeId = contactsThemesBackup_["default"];
-        
+        int defaultThemeId = contactsThemesBackup_[qsl("default")];
+
         defaultTheme_ = themeForId(defaultThemeId);
-        contactsThemesBackup_.remove("default");
-        
+        contactsThemesBackup_.remove(qsl("default"));
+
         contactsThemes_ = contactsThemesBackup_;
     }
-    
+
     void qt_theme_settings::unloadUnusedThemesImages()
     {
         std::set<int> used(contactsThemes_.begin(), contactsThemes_.end());

@@ -3,7 +3,7 @@
 #include "solution.h"
 
 #ifdef __linux__
-#include <QtWidgets/qapplication.h>
+#include <QtCore/qcoreapplication.h>
 #include <QtCore/qfile.h>
 #include <QtCore/qdir.h>
 #else
@@ -169,3 +169,23 @@ typedef rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator> rapidjson_alloca
 
 #include "../common.shared/common.h"
 #endif //__linux__
+
+#define qsl(x) QStringLiteral(x)
+#define ql1s(x) QLatin1String(x)
+#define ql1c(x) QLatin1Char(x)
+
+#ifndef __AS_CONST__
+#define __AS_CONST__
+
+namespace Utils
+{
+    template <typename T>
+    constexpr typename std::add_const<T>::type& as_const(T& t) noexcept
+    {
+        return t;
+    }
+    template <typename T>
+    void as_const(const T&&) = delete;
+}
+
+#endif // __AS_CONST__

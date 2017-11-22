@@ -3,71 +3,73 @@
 namespace Utils
 {
 
-	class SChar
-	{
-	public:
-		static const SChar Null;
+    class SChar
+    {
+    public:
+        static const SChar Null;
 
-		SChar(const uint32_t base, const uint32_t ext);
+        SChar(const uint32_t base, const uint32_t ext);
 
-		bool EqualTo(const char ch) const;
+        bool EqualTo(const char ch) const;
 
-		bool EqualToI(const char ch) const;
+        bool EqualToI(const char ch) const;
 
-		uint32_t Ext() const;
+        uint32_t Ext() const;
 
-		bool HasMain() const;
+        bool HasMain() const;
 
-		bool HasExt() const;
+        bool HasExt() const;
 
-		bool IsCarriageReturn() const;
+        bool IsCarriageReturn() const;
 
         bool IsQuot() const;
 
-		bool IsComplex() const;
+        bool IsAtSign() const;
 
-		bool IsEmailCharacter() const;
+        bool IsComplex() const;
 
-		bool IsEmoji() const;
+        bool IsEmailCharacter() const;
 
-		bool IsSimple() const;
+        bool IsEmoji() const;
 
-		bool IsSingleCharacterEmoji() const;
+        bool IsSimple() const;
 
-		bool IsSpace() const;
+        bool IsSingleCharacterEmoji() const;
 
-		bool IsTwoCharacterEmoji() const;
+        bool IsSpace() const;
 
-		bool IsNewline() const;
+        bool IsTwoCharacterEmoji() const;
+
+        bool IsNewline() const;
 
         bool IsColon() const;
 
-		bool IsNull() const;
+        bool IsNull() const;
 
-		bool IsValidInUrl() const;
+        bool IsValidInUrl() const;
 
-		bool IsValidOnUrlEnd() const;
+        bool IsValidOnUrlEnd() const;
 
         bool IsDelimeter() const;
 
-		QString::size_type LengthQChars() const;
+        QString::size_type LengthQChars() const;
 
-		uint32_t Main() const;
+        uint32_t Main() const;
 
-		QChar ToQChar() const;
+        QChar ToQChar() const;
 
-		QString ToQString() const;
+        QString ToQString() const;
 
-	private:
-		const uint32_t Main_;
+    private:
+        const uint32_t Main_;
 
-		const uint32_t Ext_;
-	};
+        const uint32_t Ext_;
+    };
 
-	SChar ReadNextSuperChar(QTextStream &s);
+    SChar ReadNextSuperChar(QTextStream &s);
 
-	SChar PeekNextSuperChar(QTextStream &s);
+    SChar PeekNextSuperChar(QTextStream &s);
 
-	SChar PeekNextSuperChar(const QString &s, const QString::size_type offset = 0);
+    SChar PeekNextSuperChar(const QString &s, const QString::size_type offset = 0);
 
 }

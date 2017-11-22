@@ -14,14 +14,14 @@ namespace core
 
             typedef std::function<void()> task;
 
-            explicit threadpool(const unsigned _count, std::function<void()> _on_thread_exit = [](){});
+            explicit threadpool(const unsigned _count, std::function<void()> _on_thread_exit = std::function<void()>());
 
             virtual ~threadpool();
 
             bool push_back(const task _task);
             bool push_front(const task _task);
 
-            const std::vector<std::thread::id> get_threads_ids() const;
+            const std::vector<std::thread::id>& get_threads_ids() const;
 
         protected:
             std::vector<std::thread> threads_;

@@ -6,52 +6,53 @@
 
 namespace Ui
 {
-	LineEditEx::LineEditEx(QWidget* _parent)
-		: QLineEdit(_parent)
-	{
+    LineEditEx::LineEditEx(QWidget* _parent)
+        : QLineEdit(_parent)
+    {
 
-	}
+    }
 
-	void LineEditEx::focusInEvent(QFocusEvent* _event)
-	{
-		emit focusIn();
-		QLineEdit::focusInEvent(_event);
-	}
+    void LineEditEx::focusInEvent(QFocusEvent* _event)
+    {
+        emit focusIn();
+        QLineEdit::focusInEvent(_event);
+    }
 
-	void LineEditEx::focusOutEvent(QFocusEvent* _event)
-	{
-		emit focusOut();
-		QLineEdit::focusOutEvent(_event);
-	}
+    void LineEditEx::focusOutEvent(QFocusEvent* _event)
+    {
+        emit focusOut();
+        QLineEdit::focusOutEvent(_event);
+    }
 
-	void LineEditEx::mousePressEvent(QMouseEvent* _event)
-	{
-		emit clicked();
-		QLineEdit::mousePressEvent(_event);
-	}
+    void LineEditEx::mousePressEvent(QMouseEvent* _event)
+    {
+        emit clicked();
+        QLineEdit::mousePressEvent(_event);
+    }
 
-	void LineEditEx::keyPressEvent(QKeyEvent* _event)
-	{
-		if (_event->key() == Qt::Key_Backspace && text().isEmpty())
-			emit emptyTextBackspace();
+    void LineEditEx::keyPressEvent(QKeyEvent* _event)
+    {
+        if (_event->key() == Qt::Key_Backspace && text().isEmpty())
+            emit emptyTextBackspace();
 
-		if (_event->key() == Qt::Key_Escape)
+        if (_event->key() == Qt::Key_Escape)
         {
-			emit escapePressed();
+            emit escapePressed();
             return;
         }
 
-		if (_event->key() == Qt::Key_Up)
-			emit upArrow();
+        if (_event->key() == Qt::Key_Up)
+            emit upArrow();
 
-		if (_event->key() == Qt::Key_Down)
-			emit downArrow();
+        if (_event->key() == Qt::Key_Down)
+            emit downArrow();
 
-		if (_event->key() == Qt::Key_Return && _event->modifiers() == Qt::NoModifier)
-			emit enter();
+        if ((_event->key() == Qt::Key_Enter || _event->key() == Qt::Key_Return) &&
+            (_event->modifiers() == Qt::NoModifier || _event->modifiers() == Qt::KeypadModifier))
+            emit enter();
 
-		QLineEdit::keyPressEvent(_event);
-	}
+        QLineEdit::keyPressEvent(_event);
+    }
 
     void LineEditEx::contextMenuEvent(QContextMenuEvent *e)
     {

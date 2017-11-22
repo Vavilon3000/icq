@@ -10,14 +10,15 @@
 using namespace core;
 using namespace wim;
 
-wim_packet::wim_packet(const wim_packet_params& params)
-    :   params_(params),
-    http_code_(uint32_t(-1)),
+wim_packet::wim_packet(wim_packet_params params)
+    :
+    hosts_scheme_changed_(false),
     status_code_(uint32_t(-1)),
     status_detail_code_(uint32_t(-1)),
+    http_code_(uint32_t(-1)),
     repeat_count_(uint32_t(0)),
     can_change_hosts_scheme_(false),
-    hosts_scheme_changed_(false)
+    params_(std::move(params))
 {
 
 }
@@ -34,7 +35,7 @@ bool wim_packet::support_async_execution() const
 
 int32_t wim_packet::execute()
 {
-    auto request = std::make_shared<core::http_request_simple>(params_.proxy_, utils::get_user_agent(), params_.stop_handler_);
+    auto request = std::make_shared<core::http_request_simple>(params_.proxy_, utils::get_user_agent(params_.aimid_), params_.stop_handler_);
 
     ++repeat_count_;
 
@@ -58,7 +59,7 @@ void wim_packet::execute_async(handler_t _handler)
 {
     assert(support_async_execution());
 
-    auto request = std::make_shared<core::http_request_simple>(params_.proxy_, utils::get_user_agent(), params_.stop_handler_);
+    auto request = std::make_shared<core::http_request_simple>(params_.proxy_, utils::get_user_agent(params_.aimid_), params_.stop_handler_);
 
     int32_t err = init_request(request);
     if (err != 0)
@@ -120,7 +121,7 @@ int32_t wim_packet::execute_request(std::shared_ptr<core::http_request_simple> r
 
         header->reset_out();
     }
-    
+
     if (http_code_ != 200)
     {
         if (http_code_ > 400 && http_code_ < 500)
@@ -249,7 +250,7 @@ int32_t wim_packet::parse_response(std::shared_ptr<core::tools::binary_stream> r
 
         auto iter_status_text = iter_response->value.FindMember("statusText");
         if (iter_status_text != iter_response->value.MemberEnd() && iter_status_text->value.IsString())
-            status_text_ = iter_status_text->value.GetString();
+            status_text_ = rapidjson_get_string(iter_status_text->value);
 
         auto iter_status_detail = iter_response->value.FindMember("statusDetailCode");
         if (iter_status_detail != iter_response->value.MemberEnd() && iter_status_detail->value.IsUint())
@@ -323,10 +324,8 @@ std::string wim_packet::escape_symbols(const std::string& _data)
 
     std::array<char, 100> buffer;
 
-    for (uint32_t i = 0; i < _data.size(); i++)
+    for (auto sym : _data)
     {
-        auto sym = _data[i];
-
         if (core::tools::is_latin(sym) || core::tools::is_digit(sym) || strchr("-._~", sym))
         {
             ss_out << sym;
@@ -375,19 +374,20 @@ std::string wim_packet::escape_symbols_data(const char* _data, uint32_t _len)
 
 std::string wim_packet::create_query_from_map(const str_2_str_map& _params)
 {
-    std::stringstream ss_query;
+    std::string query;
 
-    for (auto iter = _params.begin(); iter != _params.end(); iter++)
+    for (const auto& iter : _params)
     {
-        if (iter != _params.begin())
-        {
-            ss_query << "&";
-        }
-
-        ss_query << iter->first << "=" << iter->second;
+        query += iter.first;
+        query += '=';
+        query += iter.second;
+        query += '&';
     }
 
-    return ss_query.str();
+    if (!query.empty())
+        query.pop_back();
+
+    return query;
 }
 
 std::string wim_packet::detect_digest(const std::string& hashed_data, const std::string& session_key)
@@ -395,7 +395,7 @@ std::string wim_packet::detect_digest(const std::string& hashed_data, const std:
     if (hashed_data.empty() || session_key.empty())
     {
         assert(false);
-        return "";
+        return std::string();
     }
 
     std::vector<uint8_t> hash_data_vector(hashed_data.size());
@@ -413,7 +413,7 @@ std::string wim_packet::get_url_sign(const std::string& _host, const str_2_str_m
     std::string http_method = _post_method ? "POST" : "GET";
     std::string query_string = create_query_from_map(_params);
 
-    std::string hash_data = http_method + "&" + (make_escape_symbols ? escape_symbols(_host) : _host) + "&" + (make_escape_symbols ? escape_symbols(query_string) : query_string);
+    std::string hash_data = http_method + '&' + (make_escape_symbols ? escape_symbols(_host) : _host) + '&' + (make_escape_symbols ? escape_symbols(query_string) : query_string);
 
     return detect_digest(hash_data, _wim_params.session_key_);
 }
@@ -428,12 +428,12 @@ std::string wim_packet::format_get_params(const std::map<std::string, std::strin
     {
         if (!first)
         {
-            ss_out << "&";
+            ss_out << '&';
         }
 
         first = false;
 
-        ss_out << it.first.c_str() << "=" << it.second.c_str();
+        ss_out << it.first.c_str() << '=' << it.second.c_str();
     }
 
     return ss_out.str();
@@ -448,7 +448,7 @@ void wim_packet::parse_response_data_on_error(const rapidjson::Value& _data)
 {
 }
 
-const std::string core::wim::wim_packet::get_rand_float() const
+std::string core::wim::wim_packet::get_rand_float() const
 {
     std::srand((uint32_t) time(0));
     std::stringstream ss_rand;
@@ -485,7 +485,7 @@ void core::wim::wim_packet::replace_log_messages(tools::binary_stream& _bs)
     std::vector<std::string> vmarkers;
     vmarkers.push_back("\"text\":");
     vmarkers.push_back("\"message\":");
-    
+
     auto replace_marker = [logdata, end](const std::string& _marker)
     {
         char* cursor = logdata;
@@ -520,7 +520,7 @@ void core::wim::wim_packet::replace_log_messages(tools::binary_stream& _bs)
             }
         }
     };
-    
+
 
     for (const auto& _marker : vmarkers)
     {
@@ -553,4 +553,98 @@ bool wim_packet::is_hosts_scheme_changed() const
 const hosts_map& wim_packet::get_hosts_scheme() const
 {
     return params_.hosts_;
+}
+
+void log_replace_functor::add_marker(const std::string& marker)
+{
+    markers_.push_back(marker + '=');
+}
+
+void log_replace_functor::add_json_marker(const std::string& marker)
+{
+    static std::string json_delimeter = "\":\"";
+    static std::string json_delimeter_with_space = "\": \"";
+    markers_json_.push_back(marker + json_delimeter);
+    markers_json_.push_back(marker + json_delimeter_with_space);
+
+    static std::string json_delimeter_escaped = wim::wim_packet::escape_symbols("\":\"");
+    markers_json_escaped_.push_back(marker + json_delimeter_escaped);
+}
+
+void log_replace_functor::operator()(tools::binary_stream& _bs)
+{
+    auto sz = _bs.available();
+    auto data = _bs.get_data();
+
+    std::string json_value_end;
+
+	decltype(sz) i = 0;
+    while (i < sz - 1) // -1 because there is no need to check last character
+    {
+        bool found = false;
+        bool found_json = false;
+        auto n = markers_.size();
+        for (decltype(n) j = 0; j < n; j++)
+        {
+            auto & m = markers_[j];
+            if (sz - i > m.size() && strncmp(data + i, m.c_str(), m.size()) == 0)
+            {
+                i += m.size();
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+        {
+            n = markers_json_.size();
+            for (decltype(n) j = 0; j < n; j++) // we have to check both escaped and not escaped json markers, because everything is possible
+            {
+                auto & m = markers_json_[j];
+                if (sz - i > m.size() && strncmp(data + i, m.c_str(), m.size()) == 0)
+                {
+                    i += m.size();
+                    found_json = true;
+                    static std::string json_value_end_not_escaped = "\"";
+                    json_value_end = json_value_end_not_escaped;
+                    break;
+                }
+            }
+            if (!found_json)
+            {
+                n = markers_json_escaped_.size();
+                for (decltype(n) j = 0; j < n; j++)
+                {
+                    auto & m = markers_json_escaped_[j];
+                    if (sz - i > m.size() && strncmp(data + i, m.c_str(), m.size()) == 0)
+                    {
+                        i += m.size();
+                        found_json = true;
+                        static auto json_value_end_escaped = wim::wim_packet::escape_symbols("\"");
+                        json_value_end = json_value_end_escaped;
+                        break;
+                    }
+                }
+            }
+        }
+        if (found)
+        {
+            while (i <= sz && *(data + i) != '&')
+            {
+                *(data + i) = '*';
+                ++i;
+            }
+        }
+        else if (found_json)
+        {
+            while (i <= (sz - json_value_end.size()) && strncmp(data + i, json_value_end.c_str(), json_value_end.size()) != 0)
+            {
+                *(data + i) = '*';
+                ++i;
+            }
+        }
+        else
+        {
+            ++i;
+        }
+    }
 }

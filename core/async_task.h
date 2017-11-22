@@ -28,22 +28,12 @@ namespace core
     struct async_task_handlers
     {
         std::function<void(int32_t)>	on_result_;
-
-        async_task_handlers()
-        {
-            on_result_ = [](int32_t){};
-        }
     };
 
     template<typename T>
     struct t_async_task_handlers
     {
         std::function<void(T)>	on_result_;
-
-        t_async_task_handlers()
-        {
-            on_result_ = [](T){};
-        }
     };
 
     class auto_callback : private boost::noncopyable
@@ -77,7 +67,7 @@ namespace core
     class async_executer : core::tools::threadpool
     {
     public:
-        async_executer(unsigned long _count = 1);
+        explicit async_executer(unsigned long _count = 1);
         virtual ~async_executer();
 
         virtual std::shared_ptr<async_task_handlers> run_async_task(std::shared_ptr<async_task> task);

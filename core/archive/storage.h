@@ -36,11 +36,13 @@ namespace core
 
         class storage
         {
-            const std::wstring					file_name_;
-            std::list<storage_data_block>		data_list_;
-            std::unique_ptr<std::fstream>		active_file_stream_;
+            const std::wstring file_name_;
 
-            archive::error						last_error_;
+            std::list<storage_data_block> data_list_;
+
+            std::unique_ptr<std::fstream> active_file_stream_;
+
+            archive::error last_error_;
 
         public:
 
@@ -53,7 +55,7 @@ namespace core
             bool read_data_block(int64_t _offset, core::tools::binary_stream& _data);
             static bool fast_read_data_block(core::tools::binary_stream& buffer, int64_t& current_pos, int64_t& _begin, int64_t _end_position);
 
-            archive::error get_last_error() { return last_error_; }
+            archive::error get_last_error() const { return last_error_; }
 
             const std::wstring& get_file_name() const { return file_name_; }
 

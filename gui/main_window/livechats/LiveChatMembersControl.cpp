@@ -9,13 +9,13 @@ namespace Ui
     LiveChatMembersControl::LiveChatMembersControl(QWidget* _parent, std::shared_ptr<Data::ChatInfo> _info, const int _maxCount)
         :   QWidget(_parent),
             maxCount_(_maxCount),
-            color_(QColor("#ffffff")),
-            realCount_(_maxCount)
+            realCount_(_maxCount),
+            color_(QColor(ql1s("#ffffff")))
     {
         setFixedHeight(Utils::scale_value(controlHeight));
-        
+
         int i = 0;
-        for (const auto& chatMember : _info->Members_)
+        for (const auto& chatMember : Utils::as_const(_info->Members_))
         {
             assert(!chatMember.getFriendly().isEmpty());
             members_.push_back(std::make_pair(chatMember.AimId_, chatMember.getFriendly()));
@@ -23,7 +23,7 @@ namespace Ui
                 break;
         }
 
-        connect(Logic::GetAvatarStorage(), SIGNAL(avatarChanged(QString)), this, SLOT(onAvatarLoaded(QString)), Qt::QueuedConnection);
+        connect(Logic::GetAvatarStorage(), &Logic::AvatarStorage::avatarChanged, this, &LiveChatMembersControl::onAvatarLoaded, Qt::QueuedConnection);
     }
 
     LiveChatMembersControl::~LiveChatMembersControl()
@@ -50,7 +50,7 @@ namespace Ui
     void LiveChatMembersControl::adjustWidth()
     {
         int width = (sv(avatarWithFrameHeight) - sv(avatarIntersection) - sv(frameWidth)) * members_.size() + (sv(avatarIntersection) + sv(frameWidth));
-        
+
         setFixedWidth(width);
 
         realCount_ = (geometry().width() - sv(avatarWithFrameHeight)) / (sv(avatarWithFrameHeight) - sv(avatarIntersection) - sv(frameWidth)) + 1;
@@ -73,7 +73,7 @@ namespace Ui
         style()->drawPrimitive(QStyle::PE_Widget, &opt, &painter, this);
 
         int xOffset = 0;
-        
+
         int count = realCount_;
         for (const auto& chat : members_)
         {
@@ -86,7 +86,7 @@ namespace Ui
             painter.drawEllipse(xOffset, 0, sv(avatarWithFrameHeight), sv(avatarWithFrameHeight));
 
             bool isDefault = false;
-            const auto &avatar = Logic::GetAvatarStorage()->GetRounded(chat.first, chat.second, Utils::scale_bitmap(sv(avatarHeight)), QString(), true, isDefault, false, false);
+            const auto &avatar = Logic::GetAvatarStorage()->GetRounded(chat.first, chat.second, Utils::scale_bitmap(sv(avatarHeight)), QString(), isDefault, false, false);
 
             if (!avatar->isNull())
             {
@@ -118,7 +118,7 @@ namespace Ui
         members_.clear();
 
         int i = 0;
-        for (const auto& chatMember : _info->Members_)
+        for (const auto& chatMember : Utils::as_const(_info->Members_))
         {
             assert(!chatMember.getFriendly().isEmpty());
             members_.push_back(std::make_pair(chatMember.AimId_, chatMember.getFriendly()));

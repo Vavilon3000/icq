@@ -25,12 +25,21 @@ namespace core
 
     namespace wim
     {
+        archive::persons_map parse_persons(const rapidjson::Value &_node);
+
+        enum class message_order
+        {
+            direct,
+            reverse
+        };
+
         bool parse_history_messages_json(
             const rapidjson::Value &_node,
             const int64_t _older_msg_id,
             const std::string &_sender_aimid,
             Out archive::history_block &_block,
-            Out archive::persons_map& _persons);
+            const archive::persons_map& _persons,
+            message_order _order);
     }
 }
 

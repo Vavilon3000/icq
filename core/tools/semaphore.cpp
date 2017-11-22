@@ -5,7 +5,7 @@ using namespace core;
 using namespace tools;
 
 semaphore::semaphore(unsigned long count)
-    :	count_(count)
+    : count_(count)
 {
 }
 
@@ -16,14 +16,14 @@ semaphore::~semaphore()
 
 void semaphore::notify()
 {
-    std::unique_lock<std::mutex> lock(mtx_);
-    count_++;
+    boost::unique_lock<boost::mutex> lock(mtx_);
+    ++count_;
     cv_.notify_one();
 }
 
 void semaphore::wait()
 {
-    std::unique_lock<std::mutex> lock(mtx_);
+    boost::unique_lock<boost::mutex> lock(mtx_);
 
     cv_.wait(lock, [&]{ return count_ > 0; });
     --count_;

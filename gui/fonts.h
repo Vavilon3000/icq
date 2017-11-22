@@ -8,10 +8,7 @@ enum class FontFamily
 {
     MIN,
 
-    ARIAL,
-    HELVETICA_NEUE,
-    LUCIDA_GRANDE,
-    SAN_FRANCISCO,
+    OPEN_SANS,
     SEGOE_UI,
 
     MAX,
@@ -57,7 +54,7 @@ QString defaultAppFontQssWeight();
 
 FontWeight defaultAppFontWeight();
 
-QString SetFont(const QString& _qss);
+QString SetFont(QString _qss);
 
 FONTS_NS_END
 

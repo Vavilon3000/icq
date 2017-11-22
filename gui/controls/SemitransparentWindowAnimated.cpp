@@ -7,6 +7,8 @@ namespace
 {
     const int min_step = 0;
     const int max_step = 100;
+    const char* semiWindowsCountProperty          = "SemiwindowsCount";
+    const char* semiWindowsTouchSwallowedProperty = "SemiwindowsTouchSwallowed";
 }
 
 namespace Ui
@@ -17,24 +19,18 @@ namespace Ui
         , main_(false)
         , isMainWindow_(false)
     {
-        Animation_ = new QPropertyAnimation(this, "step");
+        Animation_ = new QPropertyAnimation(this, QByteArrayLiteral("step"), this);
         Animation_->setDuration(_duration);
 
         updateSize();
 
-        connect(Animation_, SIGNAL(finished()), this, SLOT(finished()), Qt::QueuedConnection);
-    }
-
-    SemitransparentWindowAnimated::~SemitransparentWindowAnimated()
-    {
-        Utils::InterConnector::instance().decSemiwindowsCount();
+        connect(Animation_, &QPropertyAnimation::finished, this, &SemitransparentWindowAnimated::finished, Qt::QueuedConnection);
     }
 
     void SemitransparentWindowAnimated::Show()
     {
-        auto& interConnector = Utils::InterConnector::instance();
-        main_ = (interConnector.getSemiwindowsCount() == 0);
-        interConnector.incSemiwindowsCount();
+        main_ = (getSemiwindowsCount() == 0);
+        incSemiwindowsCount();
 
         Animation_->stop();
         Animation_->setCurrentTime(0);
@@ -58,7 +54,12 @@ namespace Ui
     void SemitransparentWindowAnimated::forceHide()
     {
         hide();
-        Utils::InterConnector::instance().decSemiwindowsCount();
+        decSemiwindowsCount();
+    }
+
+    bool SemitransparentWindowAnimated::isSemiWindowVisible() const
+    {
+        return getSemiwindowsCount() != 0;
     }
 
     void SemitransparentWindowAnimated::finished()
@@ -75,7 +76,7 @@ namespace Ui
         if (main_)
         {
             QPainter p(this);
-            QColor windowOpacity("#000000");
+            QColor windowOpacity(ql1s("#000000"));
             windowOpacity.setAlphaF(0.7 * (Step_ / (double)max_step));
             p.fillRect(rect(), windowOpacity);
         }
@@ -84,10 +85,9 @@ namespace Ui
     void SemitransparentWindowAnimated::mousePressEvent(QMouseEvent *e)
     {
         QWidget::mousePressEvent(e);
-        auto& interConnector = Utils::InterConnector::instance();
-        if (!interConnector.isSemiWindowsTouchSwallowed())
+        if (!isSemiWindowsTouchSwallowed())
         {
-            interConnector.setSemiwindowsTouchSwallowed(true);
+            setSemiwindowsTouchSwallowed(true);
             emit Utils::InterConnector::instance().closeAnySemitransparentWindow();
         }
     }
@@ -113,5 +113,83 @@ namespace Ui
 
             move(0, titleHeight);
         }
+    }
+
+    void SemitransparentWindowAnimated::decSemiwindowsCount()
+    {
+        if (window())
+        {
+            auto variantCount = window()->property(semiWindowsCountProperty);
+            if (variantCount.isValid())
+            {
+                int count = variantCount.toInt() - 1;
+                if (count < 0)
+                {
+                    count = 0;
+                }
+
+                if (count == 0)
+                    setSemiwindowsTouchSwallowed(false);
+
+                window()->setProperty(semiWindowsCountProperty, count);
+            }
+        }
+    }
+
+    void SemitransparentWindowAnimated::incSemiwindowsCount()
+    {
+        if (window())
+        {
+            int count = 0;
+            auto variantCount = window()->property(semiWindowsCountProperty);
+            if (variantCount.isValid())
+            {
+                count = variantCount.toInt();
+            }
+            count++;
+
+            window()->setProperty(semiWindowsCountProperty, count);
+        }
+    }
+
+    int  SemitransparentWindowAnimated::getSemiwindowsCount() const
+    {
+        int res = 0;
+        if (window())
+        {
+            auto variantCount = window()->property(semiWindowsCountProperty);
+            if (variantCount.isValid())
+            {
+                res = variantCount.toInt();
+            }
+        }
+        return res;
+    }
+
+    bool SemitransparentWindowAnimated::isSemiWindowsTouchSwallowed() const
+    {
+        bool res = false;
+        if (window())
+        {
+            auto variantCount = window()->property(semiWindowsTouchSwallowedProperty);
+            if (variantCount.isValid())
+            {
+                res = variantCount.toBool();
+            }
+        }
+        return res;
+    }
+
+    void SemitransparentWindowAnimated::setSemiwindowsTouchSwallowed(bool _val)
+    {
+        if (window())
+        {
+            window()->setProperty(semiWindowsTouchSwallowedProperty, _val);
+        }
+    }
+
+    void SemitransparentWindowAnimated::hideEvent(QHideEvent * event)
+    {
+        decSemiwindowsCount();
     }
 }

@@ -9,9 +9,9 @@
 using namespace core;
 using namespace wim;
 
-get_hosts_config::get_hosts_config(const wim_packet_params& params, const std::string& _config_url)
-    :   wim_packet(params),
-        config_url_(_config_url)
+get_hosts_config::get_hosts_config(wim_packet_params params, std::string _config_url)
+    :   wim_packet(std::move(params)),
+        config_url_(std::move(_config_url))
 {
 }
 

@@ -76,7 +76,7 @@ namespace core
 
             char format_buffer[10];
 
-            for (int32_t i = 0; i < MD5_DIGEST_LENGTH; i++)
+            for (int32_t i = 0; i < MD5_DIGEST_LENGTH; ++i)
             {
 #ifdef _WIN32
                 sprintf_s(format_buffer, 10, "%02x", md5digest[i]);

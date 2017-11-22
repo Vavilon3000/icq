@@ -76,7 +76,7 @@ namespace core
         {
             if (core::dump::report_sender::is_report_existed())
             {
-                send_thread_.reset(new async_executer());
+                send_thread_ = std::make_unique<async_executer>();
 
                 auto user_proxy = g_core->get_proxy_settings();
 

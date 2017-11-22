@@ -8,12 +8,12 @@ using namespace core;
 using namespace wim;
 
 add_buddy::add_buddy(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _aimid,
     const std::string& _group,
     const std::string& _auth_message)
 
-    :	wim_packet(_params),
+    :	wim_packet(std::move(_params)),
     aimid_(_aimid),
     group_(_group),
     auth_message_(_auth_message)
@@ -42,6 +42,13 @@ int32_t add_buddy::init_request(std::shared_ptr<core::http_request_simple> _requ
 
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

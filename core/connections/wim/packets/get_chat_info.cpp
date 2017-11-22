@@ -7,9 +7,9 @@ using namespace core;
 using namespace wim;
 
 
-get_chat_info::get_chat_info(const wim_packet_params& _params, const get_chat_info_params& _chat_params)
-    :   robusto_packet(_params),
-        params_(_chat_params)
+get_chat_info::get_chat_info(wim_packet_params _params, get_chat_info_params _chat_params)
+    :   robusto_packet(std::move(_params)),
+        params_(std::move(_chat_params))
 {
 }
 
@@ -42,20 +42,23 @@ int32_t get_chat_info::init_request(std::shared_ptr<core::http_request_simple> _
     {
         node_params.AddMember("stamp", params_.stamp_, a);
     }
-    else
-    {
-        assert(false);
-    }
 
     if (params_.members_limit_ != 0)
         node_params.AddMember("memberLimit", params_.members_limit_, a);
-    doc.AddMember("params", node_params, a);
+    doc.AddMember("params", std::move(node_params), a);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
 
-    _request->push_post_parameter(buffer.GetString(), "");
+    _request->push_post_parameter(buffer.GetString(), std::string());
+
+    if (!robusto_packet::params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_json_marker("authToken");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

@@ -8,9 +8,9 @@ using namespace core;
 using namespace wim;
 
 mrim_get_key::mrim_get_key(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _email)
-    :	wim_packet(_params),
+    :	wim_packet(std::move(_params)),
     email_(_email)
 {
 }
@@ -30,6 +30,13 @@ int32_t mrim_get_key::init_request(std::shared_ptr<core::http_request_simple> _r
 
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }
@@ -67,7 +74,7 @@ int32_t mrim_get_key::parse_response(std::shared_ptr<core::tools::binary_stream>
         if (iter_key == iter_data->value.MemberEnd() || !iter_key->value.IsString())
             return wpie_http_parse_response;
 
-        mrim_key_ = iter_key->value.GetString();
+        mrim_key_ = rapidjson_get_string(iter_key->value);
     }
 
     return 0;

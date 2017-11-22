@@ -2,6 +2,8 @@
 
 #include "../../namespaces.h"
 
+#include "../../animation/animation.h"
+
 namespace Themes
 {
     class IThemePixmap;
@@ -71,7 +73,7 @@ public:
 
     ActionButtonWidget(const ResourceSet &resourceIds, QWidget *parent = nullptr);
 
-    virtual ~ActionButtonWidget() override;
+    ~ActionButtonWidget();
 
     QPoint getCenterBias() const;
 
@@ -99,20 +101,24 @@ public:
 
     void stopAnimation();
 
+    void onVisibilityChanged(const bool isVisible);
+
 protected:
-    virtual void enterEvent(QEvent *event) override;
+    void enterEvent(QEvent *event) override;
 
-    virtual void hideEvent(QHideEvent*) override;
+    void hideEvent(QHideEvent*) override;
 
-    virtual void leaveEvent(QEvent *event) override;
+    void showEvent(QShowEvent *) override;
 
-    virtual void mouseMoveEvent(QMouseEvent *event) override;
+    void leaveEvent(QEvent *event) override;
 
-    virtual void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
 
-    virtual void mouseReleaseEvent(QMouseEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
-    virtual void paintEvent(QPaintEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     Q_PROPERTY(int ProgressBarBaseAngle READ getProgressBarBaseAngle WRITE setProgressBarBaseAngle)
@@ -138,6 +144,9 @@ private:
     void startProgressBarAnimation();
 
     void stopProgressBarAnimation();
+
+    void pauseAnimation();
+    void resumeAnimation();
 
     QTimer *AnimationStartTimer_;
 
@@ -178,6 +187,8 @@ private:
     bool IsAnimating_;
 
     ActionButtonWidgetLayout *Layout_;
+
+    anim::Animation animation_;
 
 private Q_SLOTS:
     void onAnimationStartTimeout();

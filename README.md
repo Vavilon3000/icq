@@ -1,25 +1,25 @@
 ### Windows
 
-Download external libraries here https://icq.com/files/X6ik0E9FUlKb2W5BSpA3g059674c591bb and extract it to ./external folder
+Download external libraries here https://files.icq.net/get/qx4fjqCBhKbqfWDaKubUVD5a155dbc1bb and extract it to ./external folder
 
 From the root of project directory:
     mkdir build
     cd build
 
-You can build project with Visual Studio 2012 or with NMake
+You can build project with Visual Studio 2017 or with NMake
 
-Visual Studio 2012:
-    cmake .. -G "Visual Studio 11 2012" -T "v110_xp" -DCMAKE_BUILD_TYPE=Debug (also you can set Release instead Debug)
+Visual Studio 2017:
+    cmake .. -G "Visual Studio 15 2017" -T "v141_xp" -DCMAKE_BUILD_TYPE=Debug (also you can set Release instead Debug)
     Open build\icq.sln and build
 
 NMake:
-    cmake .. -G "NMake Makefiles" -T "v110_xp" -DCMAKE_BUILD_TYPE=Debug (also you can set Release instead Debug)
+    cmake .. -G "NMake Makefiles" -T "v141_xp" -DCMAKE_BUILD_TYPE=Debug (also you can set Release instead Debug)
     nmake
 
 
 ### MacOS
 
-Download external libraries here https://icq.com/files/X6ik0E9FUlKb2W5BSpA3g059674c591bb and extract it to ./external folder
+Download external libraries here https://files.icq.net/get/qx4fjqCBhKbqfWDaKubUVD5a155dbc1bb and extract it to ./external folder
 
 From the root of project directory:
     mkdir build
@@ -38,7 +38,7 @@ make:
 
 ### Linux
 
-Download external libraries here https://icq.com/files/X6ik0E9FUlKb2W5BSpA3g059674c591bb and extract it to ./external folder
+Download external libraries here https://files.icq.net/get/qx4fjqCBhKbqfWDaKubUVD5a155dbc1bb and extract it to ./external folder
 
 In order to build ICQ execute the following command line (change -DLINUX_ARCH=32 to -DLINUX_ARCH=64 for 64bit binaries):
 

@@ -16,7 +16,7 @@ namespace core
 {
     namespace wim
     {
-        struct get_chat_blocked_params 
+        struct get_chat_blocked_params
         {
             std::string		aimid_;
         };
@@ -33,8 +33,8 @@ namespace core
             std::list<chat_member_info>					result_;
 
             get_chat_blocked(
-                const wim_packet_params& _params, 
-                const get_chat_blocked_params& _chat_params);
+                wim_packet_params _params,
+                get_chat_blocked_params _chat_params);
 
             virtual ~get_chat_blocked();
         };

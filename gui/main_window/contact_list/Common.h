@@ -4,6 +4,7 @@
 #include "../../controls/CommonStyle.h"
 #include "../../fonts.h"
 #include "../../utils/utils.h"
+#include "../../cache/emoji/Emoji.h"
 
 FONTS_NS_BEGIN
 
@@ -19,50 +20,53 @@ namespace Ui
 
 namespace ContactList
 {
-	typedef std::unique_ptr<Ui::TextEditEx> TextEditExUptr;
+    typedef std::unique_ptr<Ui::TextEditEx> TextEditExUptr;
 
-	struct VisualDataBase
-	{
-		VisualDataBase(
-			const QString& _aimId,
-			const QPixmap& _avatar,
-			const QString& _state,
-			const QString& _status,
-			const bool _isHovered,
-			const bool _isSelected,
-			const QString& _contactName,
-			const bool _hasLastSeen,
-			const QDateTime& _lastSeen,
-			const bool _isWithCheckBox,
-            bool _isChatMember,
-            bool _official,
+    struct VisualDataBase
+    {
+        VisualDataBase(
+            const QString& _aimId,
+            const QPixmap& _avatar,
+            const QString& _state,
+            const QString& _status,
+            const bool _isHovered,
+            const bool _isSelected,
+            const QString& _contactName,
+            const bool _hasLastSeen,
+            const QDateTime& _lastSeen,
+            const bool _isWithCheckBox,
+            const bool _isChatMember,
+            const bool _official,
             const bool _drawLastRead,
             const QPixmap& _lastReadAvatar,
             const QString& role,
-            int _UnreadsCounter,
-            const QString _term);
+            const int _UnreadsCounter,
+            const QString& _term,
+            const bool _muted,
+            const bool _notInCL
+        );
 
-		const QString AimId_;
+        const QString AimId_;
 
-		const QPixmap &Avatar_;
+        const QPixmap &Avatar_;
 
-		const QString State_;
+        const QString State_;
 
-		const QString &ContactName_;
+        const QString &ContactName_;
 
-		const bool IsHovered_;
+        const bool IsHovered_;
 
-		const bool IsSelected_;
+        const bool IsSelected_;
 
-		const bool HasLastSeen_;
+        const bool HasLastSeen_;
 
-		const QDateTime LastSeen_;
+        const QDateTime LastSeen_;
 
-		bool IsOnline() const { return HasLastSeen_ && !LastSeen_.isValid(); }
+        bool IsOnline() const { return HasLastSeen_ && !LastSeen_.isValid(); }
 
-		bool HasLastSeen() const { return HasLastSeen_; }
+        bool HasLastSeen() const { return HasLastSeen_; }
 
-		const bool isCheckedBox_;
+        const bool isCheckedBox_;
 
         bool isChatMember_;
 
@@ -84,24 +88,25 @@ namespace ContactList
 
         const QString searchTerm_;
 
+        const bool isMuted_;
+        const bool notInCL_;
+
     private:
         QString Status_;
-	};
+    };
 
-	QString FormatTime(const QDateTime &_time);
+    QString FormatTime(const QDateTime &_time);
 
-	TextEditExUptr CreateTextBrowser(const QString& _name, const QString& _stylesheet, const int _textHeight);
+    TextEditExUptr CreateTextBrowser(const QString& _name, const QString& _stylesheet, const int _textHeight);
 
-    QLineEdit *CreateTextBrowser2(const QString& _name, const QString& _stylesheet, const int _textHeight);
-    
-	int ItemWidth(bool _fromAlert, bool _isWithCheckBox, bool _isPictureOnlyView = false);
+    int ItemWidth(bool _fromAlert, bool _isWithCheckBox, bool _isPictureOnlyView = false);
 
     struct ViewParams;
     int ItemWidth(const ViewParams& _viewParams);
 
     int CorrectItemWidth(int _itemWidth, int _fixedWidth);
 
-	int ItemLength(bool _isWidth, double _koeff, int _addWidth);
+    int ItemLength(bool _isWidth, double _koeff, int _addWidth);
     int ItemLength(bool _isWidth, double _koeff, int _addWidth, QWidget* parent);
 
     bool IsPictureOnlyView();
@@ -136,152 +141,195 @@ namespace ContactList
     public:
 
         //Common
-        const int itemHeight() const { return isCl_ ? Utils::scale_value(44) : Utils::scale_value(64); }
-        const int itemWidth() const { return Utils::scale_value(320); }
-        const int itemHorPadding() const { return  Utils::scale_value(16); }
-        const int itemContentPadding() const { return Utils::scale_value(16); }
-        const int getItemMiddleY()
+        int itemHeight() const { return isCl_ ? Utils::scale_value(44) : Utils::scale_value(64); }
+        int globalItemHeight() const { return Utils::scale_value(48); }
+        int itemWidth() const { return Utils::scale_value(320); }
+        int itemHorPadding() const { return  Utils::scale_value(16); }
+        int itemContentPadding() const { return Utils::scale_value(16); }
+        int getItemMiddleY() const
         {
-            return avatarSize() / 2 + avatarY();
+            return getAvatarSize() / 2 + getAvatarY();
         };
-        const int serviceItemHeight() { return  Utils::scale_value(24); }
-        const int serviceItemIconPadding() {return Utils::scale_value(12); }
+        int serviceItemHeight() const { return  Utils::scale_value(24); }
+        int serviceButtonHeight() const { return  Utils::scale_value(44); }
+        int serviceItemIconPadding() const { return Utils::scale_value(12); }
 
         //Contact avatar
-        int avatarX() const
+        int getAvatarX() const
         {
-            if (!isCl_) return itemHorPadding();
-            return withCheckBox_ ? itemHorPadding() + checkboxSize() + Utils::scale_value(12) : itemHorPadding();
+            if (isCl_ && withCheckBox_)
+                return itemHorPadding() + checkboxSize() + Utils::scale_value(12);
+
+            return itemHorPadding();
         }
-        const int avatarY() const
+        int getAvatarY() const
         {
-            return (itemHeight() - avatarSize()) / 2;
+            return (itemHeight() - getAvatarSize()) / 2;
         }
-        const int avatarSize() const
+        int getAvatarSize() const
         {
-            if (!isCl_) return Utils::scale_value(48);
-            return Utils::scale_value(32);
+            return (!isCl_) ?
+                Utils::scale_value(48) : Utils::scale_value(32);
         }
 
         //Contact name
-        int GetContactNameX() const
+        int getContactNameX() const
         {
-            if (!isCl_) return  avatarX() + avatarSize() + itemContentPadding();
-            return (avatarX() + avatarSize() + Utils::scale_value(12) + leftMargin_);
+            return (!isCl_) ?
+                (getAvatarX() + getAvatarSize() + itemContentPadding()) :
+                (getAvatarX() + getAvatarSize() + Utils::scale_value(12) + leftMargin_);
         }
-        const int nameY() { return  Utils::scale_value(10); }
-        const int nameYForMailStatus() { return  Utils::scale_value(20); }
-        const int contactNameFontSize() { return Utils::scale_value(16); }
-        const int contactNameHeight() { return  Utils::scale_value(22); }
-        const int contactNameCenterY() { return  Utils::scale_value(10); }
-        const int contactNameTopY() { return  Utils::scale_value(2); }
-        QString getContactNameStylesheet(const QString& _fontColor, const Fonts::FontWeight _fontWeight)
+        int getContactNameY() const
+        {
+            return (!isCl_) ?
+                Utils::scale_value(10) : Utils::scale_value(10);
+        }
+
+        int nameYForMailStatus() const
+        {
+            return Utils::scale_value(20);
+        }
+
+        int contactNameFontSize() const
+        {
+            return platform::is_windows_vista_or_late() ?
+                Utils::scale_value(16) : Utils::scale_value(15);
+        }
+
+        int contactNameHeight() const
+        {
+            return Utils::scale_value(22);
+        }
+
+        QString getContactNameStylesheet(const QString& _fontColor, const Fonts::FontWeight _fontWeight) const
         {
             assert(_fontWeight > Fonts::FontWeight::Min);
             assert(_fontWeight < Fonts::FontWeight::Max);
 
             const auto fontQss = Fonts::appFontFullQss(contactNameFontSize(), Fonts::defaultAppFontFamily(), _fontWeight);
-            const auto result =
-                QString("%1; color: %2; background-color: transparent;").arg(fontQss).arg(_fontColor);
-
-            return result;
+            return qsl("%1; color: %2; background-color: transparent;").arg(fontQss, _fontColor);
         };
 
-        const QColor getNameFontColor(bool _isSelected, bool _isMemberChecked) const
+        QFont getContactNameFont(const Fonts::FontWeight _fontWeight) const
         {
-            return _isSelected ? QColor("#ffffff") : _isMemberChecked ? QColor("#579e1c") : QColor("#000000");
+            return Fonts::appFontScaled(contactNameFontSize(), _fontWeight);
+        }
+
+        QColor getNameFontColor(bool _isSelected, bool _isMemberChecked) const
+        {
+            return _isSelected ?
+                QColor(ql1s("#ffffff")) : _isMemberChecked ?
+                CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT) :
+                CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY);
         }
 
         //Message
-        const int messageFontSize() { return  Utils::scale_value(14); }
-        const int messageHeight() { return  Utils::scale_value(24); }
-        const int messageX() { return  GetContactNameX(); }
-        const int messageY() const { return  Utils::scale_value(30); }
-        const QString getRecentsMessageFontColor(const bool _isUnread)
+        int messageFontSize() const
         {
-            const auto color = Utils::rgbaStringFromColor(_isUnread ? "#000000" : "#767676");
+            return platform::is_windows_vista_or_late() ?
+                Utils::scale_value(14) : Utils::scale_value(13);
+        }
+
+        int globalContactMessageFontSize() const
+        {
+            return Utils::scale_value(12);
+        }
+
+        int messageHeight() const
+        {
+            return  Utils::scale_value(24);
+        }
+
+        int messageX() const
+        {
+            return  getContactNameX();
+        }
+
+        int messageY() const
+        {
+            return  Utils::scale_value(30);
+        }
+
+        QString getRecentsMessageFontColor(const bool _isUnread) const
+        {
+            const auto color = _isUnread ?
+                CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY).name() :
+                CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT).name();
 
             return color;
         };
 
-        const QString getMessageStylesheet(const bool _isUnread, const bool _isSelected)
+        QString getMessageStylesheet(const int _fontSize, const bool _isUnread, const bool _isSelected) const
         {
             const auto fontWeight = Fonts::FontWeight::Normal;
-            const auto fontQss = Fonts::appFontFullQss(messageFontSize(), Fonts::defaultAppFontFamily(), fontWeight);
-            const auto fontColor = _isSelected ? "#ffffff" : getRecentsMessageFontColor(_isUnread);
-            const auto result =
-                QString("%1; color: %2; background-color: transparent").arg(fontQss).arg(fontColor);
-
-            return result;
+            const auto fontQss = Fonts::appFontFullQss(_fontSize, Fonts::defaultAppFontFamily(), fontWeight);
+            const auto fontColor = _isSelected ? qsl("#ffffff") : getRecentsMessageFontColor(_isUnread);
+            return qsl("%1; color: %2; background-color: transparent").arg(fontQss, fontColor);
         };
 
         //Unknown contacts page
-        const int unknownsUnreadsY(bool _pictureOnly)
+        int unknownsUnreadsY(bool _pictureOnly) const
         {
             return _pictureOnly ? Utils::scale_value(4) : Utils::scale_value(14);
         }
-        const int unknownsItemHeight() { return  Utils::scale_value(40); }
-
-        //Contact status
-        int GetStatusX() { return GetContactNameX(); }
-        const int statusY() { return  Utils::scale_value(21); }
-        const int statusHeight() { return  Utils::scale_value(20); }
-        const QString getStatusStylesheet(bool _isSelected)
-        {
-            return QString("font: %1 %2px \"%3\"; color: %4; background-color: transparent")
-                .arg(Fonts::defaultAppFontQssWeight())
-                .arg(Utils::scale_value(13))
-                .arg(Fonts::defaultAppFontQssName())
-                .arg(_isSelected ? "#ffffff" : "#767676");
-        };
+        int unknownsItemHeight() const { return  Utils::scale_value(40); }
 
         //Time
-        const int timeY() const
+        int timeY() const
         {
-            return !isCl_ ? avatarY() + Utils::scale_value(24) : Utils::scale_value(27);
+            return !isCl_ ?
+                (getAvatarY() + Utils::scale_value(24)) : Utils::scale_value(27);
         }
-        const QFont timeFont() const { return Fonts::appFontScaled(12); }
-        const QColor timeFontColor(bool _isSelected) const
+
+        QFont timeFont() const
         {
-            return _isSelected ? QColor("#ffffff") : QColor("#767676");
+            return Fonts::appFontScaled(12);
+        }
+
+        QColor timeFontColor(bool _isSelected) const
+        {
+            return _isSelected ? QColor(ql1s("#ffffff")) : CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY);
         }
 
         //Additional options
-        const int checkboxSize() const { return Utils::scale_value(20); }
-        const QSize removeSize() const { return QSize(Utils::scale_value(28), Utils::scale_value(24)); }
-        const int role_offset() const { return  Utils::scale_value(24); }
-        const int role_ver_offset() const { return Utils::scale_value(4); }
+        int checkboxSize() const { return Utils::scale_value(20); }
+        QSize removeSize() const { return QSize(Utils::scale_value(28), Utils::scale_value(24)); }
+        int role_offset() const { return  Utils::scale_value(24); }
+        int role_ver_offset() const { return Utils::scale_value(4); }
 
         //Groups in Contact list
-        const int groupY() { return Utils::scale_value(17); }
-        const QFont groupFont() { return Fonts::appFontScaled(12); }
-        const QColor groupColor() { return QColor("#579e1c"); }
+        int groupY()  const { return Utils::scale_value(17); }
+        QFont groupFont() const { return Fonts::appFontScaled(12); }
+        QColor groupColor() const { return CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT); }
 
         //Unreads counter
-        const QFont unreadsFont() { return Fonts::appFontScaled(13, Fonts::FontWeight::Medium); }
-        const int unreadsPadding() { return  Utils::scale_value(8); }
+        QFont unreadsFont() const { return Fonts::appFontScaled(13, Fonts::FontWeight::Medium); }
+        int unreadsPadding() const { return  Utils::scale_value(8); }
 
         //Last seen
         int lastReadY() const { return  Utils::scale_value(38); }
         int getLastReadAvatarSize() const { return Utils::scale_value(12); }
-        const int getlastReadLeftMargin() const { return Utils::scale_value(4); }
-        const int getlastReadRightMargin() const { return Utils::scale_value(4); }
+        int getlastReadLeftMargin() const { return Utils::scale_value(4); }
+        int getlastReadRightMargin() const { return Utils::scale_value(4); }
 
 
-        const QFont emptyIgnoreListFont() { return Fonts::appFontScaled(16); }
+        QFont emptyIgnoreListFont() const { return Fonts::appFontScaled(16); }
 
         //Search in the dialog
-        const QColor searchInAllChatsColor() { return QColor("#579e1c"); }
-        const QFont searchInAllChatsFont() { return Fonts::appFontScaled(14, Fonts::FontWeight::Medium); }
-        const int searchInAllChatsHeight() { return   Utils::scale_value(48); }
-        const int searchInAllChatsY() { return Utils::scale_value(28); }
+        QColor searchInAllChatsColor() const { return CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT); }
+        QFont searchInAllChatsFont() const { return Fonts::appFontScaled(14, Fonts::FontWeight::Medium); }
+        int searchInAllChatsHeight() const { return   Utils::scale_value(48); }
+        int searchInAllChatsY() const { return Utils::scale_value(28); }
 
-        const int dragOverlayPadding() { return Utils::scale_value(8); }
-        const int dragOverlayBorderWidth() { return Utils::scale_value(2); }
-        const int dragOverlayBorderRadius() { return Utils::scale_value(8); }
-        const int dragOverlayVerPadding() { return  Utils::scale_value(1); }
+        int dragOverlayPadding() const { return Utils::scale_value(8); }
+        int dragOverlayBorderWidth() const { return Utils::scale_value(2); }
+        int dragOverlayBorderRadius() const { return Utils::scale_value(8); }
+        int dragOverlayVerPadding() const { return  Utils::scale_value(1); }
 
-        const int official_hor_padding() { return  Utils::scale_value(6); }
+        int official_hor_padding() const { return  Utils::scale_value(2); }
+        int mute_hor_padding() const { return  Utils::scale_value(2); }
+
+        int globalSearchHeaderHeight() const { return Utils::scale_value(32); }
 
         ContactListParams(bool _isCl)
             : isCl_(_isCl)
@@ -325,8 +373,8 @@ namespace ContactList
             withCheckBox_ = false;
         }
 
-        const int favoritesStatusPadding() { return  Utils::scale_value(4); }
-        
+        int favoritesStatusPadding() { return  Utils::scale_value(4); }
+
         QRect& addContactFrame()
         {
             static QRect addContactFrameRect(0, 0, 0, 0);
@@ -345,16 +393,6 @@ namespace ContactList
             return deleteAllFrameRect;
         }
 
-        //snaps
-        const int snapItemHeight() const { return Utils::scale_value(116); }
-        const int snapItemWidth() const { return Utils::scale_value(68); }
-        const int snapGradientHeight() const { return Utils::scale_value(40); }
-        const int snapPreviewHeight() const { return Utils::scale_value(100); }
-        const int snapPreviewWidth() const { return Utils::scale_value(60); }
-        const int snapLeftPadding() const { return Utils::scale_value(4); }
-        const int snapTopPadding() const { return Utils::scale_value(4); }
-        const int snapNameBottomPadding() const { return Utils::scale_value(12); }
-
     private:
         bool isCl_;
         bool withCheckBox_;
@@ -365,17 +403,40 @@ namespace ContactList
 
     ContactListParams& GetRecentsParams(int _regim);
 
-    void RenderAvatar(QPainter &_painter, int _x, const QPixmap& _avatar, ContactList::ContactListParams& _contactList);
+    void RenderAvatar(QPainter &_painter, const int _x, const int _y, const QPixmap& _avatar, const int _avatarSize);
 
-    void RenderMouseState(QPainter &_painter, const bool isHovered, const bool _isSelected, const ContactList::ContactListParams& _contactList, const ContactList::ViewParams& _viewParams);
+    void RenderMouseState(QPainter &_painter, const bool isHovered, const bool _isSelected, const ContactList::ViewParams& _viewParams, const int _height);
+    void RenderMouseState(QPainter &_painter, const bool isHovered, const bool _isSelected, const QRect& _rect);
 
-    void RenderContactName(QPainter &_painter, const ContactList::VisualDataBase &_visData, const int _y, const int _rightMargin, ContactList::ViewParams _viewParams, ContactList::ContactListParams& _contactList);
+    void RenderContactName(
+        QPainter &_painter,
+        const ContactList::VisualDataBase &_visData,
+        const int _y,
+        const int _rightMargin,
+        ContactList::ViewParams _viewParams,
+        ContactList::ContactListParams& _contactList);
 
-    int RenderDate(QPainter &_painter, const QDateTime &_date, const VisualDataBase &_item, ContactListParams& _contactList, const ViewParams& _viewParams);
+    int RenderContactNameNative(QPainter &_painter,
+        const int _y,
+        const int _maxWidth,
+        const ContactList::ContactListParams& _contactList,
+        const Fonts::FontWeight _weight,
+        const QColor _color,
+        const QString& _name,
+        const QString &_term = QString());
 
-    int RenderAddContact(QPainter &_painter, int& _rightMargin, bool _isSelected, ContactListParams& _recentParams);
-    
-    void RenderCheckbox(QPainter &_painter, const VisualDataBase &_visData, ContactListParams& _contactList);
+    void highlightMatchedTerm(const QString& _text,
+        const QString& _term,
+        Ui::TextEditEx& _edit,
+        int maxWidth,
+        const Emoji::EmojiSizePx _emojiSize,
+        int fontSize);
+
+    int RenderDate(QPainter &_painter, const QDateTime &_date, const VisualDataBase &_item, const ContactListParams& _contactList, const ViewParams& _viewParams);
+
+    int RenderAddContact(QPainter &_painter, const int _rightMargin, const bool _isSelected, ContactListParams& _recentParams);
+
+    void RenderCheckbox(QPainter &_painter, const VisualDataBase &_visData, const ContactListParams& _contactList);
 
     int RenderRemove(QPainter &_painter, bool _isSelected, ContactListParams& _contactList, const ViewParams& _viewParams);
 
@@ -388,6 +449,7 @@ namespace Logic
 {
     class AbstractItemDelegateWithRegim : public QItemDelegate
     {
+        Q_OBJECT
     public:
         AbstractItemDelegateWithRegim(QObject* parent)
             : QItemDelegate(parent)
@@ -395,5 +457,9 @@ namespace Logic
         virtual void setRegim(int _regim) = 0;
 
         virtual void setFixedWidth(int width) = 0;
+
+        virtual void blockState(bool value) = 0;
+
+        virtual void setDragIndex(const QModelIndex& index) = 0;
     };
 }

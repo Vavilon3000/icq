@@ -2,6 +2,7 @@
 
 namespace Ui
 {
+    class LabelEx;
     class LineEditEx;
 
     class IntroduceYourself : public QWidget
@@ -20,7 +21,7 @@ namespace Ui
     private:
         LineEditEx*     name_edit_;
         QPushButton*   next_button_;
-        QLabel*        error_label_;
+        LabelEx*        error_label_;
         QVBoxLayout *main_layout_;
         void UpdateError(bool _is_error);
         void setButtonActive(bool _is_active);

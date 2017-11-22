@@ -34,8 +34,8 @@ namespace core
 
         class sticker
         {
-            int32_t		id_;
-            size_map	sizes_;
+            int32_t id_;
+            size_map sizes_;
 
         public:
 
@@ -62,8 +62,8 @@ namespace core
 
         class set_icon
         {
-            set_icon_size	size_;
-            std::string		url_;
+            set_icon_size size_;
+            std::string url_;
 
         public:
             set_icon();
@@ -74,20 +74,31 @@ namespace core
         };
 
 
-        typedef std::map<stickers::set_icon_size, set_icon>		icons_map;
-        typedef std::list<std::shared_ptr<sticker>>				stickers_list;
+        typedef std::map<stickers::set_icon_size, set_icon> icons_map;
+        typedef std::list<std::shared_ptr<sticker>> stickers_list;
 
         //////////////////////////////////////////////////////////////////////////
         //
         //////////////////////////////////////////////////////////////////////////
         class set
         {
-            int32_t			id_;
-            std::string		name_;
-            bool			show_;
+            int32_t id_;
 
-            icons_map		icons_;
-            stickers_list	stickers_;
+            std::string name_;
+
+            bool show_;
+
+            bool purchased_;
+
+            std::string store_id_;
+
+            std::string description_;
+
+            bool user_;
+
+            icons_map icons_;
+
+            stickers_list stickers_;
 
         public:
 
@@ -100,10 +111,22 @@ namespace core
             void set_name(const std::string& _name);
 
             void put_icon(const set_icon& _icon);
-            set_icon get_icon(stickers::set_icon_size _size);
+            set_icon get_icon(stickers::set_icon_size _size) const;
 
             bool is_show() const;
-            void set_show(bool _show);
+            void set_show(const bool _show);
+
+            bool is_purchased() const;
+            void set_purchased(const bool _purchased);
+
+            bool is_user() const;
+            void set_user(const bool _user);
+
+            const std::string& get_store_id() const;
+            void set_store_id(const std::string& _store_id);
+
+            const std::string& get_description() const;
+            void set_description(const std::string& _description);
 
             const icons_map& get_icons() const;
             const stickers_list& get_stickers() const;
@@ -118,11 +141,6 @@ namespace core
         {
         public:
             std::function<void(t0_, t1_, t2_)>	on_result_;
-
-            result_handler()
-            {
-                on_result_ = [](t0_, t1_, t2_){};
-            }
         };
 
         template<class t0_>
@@ -130,11 +148,6 @@ namespace core
         {
         public:
             std::function<void(t0_)>	on_result_;
-
-            result_handler()
-            {
-                on_result_ = [](t0_){};
-            }
         };
 
         template<class t0_, class t1_>
@@ -142,10 +155,6 @@ namespace core
         {
         public:
             std::function<void(t0_, t1_)>	on_result_;
-            result_handler()
-            {
-                on_result_ = [](t0_, t1_){};
-            }
         };
 
         //////////////////////////////////////////////////////////////////////////
@@ -153,8 +162,8 @@ namespace core
         //////////////////////////////////////////////////////////////////////////
         class parse_result
         {
-            bool	result_;
-            bool	up_to_date_;
+            bool result_;
+            bool up_to_date_;
 
         public:
 
@@ -166,8 +175,8 @@ namespace core
 
         class load_result
         {
-            bool				result_;
-            const std::string	md5_;
+            bool result_;
+            const std::string md5_;
 
         public:
 
@@ -215,42 +224,56 @@ namespace core
         class cache
         {
             std::string md5_;
-            std::wstring stickers_path_;
             sets_list sets_;
+            sets_list store_;
 
             download_tasks meta_tasks_;
             download_tasks stickers_tasks_;
+            //download_tasks set_icons_tasks_;
 
             typedef std::map<int32_t, requests_list> stickers_ids_list;
-
             typedef std::map<int32_t, stickers_ids_list> stickers_sets_ids_list;
 
-            stickers_sets_ids_list gui_requests_;
+            //typedef std::vector<int64_t> seqs_list;
+            //typedef std::map<int32_t, seqs_list> icons_request_sets_list;
 
+            stickers_sets_ids_list gui_requests_;
+            //icons_request_sets_list icons_requests_;
+            
             requests_list get_sticker_gui_requests(int32_t _set_id, int32_t _sticker_id) const;
             void clear_sticker_gui_requests(int32_t _set_id, int32_t _sticker_id);
             bool has_gui_request(int32_t _set_id, int32_t _sticker_id);
 
+            std::string make_sticker_url(const int32_t _set_id, const int32_t _sticker_id, const core::sticker_size _size) const;
+            std::string make_sticker_url(const int32_t _set_id, const int32_t _sticker_id, const std::string& _size) const;
+
         public:
 
-            void make_download_tasks();
+            void make_download_tasks(const std::string& _size);
 
             cache(const std::wstring& _stickers_path);
             virtual ~cache();
 
             std::wstring get_meta_file_name() const;
             bool parse(core::tools::binary_stream& _data, bool _insitu, bool& _up_todate);
+            bool parse_store(core::tools::binary_stream& _data);
             bool is_meta_icons_exist();
 
+            static void serialize_meta_set_sync(const stickers::set& _set, coll_helper _coll_set, const std::string& _size);
             void serialize_meta_sync(coll_helper _coll, const std::string& _size);
+            void serialize_store_sync(coll_helper _coll);
 
-            std::wstring get_set_icon_path(const set& _set, const set_icon& _icon) const;
-            std::wstring get_sticker_path(const set& _set, const sticker& _sticker, sticker_size _size) const;
-            std::wstring get_sticker_path(int32_t _set_id, int32_t _sticker_id, sticker_size _size) const;
+            static std::wstring get_set_icon_path(const set& _set, const set_icon& _icon);
+            static std::wstring get_set_big_icon_path(const int32_t _set_id);
+            static std::wstring get_sticker_path(const set& _set, const sticker& _sticker, sticker_size _size);
+            static std::wstring get_sticker_path(int32_t _set_id, int32_t _sticker_id, sticker_size _size);
+
+            static std::string make_big_icon_url(const int32_t _set_id);
 
             bool get_next_meta_task(download_task& _task);
             bool get_next_sticker_task(download_task& _task);
             void get_sticker(int64_t _seq, int32_t _set_id, int32_t _sticker_id, const sticker_size _size, tools::binary_stream& _data);
+            void get_set_icon_big(const int64_t _seq, const int32_t _set_id, tools::binary_stream& _data);
             std::string get_md5() const;
             bool sticker_loaded(const download_task& _task, /*out*/ requests_list&);
             bool meta_loaded(const download_task& _task);
@@ -269,14 +292,6 @@ namespace core
                 :   seq_(-1) {}
         };
 
-        enum failed_step
-        {
-            ok = 0,
-            download_metafile = 1,
-            download_metadata = 2,
-            download_stickers = 3
-        };
-
         class face
         {
             std::shared_ptr<cache> cache_;
@@ -286,10 +301,13 @@ namespace core
 
             bool up_to_date_;
 
-            bool download_in_progress_;
+            bool download_meta_in_progress_;
+            bool download_meta_error_;
 
-            loader_errors error_;
-            failed_step failed_step_;
+            bool download_stickers_in_progess_;
+            bool download_stickers_error_;
+
+            bool flag_meta_need_reload_;
 
             gui_request_params gui_request_params_;
 
@@ -300,29 +318,28 @@ namespace core
             std::shared_ptr<result_handler<const parse_result&>> parse(
                 std::shared_ptr<core::tools::binary_stream> _data,
                 bool _insitu);
+
+            std::shared_ptr<result_handler<const bool>> parse_store(std::shared_ptr<core::tools::binary_stream> _data);
+
             std::shared_ptr<result_handler<const load_result&>> load_meta_from_local();
             std::shared_ptr<result_handler<bool>> save(std::shared_ptr<core::tools::binary_stream> _data);
-            std::shared_ptr<result_handler<bool>> make_download_tasks();
+            std::shared_ptr<result_handler<bool>> make_download_tasks(const std::string& _size);
             std::shared_ptr<result_handler<coll_helper>> serialize_meta(coll_helper _coll, const std::string& _size);
+            std::shared_ptr<result_handler<coll_helper>> serialize_store(coll_helper _coll);
             std::shared_ptr<result_handler<tools::binary_stream&>> get_sticker(
                 int64_t _seq,
                 int32_t _set_id,
                 int32_t _sticker_id,
                 const core::sticker_size _size);
+
+            std::shared_ptr<result_handler<tools::binary_stream&>> get_set_icon_big(const int64_t _seq, const int32_t _set_id);
+
             std::shared_ptr<result_handler<bool, const download_task&>> get_next_meta_task();
             std::shared_ptr<result_handler<bool, const download_task&>> get_next_sticker_task();
             std::shared_ptr<result_handler<bool, const requests_list&>> on_sticker_loaded(const download_task& _task);
             std::shared_ptr<result_handler<bool>> on_metadata_loaded(const download_task& _task);
             std::shared_ptr<result_handler<const std::string&>> get_md5();
 
-            void set_meta_requested();
-            bool is_meta_requested();
-
-            void set_failed_step(failed_step _step);
-            failed_step get_failed_step();
-
-            void set_last_error(loader_errors _error);
-            loader_errors get_last_error() const;
 
             void set_gui_request_params(const gui_request_params& _params);
             const gui_request_params& get_gui_request_params();
@@ -330,8 +347,22 @@ namespace core
             void set_up_to_date(bool _up_to_date);
             bool is_up_to_date() const;
 
-            bool is_download_in_progress();
-            void set_download_in_progress(bool _in_progress);
+            void set_download_meta_error(const bool _is_error);
+            bool is_download_meta_error() const;
+
+            bool is_download_meta_in_progress();
+            void set_download_meta_in_progress(const bool _in_progress);
+
+            void set_flag_meta_need_reload(const bool _need_reload);
+            bool is_flag_meta_need_reload() const;
+
+
+            void set_download_stickers_error(const bool _is_error);
+            bool is_download_stickers_error() const;
+
+            bool is_download_stickers_in_progress() const;
+            void set_download_stickers_in_progress(const bool _in_progress);
+
         };
     }
 }

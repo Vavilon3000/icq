@@ -7,9 +7,9 @@ using namespace core;
 using namespace wim;
 
 
-set_dlg_state::set_dlg_state(const wim_packet_params& _params, const set_dlg_state_params& _dlg_params)
-    :	robusto_packet(_params),
-    params_(_dlg_params)
+set_dlg_state::set_dlg_state(wim_packet_params _params, set_dlg_state_params _dlg_params)
+    :	robusto_packet(std::move(_params)),
+    params_(std::move(_dlg_params))
 {
 }
 
@@ -50,13 +50,20 @@ int32_t set_dlg_state::init_request(std::shared_ptr<core::http_request_simple> _
     if (params_.last_delivered_ > 0)
         node_params.AddMember("lastDelivered", params_.last_delivered_, a);
 
-    doc.AddMember("params", node_params, a);
+    doc.AddMember("params", std::move(node_params), a);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
 
-    _request->push_post_parameter(buffer.GetString(), "");
+    _request->push_post_parameter(buffer.GetString(), std::string());
+
+    if (!robusto_packet::params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_json_marker("authToken");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

@@ -5,12 +5,13 @@
 
 #include "../../utils/PainterPath.h"
 #include "../history_control/MessageStyle.h"
-
 #include "../sounds/SoundsManager.h"
 
 #ifdef __WIN32__
 #include "win32/WindowRenderer.h"
 #endif //__WIN32__
+
+
 
 namespace Ui
 {
@@ -24,44 +25,42 @@ namespace Ui
     const int max_video_w = 1280;
     const int max_video_h = 720;
 
+    const int64_t empty_pts = -1000000;
+
     bool ThreadMessagesQueue::getMessage(ThreadMessage& _message, std::function<bool()> _isQuit, int32_t _wait_timeout)
-    { 
+    {
         condition_.tryAcquire(1, _wait_timeout);
+        decltype(messages_) tmpList;
 
-        std::unique_lock<std::mutex> lock(queue_mutex_);
-
-        if (_isQuit() || messages_.empty())
         {
-            return false;
+            std::lock_guard<std::mutex> lock(queue_mutex_);
+
+            if (_isQuit() || messages_.empty())
+            {
+                return false;
+            }
+
+            tmpList.splice(tmpList.begin(), messages_, messages_.begin());
         }
 
-        _message = messages_.front();
-
-        messages_.pop_front();
+        _message = tmpList.front();
 
         return true;
     }
 
     void ThreadMessagesQueue::pushMessage(const ThreadMessage& _message, bool _forward, bool _clear_others)
     {
+        decltype(messages_) tmpList;
+        tmpList.push_back(_message);
         {
-            std::unique_lock<std::mutex> lock(queue_mutex_);
+            std::lock_guard<std::mutex> lock(queue_mutex_);
 
             if (_clear_others)
             {
-                for (std::list<ThreadMessage>::iterator iter = messages_.begin(); iter != messages_.end();)
-                {
-                    if (iter->videoId_ == _message.videoId_)
-                        iter = messages_.erase(iter);
-                    else
-                        ++iter;
-                }
+                const auto id = _message.videoId_;
+                messages_.remove_if([id](const auto& x) { return x.videoId_ == id; });
             }
-
-            if (_forward)
-                messages_.push_front(_message);
-            else
-                messages_.push_back(_message);
+            messages_.splice(_forward ? messages_.begin() : messages_.end(), tmpList, tmpList.begin());
         }
 
         condition_.release(1);
@@ -69,8 +68,11 @@ namespace Ui
 
     void ThreadMessagesQueue::clear()
     {
-        std::unique_lock<std::mutex> lock(queue_mutex_);
-        messages_.clear();
+        decltype(messages_) tmpList;
+        {
+            std::lock_guard<std::mutex> lock(queue_mutex_);
+            tmpList.splice(tmpList.begin(), messages_);
+        }
     }
 
 
@@ -109,33 +111,38 @@ namespace Ui
 
     void PacketQueue::push(ffmpeg::AVPacket* _packet)
     {
-        QMutexLocker locker(&mutex_);
-
-        list_.push_back(*_packet);
-
-        ++packets_;
-
-        if (_packet->data != (uint8_t*) &flush_pkt_data)
+        decltype(list_) tmpList;
+        tmpList.push_back(*_packet);
         {
-            size_ += _packet->size;
+            QMutexLocker locker(&mutex_);
+
+            list_.splice(list_.end(), tmpList, tmpList.begin());
+
+            ++packets_;
+
+            if (_packet->data != (uint8_t*)&flush_pkt_data)
+            {
+                size_ += _packet->size;
+            }
         }
     }
 
     bool PacketQueue::get(/*out*/ ffmpeg::AVPacket& _packet)
     {
-        QMutexLocker locker(&mutex_);
-
-        if (list_.empty())
+        decltype(list_) tmpList;
         {
-            return false;
+            QMutexLocker locker(&mutex_);
+
+            if (list_.empty())
+                return false;
+
+            tmpList.splice(tmpList.begin(), list_, list_.begin());
+
+            --packets_;
+            size_ -= tmpList.front().size;
         }
 
-        _packet = list_.front();
-
-        list_.pop_front();
-
-        --packets_;
-        size_ -= _packet.size;
+        _packet = tmpList.front();
 
         return true;
     }
@@ -152,37 +159,37 @@ namespace Ui
 
 
     MediaData::MediaData()
-        : videoStream_(0)
-        , audioStream_(0)
-        , formatContext_(0)
+        : syncWithAudio_(false)
+        , videoStream_(nullptr)
+        , audioStream_(nullptr)
+        , formatContext_(nullptr)
+        , codecContext_(nullptr)
+        , videoQueue_(QSharedPointer<PacketQueue>::create())
+        , audioQueue_(QSharedPointer<PacketQueue>::create())
+        , needUpdateSwsContext_(false)
+        , swsContext_(nullptr)
+        , frameRGB_(nullptr)
         , width_(0)
         , height_(0)
         , rotation_(0)
         , duration_(0)
+        , seek_position_(-1)
         , frameTimer_(0.0)
         , frameLastPts_(0.0)
         , frameLastDelay_(0.0)
-        , seek_position_(-1)
-        , videoQueue_(new PacketQueue())
-        , audioQueue_(new PacketQueue())
+        , startTimeVideoSet_(false)
+        , startTimeAudioSet_(false)
+        , startTimeVideo_(0)
+        , startTimeAudio_(0)
         , videoClock_(0.0)
         , audioClock_(0.0)
         , audioClockTime_(0)
-        , startTimeVideo_(0)
-        , startTimeAudio_(0)
-        , startTimeVideoSet_(false)
-        , startTimeAudioSet_(false)
-        , frameRGB_(0)
-        , swsContext_(0)
-        , volume_(100)
         , mute_(true)
+        , volume_(100)
         , audioQuitRecv_(false)
         , videoQuitRecv_(false)
         , demuxQuitRecv_(false)
         , streamClosed_(false)
-        , codecContext_(0)
-        , needUpdateSwsContext_(false)
-        , syncWithAudio_(false)
     {
     }
 
@@ -194,6 +201,10 @@ namespace Ui
         : quit_(false)
         , curr_id_(0)
     {
+        QObject::connect(this, &VideoContext::audioQuit, this, &VideoContext::onAudioQuit);
+        QObject::connect(this, &VideoContext::videoQuit, this, &VideoContext::onVideoQuit);
+        QObject::connect(this, &VideoContext::demuxQuit, this, &VideoContext::onDemuxQuit);
+        QObject::connect(this, &VideoContext::streamsClosed, this, &VideoContext::onStreamsClosed);
     }
 
     void VideoContext::init(MediaData& _media)
@@ -209,15 +220,16 @@ namespace Ui
     uint32_t VideoContext::addVideo(uint32_t _id)
     {
         {
-            std::unique_lock<std::mutex> lock(mediaDataMutex_);
+            auto mediaData = std::make_shared<MediaData>();
+            std::lock_guard<std::mutex> lock(mediaDataMutex_);
             if (_id == 0)
-                mediaData_[++curr_id_] = std::make_shared<MediaData>();
+                mediaData_[++curr_id_] = std::move(mediaData);
             else
-                mediaData_[_id] = std::make_shared<MediaData>();
+                mediaData_[_id] = std::move(mediaData);
         }
 
         {
-            std::unique_lock<std::mutex> lock(activeVideosMutex_);
+            std::lock_guard<std::mutex> lock(activeVideosMutex_);
             if (_id == 0)
                 activeVideos_[curr_id_] = true;
             else
@@ -235,14 +247,12 @@ namespace Ui
     void VideoContext::deleteVideo(uint32_t _videoId)
     {
         {
-            std::unique_lock<std::mutex> lock(mediaDataMutex_);
-
-            if (mediaData_.count(_videoId) > 0)
-                mediaData_.erase(_videoId);
+            std::lock_guard<std::mutex> lock(mediaDataMutex_);
+            mediaData_.erase(_videoId);
         }
 
         {
-            std::unique_lock<std::mutex> lock(activeVideosMutex_);
+            std::lock_guard<std::mutex> lock(activeVideosMutex_);
             activeVideos_.erase(_videoId);
         }
 
@@ -311,24 +321,21 @@ namespace Ui
 
     bool VideoContext::isVideoQuit(int _videoId) const
     {
-        std::unique_lock<std::mutex> lock(activeVideosMutex_);
+        std::lock_guard<std::mutex> lock(activeVideosMutex_);
 
-        if (activeVideos_.count(_videoId) == 0)
-        {
+        const auto it = activeVideos_.find(_videoId);
+        if (it == activeVideos_.end())
             return false;
-        }
-        return !activeVideos_[_videoId];
+        return !it->second;
     }
 
     void VideoContext::setVideoQuit(int _videoId)
     {
-        std::unique_lock<std::mutex> lock(activeVideosMutex_);
+        std::lock_guard<std::mutex> lock(activeVideosMutex_);
 
-        if (activeVideos_.count(_videoId) == 0)
-        {
-            return;
-        }
-        activeVideos_[_videoId] = false;;
+        const auto it = activeVideos_.find(_videoId);
+        if (it != activeVideos_.end())
+            it->second = false;
     }
 
     void VideoContext::setQuit(bool _val)
@@ -373,8 +380,8 @@ namespace Ui
 
         _packet.data = (uint8_t*) &flush_pkt_data;
 
-        _packet.dts = -1;
-        _packet.pts = -1;
+        _packet.dts = empty_pts;
+        _packet.pts = empty_pts;
         _packet.size = 0;
     }
 
@@ -401,7 +408,7 @@ namespace Ui
 
             if (_packet->data == (uint8_t*) &flush_pkt_data)
             {
-                if (_packet->dts != -1)
+                if (_packet->dts != empty_pts)
                 {
                     _media.seek_position_ = _packet->dts;
 
@@ -422,7 +429,7 @@ namespace Ui
             {
                 _videoData.stream_finished_ = true;
             }
-            
+
             int got_frame = 0;
 
             int len = ffmpeg::avcodec_decode_video2(videoCodecContext, _frame, &got_frame, _packet);
@@ -431,7 +438,7 @@ namespace Ui
             {
                 ffmpeg::av_packet_unref(_packet);
             }
-            
+
             if (len < 0)
             {
                 return false;
@@ -447,7 +454,7 @@ namespace Ui
                         continue;
                     }
                 }
-                
+
                 _media.seek_position_ = 0;
 
                 return true;
@@ -478,7 +485,7 @@ namespace Ui
     {
         if (!_packet)
             return pushNullPacket(*(_media.videoQueue_), getVideoStreamIndex(_media));
-        
+
         return _media.videoQueue_->push(_packet);
     }
 
@@ -510,11 +517,143 @@ namespace Ui
         return _media.audioQueue_->getSize();
     }
 
+    QImage VideoContext::getFirstFrame(const QString& _file)
+    {
+        QImage result;
+
+        ffmpeg::AVFormatContext* ctx = nullptr;
+        ffmpeg::AVStream* videoStream = nullptr;
+        ffmpeg::AVCodecContext* codecContext = nullptr;
+
+        do
+        {
+            int32_t err = ffmpeg::avformat_open_input(&ctx, _file.toStdString().c_str(), 0, 0);
+            if (err < 0)
+                break;
+
+            err = ffmpeg::avformat_find_stream_info(ctx, 0);
+            if (err < 0)
+                break;
+
+            videoStream = openStream(ffmpeg::AVMEDIA_TYPE_VIDEO, ctx);
+            if (!videoStream)
+                break;
+
+            codecContext = videoStream->codec;
+
+            ffmpeg::AVDictionary* dictionary = videoStream->metadata;
+
+            int32_t rotation = 0;
+
+            if (dictionary)
+            {
+                ffmpeg::AVDictionaryEntry* entryRotate = ffmpeg::av_dict_get(dictionary, "rotate", 0, AV_DICT_IGNORE_SUFFIX);
+
+                if (entryRotate && entryRotate->value && entryRotate->value[0] != '\0')
+                {
+                    rotation = QString(entryRotate->value).toInt();
+                }
+            }
+
+            int32_t width = codecContext->width;
+            int32_t height = codecContext->height;
+            int32_t duration = ctx->duration / (AV_TIME_BASE / 1000);
+            int32_t videoStreamIndex = videoStream->index;
+
+            ffmpeg::AVPacket packet;
+            ffmpeg::AVFrame* frame = ffmpeg::av_frame_alloc();
+
+            while (ffmpeg::av_read_frame(ctx, &packet) >= 0)
+            {
+                if (packet.stream_index == videoStreamIndex)
+                {
+                    int got_frame = 0;
+
+                    int len = ffmpeg::avcodec_decode_video2(codecContext, frame, &got_frame, &packet);
+
+                    if (len < 0)
+                    {
+                        ffmpeg::av_packet_unref(&packet);
+                        break;
+                    }
+
+                    if (got_frame)
+                    {
+                        QSize scaledSize(width, height);
+
+                        int align = 256;
+                        while (1)
+                        {
+                            if (frame->linesize[0] % align == 0)
+                                break;
+
+                            align = align / 2;
+                        }
+
+                        ffmpeg::AVFrame* frameRGB = ffmpeg::av_frame_alloc();
+                        int numBytes = ffmpeg::av_image_get_buffer_size(ffmpeg::AV_PIX_FMT_RGBA, scaledSize.width(), scaledSize.height(), align);
+                        std::vector<uint8_t> scaledBuffer(numBytes);
+                        av_image_fill_arrays(frameRGB->data, frameRGB->linesize, &scaledBuffer[0], ffmpeg::AV_PIX_FMT_RGBA, scaledSize.width(), scaledSize.height(), align);
+
+                        ffmpeg::SwsContext* swsContext = nullptr;
+                        swsContext = sws_getCachedContext(swsContext, frame->width, frame->height, ffmpeg::AVPixelFormat(frame->format), scaledSize.width(), scaledSize.height(), ffmpeg::AV_PIX_FMT_RGBA, SWS_POINT, 0, 0, 0);
+
+                        ffmpeg::sws_scale(swsContext, frame->data, frame->linesize, 0, frame->height, frameRGB->data, frameRGB->linesize);
+
+                        QImage lastFrame(scaledSize.width(), scaledSize.height(), QImage::Format_RGBA8888);
+
+                        for (int32_t y = 0; y < scaledSize.height(); ++y)
+                        {
+                            memcpy(lastFrame.scanLine(y), frameRGB->data[0] + y*frameRGB->linesize[0], scaledSize.width() * 4);
+                        }
+
+                        std::unique_ptr<QTransform> imageTransform;
+
+                        if (rotation)
+                        {
+                            imageTransform = std::make_unique<QTransform>();
+                            imageTransform->rotate(rotation);
+                        }
+
+                        if (imageTransform)
+                        {
+                            lastFrame = lastFrame.transformed(*imageTransform);
+                        }
+
+                        result = std::move(lastFrame);
+
+                        ffmpeg::av_frame_unref(frameRGB);
+                        ffmpeg::av_frame_free(&frameRGB);
+
+                        sws_freeContext(swsContext);
+
+                        break;
+                    }
+                }
+
+                av_packet_unref(&packet);
+            }
+
+            ffmpeg::av_frame_unref(frame);
+            ffmpeg::av_frame_free(&frame);
+
+        } while (false);
+
+        if (videoStream)
+            closeStream(videoStream);
+
+        if (ctx)
+            avformat_close_input(&ctx);
+
+        return result;
+    }
+
+
     bool VideoContext::openStreams(uint32_t _mediaId, const QString& _file, MediaData& _media)
     {
         //qDebug() << "openStreams " << _mediaId;
         int32_t err = 0;
-        
+
         err = ffmpeg::avformat_open_input(&_media.formatContext_, _file.toStdString().c_str(), 0, 0);
         if (err < 0)
         {
@@ -713,7 +852,7 @@ namespace Ui
 
         // Generate a Source to playback the Buffers
         openal::alGenSources(1, &_media.audioData_.uiSource_);
-        
+
         _media.audioData_.audioCodecContext_ = _media.audioStream_->codec;
 
         _media.audioData_.layout_ = _media.audioData_.audioCodecContext_->channel_layout;
@@ -780,7 +919,7 @@ namespace Ui
         if (_media.audioData_.freq_ != 44100 && _media.audioData_.freq_ != 48000)
             _media.audioData_.sampleSize_ = -1;
 
-        if (_media.audioData_.sampleSize_ < 0) 
+        if (_media.audioData_.sampleSize_ < 0)
         {
             _media.audioData_.swrContext_ = ffmpeg::swr_alloc();
             if (!_media.audioData_.swrContext_)
@@ -827,7 +966,7 @@ namespace Ui
     }
 
     bool VideoContext::readFrameAudio(
-        ffmpeg::AVPacket* _packet, 
+        ffmpeg::AVPacket* _packet,
         AudioData& _audioData,
         openal::ALvoid** _frameData,
         openal::ALsizei& _frameDataSize,
@@ -864,7 +1003,7 @@ namespace Ui
 
                 flushAudioBuffers(_media);
 
-                if (_packet->pts != -1)
+                if (_packet->pts != empty_pts)
                 {
                     seek_position_audio = _packet->pts;
 
@@ -907,25 +1046,25 @@ namespace Ui
                 if (seek_position_audio > 0 && _media.audioData_.frame_->pkt_dts < seek_position_audio)
                 {
                     ffmpeg::av_frame_unref(_media.audioData_.frame_);
- 
+
                     continue;
                 }
- 
+
                  seek_position_audio = 0;
             }
 
-            if (_media.audioData_.outSamplesData_) 
+            if (_media.audioData_.outSamplesData_)
             {
                 int64_t delay = ffmpeg::swr_get_delay(_media.audioData_.swrContext_, _media.audioData_.srcRate_);
 
                 int64_t dstSamples = ffmpeg::av_rescale_rnd(delay + _media.audioData_.frame_->nb_samples, _media.audioData_.dstRate_, _media.audioData_.srcRate_, ffmpeg::AV_ROUND_UP);
 
-                if (dstSamples > _media.audioData_.maxResampleSamples_) 
+                if (dstSamples > _media.audioData_.maxResampleSamples_)
                 {
                     _media.audioData_.maxResampleSamples_ = dstSamples;
                     ffmpeg::av_free(_media.audioData_.outSamplesData_[0]);
 
-                    if (ffmpeg::av_samples_alloc(_media.audioData_.outSamplesData_, 0, audio::outChannels, _media.audioData_.maxResampleSamples_, audio::outFormat, 1) < 0) 
+                    if (ffmpeg::av_samples_alloc(_media.audioData_.outSamplesData_, 0, audio::outChannels, _media.audioData_.maxResampleSamples_, audio::outFormat, 1) < 0)
                     {
                         _media.audioData_.outSamplesData_[0] = 0;
 
@@ -934,15 +1073,15 @@ namespace Ui
                 }
 
                 int32_t res = 0;
-                if ((res = ffmpeg::swr_convert(_media.audioData_.swrContext_, _media.audioData_.outSamplesData_, dstSamples, (const uint8_t**) _media.audioData_.frame_->extended_data, _media.audioData_.frame_->nb_samples)) < 0) 
+                if ((res = ffmpeg::swr_convert(_media.audioData_.swrContext_, _media.audioData_.outSamplesData_, dstSamples, (const uint8_t**) _media.audioData_.frame_->extended_data, _media.audioData_.frame_->nb_samples)) < 0)
                     return false;
 
                 qint32 resultLen = ffmpeg::av_samples_get_buffer_size(0, audio::outChannels, res, audio::outFormat, 1);
 
                 *_frameData = _media.audioData_.outSamplesData_[0];
                 _frameDataSize = resultLen;
-            } 
-            else 
+            }
+            else
             {
                 *_frameData = _media.audioData_.frame_->extended_data[0];
                 _frameDataSize = _media.audioData_.frame_->nb_samples * _media.audioData_.sampleSize_;
@@ -953,11 +1092,11 @@ namespace Ui
     }
 
     bool VideoContext::playNextAudioFrame(
-        ffmpeg::AVPacket* _packet, 
-        /*in out*/ AudioData& _audioData, 
-        bool& _flush, 
-        int& _seekCount, 
-        MediaData& _media, 
+        ffmpeg::AVPacket* _packet,
+        /*in out*/ AudioData& _audioData,
+        bool& _flush,
+        int& _seekCount,
+        MediaData& _media,
         uint32_t _videoId)
     {
         openal::ALint iBuffersProcessed = 0;
@@ -1193,6 +1332,8 @@ namespace Ui
         }
 
         _media.frameRGB_ = 0;
+
+        sws_freeContext(_media.swsContext_);
     }
 
     bool VideoContext::enableAudio(MediaData& _media) const
@@ -1257,7 +1398,7 @@ namespace Ui
 
                 emit seekedV(_videoId);
             }
-            
+
         });
 
         _media.audioQueue_->free([_videoId, this](ffmpeg::AVPacket& _packet)
@@ -1275,7 +1416,7 @@ namespace Ui
         flush_pkt_v.dts = (_media.startTimeVideo_ + _ts_video);
 
         pushVideoPacket(&flush_pkt_v, _media);
-        
+
         if (enableAudio(_media))
         {
             ffmpeg::AVPacket flush_pkt_a;
@@ -1289,7 +1430,7 @@ namespace Ui
             emit seekedA(_videoId);
         }
 
-        
+
 
         return true;
     }
@@ -1348,30 +1489,26 @@ namespace Ui
         return _media.startTimeAudio_;
     }
 
-    
-    std::shared_ptr<MediaData> VideoContext::getMediaData(uint32_t _videoId, bool& _success)
+
+    std::shared_ptr<MediaData> VideoContext::getMediaData(uint32_t _videoId) const
     {
-        std::unique_lock<std::mutex> lock(mediaDataMutex_);
+        std::lock_guard<std::mutex> lock(mediaDataMutex_);
 
-        if (mediaData_.count(_videoId) == 0)
-        {
-            _success = false;
+        const auto it = Utils::as_const(mediaData_).find(_videoId);
 
+        if (it == Utils::as_const(mediaData_).end())
             return nullptr;
-        }
-            
-        _success = true;
-        auto result = mediaData_[_videoId];
 
-        return result;
+        return it->second;
     }
 
-    void VideoContext::audioQuit(uint32_t _videoId)
+    void VideoContext::onAudioQuit(uint32_t _videoId)
     {
-        bool success = false;
-        auto media_ptr = getMediaContainer()->ctx_.getMediaData(_videoId, success);
+        assert(qApp && QThread::currentThread() == qApp->thread());
 
-        if (!success)
+        auto media_ptr = getMediaContainer()->ctx_.getMediaData(_videoId);
+
+        if (!media_ptr)
             return;
 
         media_ptr->audioQuitRecv_ = true;
@@ -1379,12 +1516,12 @@ namespace Ui
         SendCloseStreams(_videoId);
     }
 
-    void VideoContext::videoQuit(uint32_t _videoId)
+    void VideoContext::onVideoQuit(uint32_t _videoId)
     {
-        bool success = false;
-        auto media_ptr = getMediaContainer()->ctx_.getMediaData(_videoId, success);
+        assert(qApp && QThread::currentThread() == qApp->thread());
+        auto media_ptr = getMediaContainer()->ctx_.getMediaData(_videoId);
 
-        if (!success)
+        if (!media_ptr)
             return;
 
         media_ptr->videoQuitRecv_ = true;
@@ -1392,12 +1529,12 @@ namespace Ui
         SendCloseStreams(_videoId);
     }
 
-    void VideoContext::demuxQuit(uint32_t _videoId)
+    void VideoContext::onDemuxQuit(uint32_t _videoId)
     {
-        bool success = false;
-        auto media_ptr = getMediaContainer()->ctx_.getMediaData(_videoId, success);
+        assert(qApp && QThread::currentThread() == qApp->thread());
+        auto media_ptr = getMediaContainer()->ctx_.getMediaData(_videoId);
 
-        if (!success)
+        if (!media_ptr)
             return;
 
         media_ptr->demuxQuitRecv_ = true;
@@ -1405,17 +1542,17 @@ namespace Ui
         SendCloseStreams(_videoId);
     }
 
-    void VideoContext::streamsClosed(uint32_t _videoId)
+    void VideoContext::onStreamsClosed(uint32_t _videoId)
     {
+        assert(qApp && QThread::currentThread() == qApp->thread());
         deleteVideo(_videoId);
     }
 
     void VideoContext::SendCloseStreams(uint32_t _videoId)
     {
-        bool success = false;
-        auto media_ptr = getMediaContainer()->ctx_.getMediaData(_videoId, success);
+        auto media_ptr = getMediaContainer()->ctx_.getMediaData(_videoId);
 
-        if (!success)
+        if (!media_ptr)
             return;
 
         if (media_ptr->demuxQuitRecv_
@@ -1480,7 +1617,7 @@ namespace Ui
             {
                 auto iterData = demuxData.find(msg.videoId_);
                 bool videoDataFound = (iterData != demuxData.end());
-                
+
                 if (videoDataFound && (msg.message_ == thread_message_type::tmt_init || msg.message_ == thread_message_type::tmt_open_streams))
                 {
                     demuxData.erase(msg.videoId_);
@@ -1504,10 +1641,9 @@ namespace Ui
                     else if (msg.message_ == thread_message_type::tmt_open_streams)
                     {
                         auto mediaPath = msg.str_;
-                        bool success = false;
-                        auto media_ptr = ctx_.getMediaData(msg.videoId_, success);
+                        auto media_ptr = ctx_.getMediaData(msg.videoId_);
 
-                        if (!success)
+                        if (!media_ptr)
                             continue;
 
                         if (media_ptr->demuxQuitRecv_)
@@ -1518,10 +1654,9 @@ namespace Ui
                     }
                     else if (msg.message_ == thread_message_type::tmt_close_streams)
                     {
-                        bool success = false;
-                        auto media_ptr = ctx_.getMediaData(msg.videoId_, success);
+                        auto media_ptr = ctx_.getMediaData(msg.videoId_);
 
-                        if (!success)
+                        if (!media_ptr)
                             continue;
 
                         if (media_ptr->streamClosed_)
@@ -1540,6 +1675,12 @@ namespace Ui
                     else if (msg.message_ == thread_message_type::tmt_quit)
                     {
                         emit ctx_.demuxQuit(msg.videoId_);
+
+                        continue;
+                    }
+                    else if (msg.message_ = thread_message_type::tmt_get_first_frame)
+                    {
+                        emit getMediaContainer()->frameReady(ctx_.getFirstFrame(msg.str_), msg.str_);
 
                         continue;
                     }
@@ -1569,10 +1710,9 @@ namespace Ui
                         }
 
                         auto mediaPath = msg.str_;
-                        bool success = false;
-                        auto media_ptr = ctx_.getMediaData(msg.videoId_, success);
+                        auto media_ptr = ctx_.getMediaData(msg.videoId_);
 
-                        if (!success)
+                        if (!media_ptr)
                         {
                             emit ctx_.demuxQuit(msg.videoId_);
                             continue;
@@ -1580,7 +1720,7 @@ namespace Ui
 
                         ctx_.pushVideoPacket(&quit_pkt, *media_ptr);
                         ctx_.pushAudioPacket(&quit_pkt, *media_ptr);
-                        
+
                         emit ctx_.demuxQuit(msg.videoId_);
                         break;
                     }
@@ -1619,7 +1759,7 @@ namespace Ui
                 }
             }
 
-            waitMsgTimeout = 10;
+            waitMsgTimeout = demuxData.empty() ? 60000 : 10;
 
             int playing = 0;
             for (auto& elem : demuxData)
@@ -1630,10 +1770,9 @@ namespace Ui
                 seekPosition = elem.second.seekPosition;
                 eof = elem.second.eof;
 
-                bool success = false;
-                auto media_ptr = ctx_.getMediaData(videoId, success);
+                auto media_ptr = ctx_.getMediaData(videoId);
 
-                if (!success)
+                if (!media_ptr)
                     continue;
 
                 auto& media = *media_ptr;
@@ -1686,7 +1825,7 @@ namespace Ui
 
                 if (readPacketError < 0)
                 {
-                    if (ctx_.isEof(readPacketError, media) && !eof) 
+                    if (ctx_.isEof(readPacketError, media) && !eof)
                     {
                         if (ctx_.enableAudio(media))
                             ctx_.pushAudioPacket(0, media);
@@ -1695,7 +1834,7 @@ namespace Ui
 
                         eof = true;
                     }
-                
+
                     elem.second.eof = eof;
                     // TODO : do smth with this error
                     if (ctx_.isStreamError(media))
@@ -1774,7 +1913,6 @@ namespace Ui
             if (ctx_.getVideoThreadMessage(msg, waitMsgTimeout))
             {
                 auto videoId = msg.videoId_;
-                bool success = false;
 
                 if (videoData.count(videoId) == 0)
                 {
@@ -1785,9 +1923,9 @@ namespace Ui
                         data.stream_finished_ = false;
                         data.eof_ = false;
                         videoData[videoId] = data;
-                        auto media = ctx_.getMediaData(videoId, success);
+                        auto media = ctx_.getMediaData(videoId);
 
-                        if (success)
+                        if (media)
                             prepareCtx(*media);
                     }
                     else if (msg.message_ == thread_message_type::tmt_quit)
@@ -1801,13 +1939,13 @@ namespace Ui
                         continue;
                     }
                 }
-                auto media_ptr = ctx_.getMediaData(videoId, success);
-                auto& media = *media_ptr;
-
-                if (!success)
+                auto media_ptr = ctx_.getMediaData(videoId);
+                if (!media_ptr)
                 {
                     continue;
                 }
+
+                auto& media = *media_ptr;
 
                 switch (msg.message_)
                 {
@@ -1816,9 +1954,6 @@ namespace Ui
                         if (videoData.count(msg.videoId_) > 0)
                         {
                             videoData.erase(msg.videoId_);
-
-                             if (!success)
-                                continue;
 
                             ctx_.freeScaleContext(media);
                         }
@@ -1872,10 +2007,7 @@ namespace Ui
                     }
                     case thread_message_type::tmt_get_next_video_frame:
                     {
-                        if (!success)
-                            continue;
-
-                        if (videoData[videoId].current_state_ == decode_thread_state::dts_end_of_media || 
+                        if (videoData[videoId].current_state_ == decode_thread_state::dts_end_of_media ||
                             videoData[videoId].current_state_ == decode_thread_state::dts_failed)
                         {
                             break;
@@ -1933,17 +2065,17 @@ namespace Ui
 
                                 media.needUpdateSwsContext_ = false;
                                 media.swsContext_ = sws_getCachedContext(
-                                    media.swsContext_, 
-                                    frame->width, 
-                                    frame->height, 
+                                    media.swsContext_,
+                                    frame->width,
+                                    frame->height,
                                     ffmpeg::AVPixelFormat(frame->format), scaledSize.width(), scaledSize.height(), ffmpeg::AV_PIX_FMT_RGBA, SWS_POINT, 0, 0, 0);
-                                
+
                                 int align = 256;
                                 while (1)
                                 {
                                     if (frame->linesize[0] % align == 0)
                                         break;
-                                    
+
                                     align = align / 2;
                                 }
 
@@ -1980,9 +2112,6 @@ namespace Ui
                         }
                         else if (videoData[videoId].eof_)
                         {
-                            if (!success)
-                                continue;
-
                             videoData[videoId].current_state_ = decode_thread_state::dts_end_of_media;
 
                             videoData[videoId].stream_finished_ = false;
@@ -2006,10 +2135,8 @@ namespace Ui
 
         for (auto& data : videoData)
         {
-            bool success = false;
-            auto media = ctx_.getMediaData(data.first, success);
-            
-            if (success)
+            auto media = ctx_.getMediaData(data.first);
+            if (media)
                 ctx_.freeScaleContext(*media);
         }
 
@@ -2038,7 +2165,7 @@ namespace Ui
         bool flush = false;
 
         ffmpeg::AVPacket packet;
-        
+
         if (true)//ctx_.initDecodeAudioData(0 /* _videoId*/))
         {
             while (!ctx_.isQuit())
@@ -2047,11 +2174,10 @@ namespace Ui
 
                 bool has_playing = false;
                 int count_of_playing = 0;
-                for (auto& data : audioData)
+                for (const auto& data : audioData)
                 {
-                    auto success = false;
-                    auto media_ptr = ctx_.getMediaData(data.first, success);
-                    if (success && media_ptr->audioData_.state_ == decode_thread_state::dts_playing)
+                    auto media_ptr = ctx_.getMediaData(data.first);
+                    if (media_ptr && media_ptr->audioData_.state_ == decode_thread_state::dts_playing)
                     {
                         has_playing = true;
                         ++count_of_playing;
@@ -2068,10 +2194,9 @@ namespace Ui
                     {
                         if (msg.message_ == thread_message_type::tmt_init)
                         {
-                            bool success = false;
-                            auto media = ctx_.getMediaData(videoId, success);
+                            auto media = ctx_.getMediaData(videoId);
 
-                            if (!success || !ctx_.initDecodeAudioData(*media))
+                            if (!media || !ctx_.initDecodeAudioData(*media))
                                 continue;
 
                             AudioData data;
@@ -2091,12 +2216,12 @@ namespace Ui
                             continue;
                     }
 
-                    bool success = false;
-                    auto media_ptr = ctx_.getMediaData(videoId, success);
-                    auto& media = *media_ptr;
+                    auto media_ptr = ctx_.getMediaData(videoId);
 
-                    if (!success)
+                    if (!media_ptr)
                         continue;
+
+                    auto& media = *media_ptr;
 
                     switch (msg.message_)
                     {
@@ -2130,11 +2255,10 @@ namespace Ui
                         {
                             if (audioData.count(msg.videoId_) > 0)
                             {
-                                bool success = false;
-                                auto media = ctx_.getMediaData(msg.videoId_, success);
-                                if (success)
+                                auto media = ctx_.getMediaData(msg.videoId_);
+                                if (media)
                                     ctx_.freeDecodeAudioData(*media);
-                                
+
                                 audioData.erase(msg.videoId_);
                             }
                             emit ctx_.audioQuit(videoId);
@@ -2162,11 +2286,12 @@ namespace Ui
                     auto videoId = data.first;
                     audioData[videoId].eof_ = false;
 
-                    bool success = false;
-                    auto media_ptr = ctx_.getMediaData(videoId, success);
-                    auto& media = *media_ptr;
+                    auto media_ptr = ctx_.getMediaData(videoId);
+                    if (!media_ptr)
+                        continue;
 
-                    if (!success || !ctx_.enableAudio(media))
+                    auto& media = *media_ptr;
+                    if (!ctx_.enableAudio(media))
                         continue;
 
                     if (ctx_.getAudioThreadState(media) == decode_thread_state::dts_playing)
@@ -2214,12 +2339,11 @@ namespace Ui
             }
 
             qDebug() << "Audio decode thread finish";
-            for (auto data : audioData)
+            for (const auto& data : audioData)
             {
                 auto videoId = data.first;
-                bool success = false;
-                auto media = ctx_.getMediaData(videoId, success);
-                if (success)
+                auto media = ctx_.getMediaData(videoId);
+                if (media)
                     ctx_.freeDecodeAudioData(*media);
             }
         }
@@ -2228,7 +2352,7 @@ namespace Ui
 
     static int lockmgr(void **mtx, enum ffmpeg::AVLockOp op)
     {
-        switch(op) 
+        switch(op)
         {
             case ffmpeg::AV_LOCK_CREATE:
             {
@@ -2516,28 +2640,28 @@ namespace Ui
     //////////////////////////////////////////////////////////////////////////
     FFMpegPlayer::FFMpegPlayer(QWidget* _parent, bool _openGL, bool _continius)
         :   QWidget(_parent),
-            state_(decode_thread_state::dts_none),
-            isFirstFrame_(true),
-            lastVideoPosition_(0),
-            lastPostedPosition_(0),
-            lastEmitMouseMove_(std::chrono::system_clock::now() - mouse_move_rate),
-            started_(false),
-            stoped_(false),
-            continius_(_continius),
             mediaId_(0),
-            imageDuration_(0),
-            imageProgress_(0),
-            replay_(false),
+            restoreVolume_(100),
+            volume_(100),
             active_renderer_(nullptr),
             gdi_renderer_(nullptr),
             opengl_renderer_(nullptr),
+            isFirstFrame_(true),
             updatePositonRate_(platform::is_apple() ? 1000 : 100),
+            state_(decode_thread_state::dts_none),
+            lastVideoPosition_(0),
+            lastPostedPosition_(0),
+            lastEmitMouseMove_(std::chrono::system_clock::now() - mouse_move_rate),
+            stoped_(false),
+            started_(false),
+            continius_(_continius),
+            replay_(false),
             mute_(false),
             dataReady_(false),
             pausedByUser_(false),
-            seek_request_id_(0),
-            volume_(100),
-            restoreVolume_(100)
+            imageDuration_(0),
+            imageProgress_(0),
+            seek_request_id_(0)
     {
         layout_ = Utils::emptyHLayout();
         setLayout(layout_);
@@ -2558,7 +2682,7 @@ namespace Ui
         layout_->addWidget(active_renderer_->getWidget());
 
         setAutoFillBackground(false);
-        
+
         static auto is_init = false;
 
         if (!is_init && ffmpeg::av_lockmgr_register(lockmgr)) // TODO
@@ -2568,7 +2692,7 @@ namespace Ui
         is_init = true;
 
         timer_ = new QTimer(this);
-        connect(timer_, SIGNAL(timeout()), this, SLOT(onTimer()));
+        connect(timer_, &QTimer::timeout, this, &FFMpegPlayer::onTimer);
         setMouseTracking(true);
 
         connect(&getMediaContainer()->ctx_, &VideoContext::dataReady, this, &FFMpegPlayer::onDataReady, Qt::QueuedConnection);
@@ -2578,7 +2702,7 @@ namespace Ui
         connect(&getMediaContainer()->ctx_, &VideoContext::seekedV, this, &FFMpegPlayer::seekedV, Qt::QueuedConnection);
         connect(&getMediaContainer()->ctx_, &VideoContext::seekedA, this, &FFMpegPlayer::seekedA, Qt::QueuedConnection);
 
-        imageProgressAnimation_ = new QPropertyAnimation(this, "imageProgress");
+        imageProgressAnimation_ = new QPropertyAnimation(this, QByteArrayLiteral("imageProgress"), this);
     }
 
 
@@ -2604,9 +2728,8 @@ namespace Ui
 
         if (seek_request_id_ == 0)
         {
-            bool success = false;
-            auto media = getMediaContainer()->ctx_.getMediaData(mediaId_, success);
-            if (success && media)
+            auto media = getMediaContainer()->ctx_.getMediaData(mediaId_);
+            if (media)
             {
                 getMediaContainer()->resetLastFramePts(*media);
             }
@@ -2623,20 +2746,20 @@ namespace Ui
         seeked(_videoId, true);
    }
 
-    void FFMpegPlayer::onNextFrameReady(uint32_t _videoId, QImage _image, double _pts, bool _eof)
+    void FFMpegPlayer::onNextFrameReady(uint32_t _videoId, const QImage& _image, double _pts, bool _eof)
     {
         if (_videoId != mediaId_)
             return;
 
         if (!_eof)
         {
-            QPixmap frame = QPixmap::fromImage(QImage(_image));
+            QPixmap frame = QPixmap::fromImage(_image);
 
             decodedFrames_.emplace_back(frame, _pts);
 
             if (!firstFrame_)
             {
-                firstFrame_.reset(new DecodedFrame(frame, _pts));
+                firstFrame_ = std::make_unique<DecodedFrame>(frame, _pts);
 
                 emit firstFrameReady();
             }
@@ -2680,10 +2803,9 @@ namespace Ui
         if (seek_request_id_ > 0)
             return;
 
-        bool success = false;
-        auto media = getMediaContainer()->ctx_.getMediaData(mediaId_, success);
+        auto media = getMediaContainer()->ctx_.getMediaData(mediaId_);
 
-        if (!success)
+        if (!media)
             return;
 
         //qDebug() << "media->syncWithAudio_ = " << media->syncWithAudio_;
@@ -2696,7 +2818,7 @@ namespace Ui
     FrameRenderer* FFMpegPlayer::CreateRenderer(QWidget* _parent, bool _openGL)
     {
         FrameRenderer* renderer = nullptr;
-        
+
 #if defined(__linux__)
         renderer = new GDIRenderer(_parent);
 #else
@@ -2733,9 +2855,10 @@ namespace Ui
 
         getMediaContainer()->ctx_.setVideoQuit(mediaId_);
 
-        getMediaContainer()->postDemuxThreadMessage(ThreadMessage(mediaId_, thread_message_type::tmt_quit), true, true);
-        getMediaContainer()->postVideoThreadMessage(ThreadMessage(mediaId_, thread_message_type::tmt_quit), true, true);
-        getMediaContainer()->postAudioThreadMessage(ThreadMessage(mediaId_, thread_message_type::tmt_quit), true, true);
+        const auto messsage = ThreadMessage(mediaId_, thread_message_type::tmt_quit);
+        getMediaContainer()->postDemuxThreadMessage(messsage, true, true);
+        getMediaContainer()->postVideoThreadMessage(messsage, true, true);
+        getMediaContainer()->postAudioThreadMessage(messsage, true, true);
 
         auto ret = mediaId_;
         mediaId_ = 0;
@@ -2747,10 +2870,9 @@ namespace Ui
     {
         if (_frame.eof_)
         {
-            bool success = false;
-            auto media = getMediaContainer()->ctx_.getMediaData(mediaId_, success);
+            auto media = getMediaContainer()->ctx_.getMediaData(mediaId_);
 
-            if (!success)
+            if (!media)
                 return;
 
             emit positionChanged(getMediaContainer()->getDuration(*media));
@@ -2789,9 +2911,8 @@ namespace Ui
             return;
         }
 
-        bool success = false;
-        auto media = getMediaContainer()->ctx_.getMediaData(mediaId_, success);
-        if (!success)
+        auto media = getMediaContainer()->ctx_.getMediaData(mediaId_);
+        if (!media)
         {
             timer_->stop();
             return;
@@ -2818,17 +2939,13 @@ namespace Ui
         if (decodedFrames_.empty())
         {
             if (getStarted())
-            {
-                timer_->start();
-                timer_->setInterval((int) 100);
-            }
-
+                timer_->start(100);
 
             getMediaContainer()->postVideoThreadMessage(ThreadMessage(mediaId_, thread_message_type::tmt_get_next_video_frame), false);
 
             return;
         }
-        
+
         if (dataReady_)
         {
             emit dataReady();
@@ -2851,12 +2968,13 @@ namespace Ui
                     return;
                 }
 
-                if (getImageProgress() != getDuration())
+                const auto duration = getDuration();
+                if (getImageProgress() != duration)
                 {
                     imageProgressAnimation_->stop();
                     imageProgressAnimation_->setStartValue(0);
-                    imageProgressAnimation_->setEndValue((qint64)getDuration());
-                    imageProgressAnimation_->setDuration((qint64)getDuration());
+                    imageProgressAnimation_->setEndValue(QVariant::fromValue<decltype(duration)>(duration));
+                    imageProgressAnimation_->setDuration(duration);
                     imageProgressAnimation_->start();
                     timer_->start(100);
                     return;
@@ -2893,7 +3011,7 @@ namespace Ui
 
         active_renderer_->updateFrame(frame.image_);
 
-        if (!success)
+        if (!media)
         {
             timer_->stop();
             return;
@@ -2917,12 +3035,11 @@ namespace Ui
             stoped_ = false;
 
         uint32_t mediaId = getMediaContainer()->init(_id);
-        
+
         openStreamsConnection_ = connect(&getMediaContainer()->ctx_, &VideoContext::streamsOpened, this, &FFMpegPlayer::onStreamsOpened, Qt::QueuedConnection);
 
-        bool success = false;
-        auto media = getMediaContainer()->ctx_.getMediaData(mediaId, success);
-        if (!success)
+        auto media = getMediaContainer()->ctx_.getMediaData(mediaId);
+        if (!media)
             return false;
 
         media->isImage_ = _isImage;
@@ -2971,9 +3088,8 @@ namespace Ui
 
         disconnect(openStreamsConnection_);
 
-        bool success = false;
-        auto media = getMediaContainer()->ctx_.getMediaData(_videoId, success);
-        if (!success || !media->videoStream_)
+        auto media = getMediaContainer()->ctx_.getMediaData(_videoId);
+        if (!media || !media->videoStream_)
             return;
 
         getMediaContainer()->openFile(*media);
@@ -2990,10 +3106,9 @@ namespace Ui
             return;
         }
 
-        bool success = false;
-        auto media_ptr = getMediaContainer()->ctx_.getMediaData(mediaId_, success);
+        auto media_ptr = getMediaContainer()->ctx_.getMediaData(mediaId_);
 
-        if (!success)
+        if (!media_ptr)
             return;
 
         auto& media = *media_ptr;
@@ -3003,7 +3118,7 @@ namespace Ui
         if (state_ == decode_thread_state::dts_none)
         {
             getMediaContainer()->DemuxThreadStart(mediaId_);
-            
+
             // TODO : mb true here
             getMediaContainer()->postDemuxThreadMessage(ThreadMessage(mediaId_, thread_message_type::tmt_init), false);
             ThreadMessage msg(mediaId_, thread_message_type::tmt_init);
@@ -3078,8 +3193,10 @@ namespace Ui
 
         qDebug() << "seek request id = " << seek_request_id_ << " position = " << _position;
 
-        bool success = false;
-        auto media = getMediaContainer()->ctx_.getMediaData(mediaId_, success);
+        auto media = getMediaContainer()->ctx_.getMediaData(mediaId_);
+
+        if (!media)
+            return;
 
         media->syncWithAudio_ = false;
         media->audioClock_ = 0.0;
@@ -3088,9 +3205,6 @@ namespace Ui
         //qDebug() << "media->syncWithAudio_ = " << media->syncWithAudio_;
 
         decodedFrames_.clear();
-
-        if (!success)
-            return;
 
         getMediaContainer()->postDemuxThreadMessage(msg, false);
         getMediaContainer()->postVideoThreadMessage(msg, false);
@@ -3146,10 +3260,9 @@ namespace Ui
 
     QSize FFMpegPlayer::getVideoSize() const
     {
-        bool success = false;
-        auto media_ptr = getMediaContainer()->ctx_.getMediaData(mediaId_, success);
+        auto media_ptr = getMediaContainer()->ctx_.getMediaData(mediaId_);
 
-        if (!success)
+        if (!media_ptr)
             return QSize();
 
         auto& media = *media_ptr;
@@ -3166,23 +3279,21 @@ namespace Ui
 
     int32_t FFMpegPlayer::getVideoRotation() const
     {
-        bool success = false;
-        auto media_ptr = getMediaContainer()->ctx_.getMediaData(mediaId_, success);
-        auto& media = *media_ptr;
-
-        if (!success)
+        auto media_ptr = getMediaContainer()->ctx_.getMediaData(mediaId_);
+        if (!media_ptr)
             return 0;
+
+        auto& media = *media_ptr;
 
         return getMediaContainer()->getRotation(media);
     }
 
     int64_t FFMpegPlayer::getDuration() const
     {
-        bool success = false;
-        auto media_ptr = getMediaContainer()->ctx_.getMediaData(mediaId_, success);
-        auto& media = *media_ptr;
-        if (!success)
+        auto media_ptr = getMediaContainer()->ctx_.getMediaData(mediaId_);
+        if (!media_ptr)
             return -1;
+        auto& media = *media_ptr;
 
         if (media.isImage_)
             return imageDuration_;
@@ -3206,7 +3317,7 @@ namespace Ui
                 if (currentTime - lastEmitMouseMove_ > mouse_move_rate)
                 {
                     lastEmitMouseMove_ = currentTime;
-                    
+
                     emit mouseMoved();
                 }
             }
@@ -3263,7 +3374,7 @@ namespace Ui
     {
         return started_;
     }
-    
+
     void FFMpegPlayer::setStarted(bool _started)
     {
         started_ = _started;
@@ -3293,9 +3404,10 @@ namespace Ui
         for (auto i : queuedMedia_)
         {
             getMediaContainer()->ctx_.setVideoQuit(i);
-            getMediaContainer()->postDemuxThreadMessage(ThreadMessage(i, thread_message_type::tmt_quit), true, true);
-            getMediaContainer()->postVideoThreadMessage(ThreadMessage(i, thread_message_type::tmt_quit), true, true);
-            getMediaContainer()->postAudioThreadMessage(ThreadMessage(i, thread_message_type::tmt_quit), true, true);
+            const auto message = ThreadMessage(i, thread_message_type::tmt_quit);
+            getMediaContainer()->postDemuxThreadMessage(message, true, true);
+            getMediaContainer()->postVideoThreadMessage(message, true, true);
+            getMediaContainer()->postAudioThreadMessage(message, true, true);
         }
         queuedMedia_.clear();
     }
@@ -3351,7 +3463,7 @@ namespace Ui
 
         active_renderer_->setFullScreen(true);
         active_renderer_->setWidgetVisible(true);
-        
+
     }
 
     void FFMpegPlayer::setNormal()
@@ -3407,9 +3519,8 @@ namespace Ui
     {
         imageProgress_ = _val;
 
-        bool success = false;
-        auto media = getMediaContainer()->ctx_.getMediaData(mediaId_, success);
-        if (!success)
+        auto media = getMediaContainer()->ctx_.getMediaData(mediaId_);
+        if (!media)
             return;
 
         if (media->isImage_)
@@ -3458,11 +3569,14 @@ namespace Ui
     //////////////////////////////////////////////////////////////////////////
 
     std::unique_ptr<MediaContainer> g_media_container;
-    
+
     MediaContainer* getMediaContainer()
     {
         if (!g_media_container)
-            g_media_container.reset(new MediaContainer());
+        {
+            assert(qApp && QThread::currentThread() == qApp->thread());
+            g_media_container = std::make_unique<MediaContainer>();
+        }
 
         return g_media_container.get();
     }
@@ -3474,22 +3588,24 @@ namespace Ui
     }
 
     MediaContainer::MediaContainer()
-        : videoDecodeThread_(ctx_)
-        , audioDecodeThread_(ctx_)
-        , demuxThread_(ctx_)
+        : is_decods_inited_(false)
         , is_demux_inited_(false)
-        , is_decods_inited_(false)
+        , demuxThread_(ctx_)
+        , videoDecodeThread_(ctx_)
+        , audioDecodeThread_(ctx_)
     {}
 
     MediaContainer::~MediaContainer()
     {
+        assert(qApp && QThread::currentThread() == qApp->thread());
         if (ctx_.isQuit())
             return;
         setQuit();
 
-        postDemuxThreadMessage(ThreadMessage(0, thread_message_type::tmt_wake_up), true);
-        postVideoThreadMessage(ThreadMessage(0, thread_message_type::tmt_wake_up), true);
-        postAudioThreadMessage(ThreadMessage(0, thread_message_type::tmt_wake_up), true);
+        const auto message = ThreadMessage(0, thread_message_type::tmt_wake_up);
+        postDemuxThreadMessage(message, true);
+        postVideoThreadMessage(message, true);
+        postAudioThreadMessage(message, true);
 
         VideoDecodeThreadWait();
         AudioDecodeThreadWait();
@@ -3579,7 +3695,7 @@ namespace Ui
     {
         ctx_.postVideoThreadMessage(_message, _forward, _clear_others);
     }
-    
+
     void MediaContainer::updateVideoScaleSize(const uint32_t _mediaId, const QSize _sz)
     {
         ctx_.updateScaledVideoSize(_mediaId, _sz);
@@ -3650,18 +3766,24 @@ namespace Ui
             ffmpeg::avformat_network_init();
         }
 
-        bool success = false;
-        auto media_ptr = getMediaContainer()->ctx_.getMediaData(id, success);
-        auto& media = *media_ptr;
-
-        ctx_.init(media);
-
-        if (active_video_ids_.empty())
+        auto media_ptr = getMediaContainer()->ctx_.getMediaData(id);
+        if (media_ptr)
         {
-            setQuit(false);
-            Ui::GetSoundsManager();
+            auto& media = *media_ptr;
+
+            ctx_.init(media);
+
+            if (active_video_ids_.empty())
+            {
+                setQuit(false);
+                Ui::GetSoundsManager();
+            }
+            active_video_ids_.insert(id);
         }
-        active_video_ids_.insert(id);
+        else
+        {
+            assert(!"MediaContainer: fail on init");
+        }
 
         return id;
     }
@@ -3679,5 +3801,19 @@ namespace Ui
     void MediaContainer::AudioDecodeThreadWait()
     {
         audioDecodeThread_.wait();
+    }
+
+    MediaContainer* getMediaPreview(const QString& _media)
+    {
+        Ui::ThreadMessage msg;
+
+        msg.str_ = _media;
+        msg.message_ = thread_message_type::tmt_get_first_frame;
+
+        MediaContainer* container = getMediaContainer();
+
+        container->postDemuxThreadMessage(msg, false);
+
+        return container;
     }
 }

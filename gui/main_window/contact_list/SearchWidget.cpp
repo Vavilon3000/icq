@@ -12,56 +12,67 @@ namespace Ui
     SearchWidget::SearchWidget(QWidget* _parent, int _add_hor_space, int _add_ver_space)
         : QWidget(_parent)
     {
-        setFixedHeight(Utils::scale_value(28) + _add_ver_space * 2);
+        setFixedHeight(Utils::scale_value(32) + _add_ver_space * 2);
         active_ = false;
         vMainLayout_ = Utils::emptyVLayout(this);
         vMainLayout_->setContentsMargins(Utils::scale_value(12) + _add_hor_space, _add_ver_space, Utils::scale_value(12) + _add_hor_space, _add_ver_space);
         hMainLayout = Utils::emptyHLayout();
 
         searchWidget_ = new QWidget(this);
+        Testing::setAccessibleName(searchWidget_, qsl("AS searchWidget_"));
 
         hSearchLayout_ = Utils::emptyHLayout(searchWidget_);
-        hSearchLayout_->setContentsMargins(Utils::scale_value(2), 0, Utils::scale_value(2), 0);
+        hSearchLayout_->setContentsMargins(Utils::scale_value(4), 0, Utils::scale_value(8), 0);
 
         searchEdit_ = new LineEditEx(this);
         searchEdit_->setFixedHeight(Utils::scale_value(24));
-        searchEdit_->setFont(Fonts::appFontScaled(15));
+        searchEdit_->setFont(Fonts::appFontScaled(14));
         searchEdit_->setFrame(QFrame::NoFrame);
-        searchEdit_->setPlaceholderText(QT_TRANSLATE_NOOP("search_widget", "Search"));
+
         searchEdit_->setContentsMargins(Utils::scale_value(8), 0, 0, 0);
         searchEdit_->setAttribute(Qt::WA_MacShowFocusRect, false);
-        Testing::setAccessibleName(searchEdit_, "search_edit");
+        Testing::setAccessibleName(searchEdit_, qsl("search_edit"));
         hSearchLayout_->addSpacing(0);
         hSearchLayout_->addWidget(searchEdit_);
 
-        closeIcon_ = new Ui::CustomButton(this, ":/resources/basic_elements/close_a_100.png");
-        closeIcon_->setActiveImage(":/resources/basic_elements/close_d_100.png");
-        closeIcon_->setHoverImage(":/resources/basic_elements/close_d_100.png");
+        closeIcon_ = new Ui::CustomButton(this, qsl(":/controls/close_a_100"));
+        closeIcon_->setActiveImage(qsl(":/controls/close_d_100"));
+        closeIcon_->setHoverImage(qsl(":/controls/close_d_100"));
         closeIcon_->setFixedSize(Utils::scale_value(28), Utils::scale_value(24));
-        closeIcon_->setStyleSheet("border: none;");
+        closeIcon_->setStyleSheet(qsl("border: none;"));
         closeIcon_->setFocusPolicy(Qt::NoFocus);
         closeIcon_->setCursor(Qt::PointingHandCursor);
+        Testing::setAccessibleName(closeIcon_, qsl("AS closeIcon_"));
         hSearchLayout_->addWidget(closeIcon_);
         closeIcon_->hide();
 
         hMainLayout->addWidget(searchWidget_);
         vMainLayout_->addLayout(hMainLayout);
 
-        auto style = QString("border-style: solid; border-width: 1dip; border-color: #cbcbcb; border-radius: 4dip; background: #ffffff;");
+        auto style = qsl("border-style: solid; border-width: 1dip; border-color: %1; border-radius: 16dip; background-color: %2; color: %3;")
+            .arg(
+                CommonStyle::getColor(CommonStyle::Color::GRAY_FILL_DARK).name(),
+                CommonStyle::getFrameColor().name(),
+                CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY).name()
+            );
         Utils::ApplyStyle(this, style);
-        searchEdit_->setStyleSheet("border: none; background: transparent;");
+        searchEdit_->setStyleSheet(qsl("border: none; background: transparent;"));
 
-        QMetaObject::connectSlotsByName(this);
-        connect(searchEdit_, SIGNAL(textEdited(QString)), this, SLOT(searchChanged(QString)), Qt::QueuedConnection);
-        connect(searchEdit_, SIGNAL(clicked()), this, SLOT(searchStarted()), Qt::QueuedConnection);
-        connect(searchEdit_, SIGNAL(escapePressed()), this, SLOT(onEscapePress()), Qt::QueuedConnection);
-        connect(searchEdit_, SIGNAL(enter()), this, SLOT(editEnterPressed()), Qt::QueuedConnection);
-        connect(searchEdit_, SIGNAL(upArrow()), this, SLOT(editUpPressed()), Qt::QueuedConnection);
-        connect(searchEdit_, SIGNAL(downArrow()), this, SLOT(editDownPressed()), Qt::QueuedConnection);
-        connect(searchEdit_, SIGNAL(focusOut()), this, SLOT(focusedOut()), Qt::QueuedConnection);
-        connect(closeIcon_, SIGNAL(clicked()), this, SLOT(searchCompleted()), Qt::QueuedConnection);
+        connect(searchEdit_, &LineEditEx::textEdited, this, &SearchWidget::searchChanged, Qt::QueuedConnection);
+        connect(searchEdit_, &LineEditEx::clicked, this, &SearchWidget::searchStarted, Qt::QueuedConnection);
+        connect(searchEdit_, &LineEditEx::escapePressed, this, &SearchWidget::onEscapePress, Qt::QueuedConnection);
+        connect(searchEdit_, &LineEditEx::enter, this, &SearchWidget::editEnterPressed, Qt::QueuedConnection);
+        connect(searchEdit_, &LineEditEx::upArrow, this, &SearchWidget::editUpPressed, Qt::QueuedConnection);
+        connect(searchEdit_, &LineEditEx::downArrow, this, &SearchWidget::editDownPressed, Qt::QueuedConnection);
+        connect(searchEdit_, &LineEditEx::focusOut, this, &SearchWidget::focusedOut, Qt::QueuedConnection);
+        connect(closeIcon_, &QPushButton::clicked, this, &SearchWidget::searchCompleted, Qt::QueuedConnection);
 
+        setDefaultPlaceholder();
         setActive(false);
+    }
+
+    SearchWidget::~SearchWidget()
+    {
     }
 
     void SearchWidget::setFocus()
@@ -76,8 +87,19 @@ namespace Ui
         setActive(false);
     }
 
-    SearchWidget::~SearchWidget()
+    bool SearchWidget::isActive() const
     {
+        return active_;
+    }
+
+    void SearchWidget::setDefaultPlaceholder()
+    {
+        setPlaceholderText(QT_TRANSLATE_NOOP("search_widget", "Search"));
+    }
+
+    void SearchWidget::setPlaceholderText(const QString & _text)
+    {
+        searchEdit_->setPlaceholderText(_text);
     }
 
     void SearchWidget::setActive(bool _active)
@@ -85,11 +107,17 @@ namespace Ui
         if (active_ == _active)
             return;
 
-        auto style = QString("border-style: solid; border-width: 1dip; border-color: %1; border-radius: 4dip; background: #ffffff;").arg(_active ? "#579e1c" : "#cbcbcb");
+        auto style = qsl("border-style: solid; border-width: 1dip; border-color: %1; border-radius: 16dip; background-color: %2; color: %3;")
+            .arg(
+                CommonStyle::getColor(_active ? CommonStyle::Color::GREEN_FILL : CommonStyle::Color::GRAY_FILL_DARK).name(),
+                CommonStyle::getFrameColor().name(),
+                CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY).name()
+            );
         Utils::ApplyStyle(this, style);
-        
+
         active_ = _active;
         closeIcon_->setVisible(_active);
+        setDefaultPlaceholder();
         emit activeChanged(_active);
     }
 
@@ -118,6 +146,7 @@ namespace Ui
         clearInput();
         setActive(false);
         searchEdit_->clearFocus();
+        emit searchChanged(QString());
         emit searchEnd();
         Utils::InterConnector::instance().setFocusOnInput();
     }
@@ -128,9 +157,10 @@ namespace Ui
         emit escapePressed();
     }
 
-    void SearchWidget::searchChanged(QString _text)
+    void SearchWidget::searchChanged(const QString& _text)
     {
-        setActive(true);
+        if (!_text.isEmpty())
+            setActive(true);
 
         if (!_text.isEmpty())
         {
@@ -161,6 +191,6 @@ namespace Ui
 
     void SearchWidget::focusedOut()
     {
-        //setActive(false);
+        setActive(false);
     }
 }

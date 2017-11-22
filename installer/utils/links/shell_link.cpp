@@ -135,7 +135,8 @@ namespace installer
 
 		FolderItemVerbs* GetVerbs(const CAtlString& _filePath)
 		{
-			std::tr2::sys::wpath file_path(_filePath);
+            std::tr2::sys::path file_path;
+            file_path = _filePath.GetString();
 			
 			CComPtr<IShellDispatch> shell;
 			HRESULT hr = shell.CoCreateInstance(CLSID_Shell, NULL,CLSCTX_INPROC_SERVER);
@@ -510,7 +511,8 @@ namespace installer
 				sDir = sDir.Trim(_T("\\"));
 				sDir += _T("\\Microsoft\\Internet Explorer\\Quick Launch");
 
-				std::tr2::sys::wpath path((const wchar_t*) sDir);
+                std::tr2::sys::path path;
+                path = ((const wchar_t*)sDir);
 				if (!std::tr2::sys::exists(path))
 				{
 					if (!std::tr2::sys::create_directories(path))

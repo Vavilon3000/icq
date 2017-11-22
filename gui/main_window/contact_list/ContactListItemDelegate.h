@@ -17,17 +17,17 @@ namespace Logic
 
 		QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 
-		void blockState(bool value);
-
-        void setDragIndex(const QModelIndex& index);
-
         virtual void setFixedWidth(int width) override;
+
+        virtual void blockState(bool value) override;
+
+        virtual void setDragIndex(const QModelIndex& index) override;
+
+        virtual void setRegim(int _regim) override;
 
         void setLeftMargin(int margin);
 
         void setRightMargin(int margin);
-
-        virtual void setRegim(int _regim) override;
 
         void setRenderRole(bool render);
 

@@ -37,6 +37,7 @@ namespace core
             const int32_t		count_;
             const std::string   patch_version_;
             bool                init_;
+            bool                from_deleted_;
 
             get_history_params(
                 const std::string &_aimid,
@@ -44,7 +45,8 @@ namespace core
                 const int64_t _till_msg_id,
                 const int32_t _count,
                 const std::string &_patch_version,
-                bool _init = false
+                bool _init = false,
+                bool _from_deleted = false
                 );
         };
 
@@ -73,7 +75,7 @@ namespace core
 
         public:
             get_history(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const get_history_params& _hist_params,
                 const std::string& _locale
                 );

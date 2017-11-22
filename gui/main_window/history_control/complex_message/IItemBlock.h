@@ -19,6 +19,7 @@ public:
         MenuFlagLinkCopyable    = (1 << 0),
         MenuFlagFileCopyable    = (1 << 1),
         MenuFlagOpenInBrowser   = (1 << 2),
+        MenuFlagCopyable        = (1 << 3)
     };
 
     enum ContentType
@@ -47,7 +48,7 @@ public:
     virtual bool isSharingEnabled() const = 0;
 
     virtual bool containSharingBlock() const { return false; }
-    
+
     virtual bool standaloneText() const = 0;
 
     virtual void onActivityChanged(const bool isActive) = 0;
@@ -74,10 +75,10 @@ public:
 
     virtual bool isSelected() const = 0;
 
-    virtual bool onMenuItemTriggered(const QString &command) = 0;
+    virtual bool onMenuItemTriggered(const QVariantMap &params) = 0;
 
     virtual void selectByPos(const QPoint& from, const QPoint& to, const BlockSelectionType selection) = 0;
-    
+
     virtual bool replaceBlockWithSourceText(IItemBlock* /*block*/) { return false; }
 
     virtual bool isSimple() const { return true; }
@@ -88,9 +89,9 @@ public:
 
     virtual bool needFormatQuote() const { return true; }
 
-    virtual void setFontSize(int size) { };
+    virtual void setFontSize(int size) { }
 
-    virtual void setTextOpacity(double opacity) { };
+    virtual void setTextOpacity(double opacity) { }
 
     virtual IItemBlock* findBlockUnder(const QPoint &pos) const { return nullptr; }
 
@@ -98,13 +99,17 @@ public:
 
     virtual QString getTrimmedText() const { return QString(); }
 
-	virtual void setQuoteSelection() = 0;
+    virtual void setQuoteSelection() = 0;
 
     virtual void hideBlock() = 0;
 
     virtual bool isHasLinkInMessage() const = 0;
 
     virtual int getMaxWidth() const { return -1; }
+
+    virtual QPoint getShareButtonPos(const bool _isBubbleRequired, const QRect& _bubbleRect) const = 0;
+
+    virtual QString linkAtPos(const QPoint& pos) const { return QString(); }
 
 };
 

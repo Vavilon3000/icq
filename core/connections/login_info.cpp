@@ -24,7 +24,7 @@ void core::login_info::set_password(const std::string& _password)
     password_ = _password;
 }
 
-std::string core::login_info::get_password() const
+const std::string& core::login_info::get_password() const
 {
     return password_;
 }
@@ -34,7 +34,7 @@ void core::login_info::set_login(const std::string& _login)
     login_ = _login;
 }
 
-std::string core::login_info::get_login() const
+const std::string& core::login_info::get_login() const
 {
     return login_;
 }
@@ -69,7 +69,7 @@ void phone_info::set_phone(const std::string& _phone)
     phone_ = _phone;
 }
 
-const std::string phone_info::get_phone() const
+const std::string& phone_info::get_phone() const
 {
     return phone_;
 }
@@ -79,7 +79,7 @@ void phone_info::set_locale(const std::string& _locale)
     locale_ = _locale;
 }
 
-const std::string phone_info::get_locale() const
+const std::string& phone_info::get_locale() const
 {
     return locale_;
 }
@@ -109,7 +109,7 @@ void phone_info::set_sms_code(const std::string& _sms_code)
     sms_code_ = _sms_code;
 }
 
-const std::string phone_info::get_sms_code() const
+const std::string& phone_info::get_sms_code() const
 {
     return sms_code_;
 }

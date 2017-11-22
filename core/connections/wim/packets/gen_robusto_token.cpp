@@ -7,8 +7,8 @@ using namespace core;
 using namespace wim;
 
 
-gen_robusto_token::gen_robusto_token(const wim_packet_params& _params)
-    :	robusto_packet(_params)
+gen_robusto_token::gen_robusto_token(wim_packet_params _params)
+    :	robusto_packet(std::move(_params))
 {
 }
 
@@ -28,11 +28,9 @@ int32_t gen_robusto_token::init_request(std::shared_ptr<core::http_request_simpl
 
     time_t ts = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) - params_.time_offset_;
     _request->push_post_parameter("ts", tools::from_int64(ts));
+    _request->push_post_parameter("nonce", tools::from_int64(ts) + '-' + tools::from_int64(params_.nonce_));
 
-    std::map<std::string, std::string> post_params;
-    _request->get_post_parameters(post_params);
-
-    _request->push_post_parameter("sig_sha256", escape_symbols(get_url_sign(host, post_params, params_, true)));
+    _request->push_post_parameter("sig_sha256", escape_symbols(get_url_sign(host, _request->get_post_parameters(), params_, true)));
     return 0;
 }
 
@@ -42,7 +40,7 @@ int32_t gen_robusto_token::parse_results(const rapidjson::Value& _node_results)
     if (iter_token == _node_results.MemberEnd())
         return wpie_http_parse_response;
 
-    token_ = iter_token->value.GetString();
+    token_ = rapidjson_get_string(iter_token->value);
 
     return 0;
 }

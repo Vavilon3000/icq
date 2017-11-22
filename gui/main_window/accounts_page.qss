@@ -42,30 +42,30 @@ QLabel#choose_account_comment_label
 
 QLabel#label_account_nick
 {
-	font-size: 18dip;
+    font-size: 18dip;
 }
 
 QLabel#label_account_uin
 {
-	color: #767676;
-	font-size: 16dip;
+    color: #767676;
+    font-size: 16dip;
 }
 
 QLabel#arrow_right
 {
-	border-image: url(:/resources/smiles_menu/picker_arrow_right_100.png);
+    border-image: url(:/resources/smiles_menu/picker_arrow_right_100.png);
     width: 20dip;
     height: 20dip;
 }
 
 QScrollArea
 {
-	border: none;
+    border: none;
 }
 
 QWidget#accounts_area_widget
 {
-	background-color: #ffffff;
+    background-color: #ffffff;
 }
 
 QWidget#account_widget
@@ -75,5 +75,5 @@ QWidget#account_widget
 
 QWidget#account_widget:hover
 {
-    background-color: #ebebeb;
+    background-color: #f2f2f2;
 }

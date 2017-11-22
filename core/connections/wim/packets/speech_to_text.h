@@ -31,7 +31,7 @@ namespace core
         public:
 
             speech_to_text(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const std::string& _url,
                 const std::string& _locale);
 

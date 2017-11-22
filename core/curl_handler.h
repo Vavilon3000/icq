@@ -126,7 +126,7 @@ namespace core
         };
 
         std::priority_queue<job, std::vector<job>, job_priority_comparer> pending_jobs_;
-        std::mutex jobs_mutex_;
+        boost::mutex jobs_mutex_;
 
         std::atomic<bool> keep_working_;
 

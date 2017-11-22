@@ -4,31 +4,36 @@
 
 namespace Ui
 {
-	class service_message_item;
+    class service_message_item;
 
-	class ServiceMessageItem : public HistoryControlPageItem
-	{
-		Q_OBJECT
+    class ServiceMessageItem : public HistoryControlPageItem
+    {
+        Q_OBJECT
 
-	public:
+    public:
 
-		ServiceMessageItem(QWidget* parent, bool overlay = false);
-		~ServiceMessageItem();
+        ServiceMessageItem(QWidget* parent, bool overlay = false);
+        ~ServiceMessageItem();
 
-		virtual QString formatRecentsText() const override;
+        virtual QString formatRecentsText() const override;
 
-		void setMessage(const QString& message);
-		void setWidth(int width);
-		void setDate(const QDate& date);
-		void setNew();
-		bool isNew() const;
+        void setMessage(const QString& message);
+        void setWidth(int width);
+        void setDate(const QDate& date);
+        void setNew();
+        bool isNew() const;
         void updateStyle();
 
-		virtual void setQuoteSelection() override;
+        virtual void setQuoteSelection() override;
 
-	private:
-		bool new_;
-		bool overlay_;
+    private:
+        void updateDateTranslation();
+
+    private:
+        QDate lastUpdated_;
+        QDate date_;
+        bool new_;
+        bool overlay_;
         QHBoxLayout *horizontal_layout_;
         QHBoxLayout *horizontal_layout_2_;
         QHBoxLayout *horizontal_layout_3_;
@@ -37,5 +42,5 @@ namespace Ui
         QWidget *widget_;
         QLabel *message_;
         QWidget *right_widget_;
-	};
+    };
 }

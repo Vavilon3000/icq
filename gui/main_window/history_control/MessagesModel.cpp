@@ -26,19 +26,24 @@
 #include "../../utils/utils.h"
 #include "../../utils/gui_coll_helper.h"
 #include "../../utils/InterConnector.h"
+#include <boost/scope_exit.hpp>
+#include <boost/range/adaptor/map.hpp>
+#include <boost/range/adaptor/reversed.hpp>
+
+#define CHECK_THREAD {assert(QThread::currentThread() == qApp->thread());}
 
 namespace
 {
     QString NormalizeAimId(const QString& _aimId)
     {
-        int pos = _aimId.indexOf("@uin.icq");
+        const int pos = _aimId.indexOf(ql1s("@uin.icq"));
         return pos == -1 ? _aimId : _aimId.left(pos);
     }
 
     QString GetChatFriendly(const QString& _aimId, const QString& _chatFriendly)
     {
-        QString normalized = NormalizeAimId(_aimId);
-        QString clFriendly = Logic::getContactListModel()->getDisplayName(normalized);
+        const QString normalized = NormalizeAimId(_aimId);
+        const QString clFriendly = Logic::getContactListModel()->getDisplayName(normalized);
         if (clFriendly == normalized)
         {
             return _chatFriendly.isEmpty() ? _aimId : _chatFriendly;
@@ -46,22 +51,59 @@ namespace
 
         return clFriendly;
     }
+
+    template<typename T>
+    bool isThereHole(T first, T last)
+    {
+        if (std::distance(first, last) < 2)
+            return false;
+
+        auto prev = (*std::prev(last))->Prev_;
+
+        typedef std::reverse_iterator<T> RIter;
+        for (auto it = std::next(RIter(last)), end = RIter(first); it != end; ++it)
+        {
+            if ((*it)->Id_ != prev && !(*it)->IsDeleted())
+                return true;
+
+            prev = (*it)->Prev_;
+        }
+        return false;
+    }
+
+    template<typename T>
+    T findHole(T first, T last)
+    {
+        if (std::distance(first, last) < 2)
+            return last;
+
+        for (auto it = first; it != last; ++it)
+        {
+            const auto next = std::next(first);
+            if (next != last)
+            {
+                if ((*next)->Prev_ != (*it)->Id_)
+                    return next;
+            }
+        }
+        return last;
+    }
 }
 
 namespace Logic
 {
-    const MessageKey MessageKey::MAX(INT64_MAX, INT64_MAX - 1, QString(), -1, 0, core::message_type::base, false, preview_type::none, control_type::ct_message);
+    const MessageKey MessageKey::MAX(std::numeric_limits<qint64>::max(), std::numeric_limits<qint64>::max() - 1, QString(), -1, 0, core::message_type::base, false, preview_type::none, control_type::ct_message);
     const MessageKey MessageKey::MIN(2, 1, QString(), -1, 0, core::message_type::base, false, preview_type::none, control_type::ct_message);
 
     MessageKey::MessageKey()
         : id_(-1)
         , prev_(-1)
         , type_(core::message_type::base)
-        , outgoing_(false)
-        , pendingId_(-1)
-        , time_(-1)
-        , previewType_(preview_type::none)
         , controlType_(control_type::ct_message)
+        , time_(-1)
+        , pendingId_(-1)
+        , previewType_(preview_type::none)
+        , outgoing_(false)
     {
     }
 
@@ -69,13 +111,13 @@ namespace Logic
         const qint64 _id,
         const control_type _control_type)
             : id_(_id)
-            , controlType_(_control_type)
             , prev_(-1)
             , type_(core::message_type::base)
-            , outgoing_(false)
-            , pendingId_(-1)
+            , controlType_(_control_type)
             , time_(-1)
+            , pendingId_(-1)
             , previewType_(preview_type::none)
+            , outgoing_(false)
 
     {
     }
@@ -91,14 +133,14 @@ namespace Logic
         const preview_type _previewType,
         const control_type _control_type)
         : id_(_id)
+        , prev_(_prev)
         , internalId_(_internalId)
         , type_(_type)
-        , prev_(_prev)
-        , outgoing_(_outgoing)
-        , pendingId_(_pendingId)
-        , time_(_time)
-        , previewType_(_previewType)
         , controlType_(_control_type)
+        , time_(_time)
+        , pendingId_(_pendingId)
+        , previewType_(_previewType)
+        , outgoing_(_outgoing)
     {
         assert(type_ > core::message_type::min);
         assert(type_ < core::message_type::max);
@@ -178,15 +220,7 @@ namespace Logic
 
     QString MessageKey::toLogStringShort() const
     {
-        QString logStr;
-        logStr.reserve(512);
-
-        QTextStream fmt(&logStr);
-
-        fmt << "id=" << id_ << ";"
-            "prev=" << prev_;
-
-        return logStr;
+        return ql1s("id=") % QString::number(id_) % ql1s(";prev=") % QString::number(prev_);
     }
 
     bool MessageKey::isFileSharing() const
@@ -243,9 +277,14 @@ namespace Logic
         return prev_;
     }
 
-    QString MessageKey::getInternalId() const
+    const QString& MessageKey::getInternalId() const
     {
         return internalId_;
+    }
+
+    int MessageKey::getPendingId() const
+    {
+        return pendingId_;
     }
 
     bool MessageKey::compare(const MessageKey& _rhs) const
@@ -549,8 +588,7 @@ namespace Logic
     {
         if (!lastRequestedMessage_)
         {
-            lastRequestedMessage_.reset(new qint64(_message));
-
+            lastRequestedMessage_ = std::make_unique<qint64>(_message);
             return;
         }
 
@@ -572,12 +610,70 @@ namespace Logic
         return !lastRequestedMessage_;
     }
 
+    void ContactDialog::setInitMessage(qint64 _message) noexcept
+    {
+        initMessage_ = _message;
+    }
 
+    qint64 ContactDialog::getInitMessage() const noexcept
+    {
+        return initMessage_;
+    }
+
+    void ContactDialog::setFirstUnreadMessage(qint64 _message) noexcept
+    {
+        firstUnreadMessage_ = _message;
+    }
+
+    qint64 ContactDialog::getFirstUnreadMessage() const noexcept
+    {
+        return firstUnreadMessage_;
+    }
+
+    void ContactDialog::setMessageCountAfter(qint64 _count) noexcept
+    {
+        messageCountAfter_ = _count;
+    }
+
+    qint64 ContactDialog::getMessageCountAfter() const noexcept
+    {
+        return messageCountAfter_;
+    }
+
+    bool ContactDialog::isJumpToMessageEnabled() const noexcept
+    {
+        return needToJumpToMessage_;
+    }
+
+    void ContactDialog::enableJumpToMessage(bool _enable) noexcept
+    {
+        needToJumpToMessage_ = _enable;
+    }
+
+    void ContactDialog::setScrollMode(scroll_mode_type _type) noexcept
+    {
+        scrollMode_ = _type;
+    }
+
+    scroll_mode_type ContactDialog::getScrollMode() const noexcept
+    {
+        return scrollMode_;
+    }
+
+    void ContactDialog::enablePostponeUpdate(bool _enable) noexcept
+    {
+        postponeUpdate_ = _enable;
+    }
+
+    bool ContactDialog::isPostponeUpdateEnabled() const noexcept
+    {
+        return postponeUpdate_;
+    }
 
     MessagesMap& ContactDialog::getMessages()
     {
         if (!messages_)
-            messages_.reset(new MessagesMap());
+            messages_ = std::make_unique<MessagesMap>();
 
         return *messages_;
     }
@@ -585,7 +681,7 @@ namespace Logic
     MessagesMap& ContactDialog::getPendingMessages()
     {
         if (!pendingMessages_)
-            pendingMessages_.reset(new MessagesMap());
+            pendingMessages_ = std::make_unique<MessagesMap>();
 
         return *pendingMessages_;
     }
@@ -593,7 +689,7 @@ namespace Logic
     DatesMap& ContactDialog::getDatesMap()
     {
         if (!dateItems_)
-            dateItems_.reset(new DatesMap());
+            dateItems_ = std::make_unique<DatesMap>();
 
         return *dateItems_;
     }
@@ -692,6 +788,7 @@ namespace Logic
 
     Logic::MessageKey ContactDialog::findFirstKeyAfter(const Logic::MessageKey& _key) const
     {
+        CHECK_THREAD
         assert(!_key.isEmpty());
 
         if (!messages_)
@@ -709,8 +806,22 @@ namespace Logic
         return messageIter->first;
     }
 
+    Logic::MessageKey ContactDialog::getKey(qint64 _id) const
+    {
+        CHECK_THREAD
+        if (messages_)
+        {
+            const auto end = messages_->end();
+            const auto it = std::find_if(messages_->begin(), end, [_id](const auto& _msg) { return _msg.first.getId() == _id; });
+            if (it != end)
+                return (*it).first;
+        }
+        return Logic::MessageKey();
+    }
+
     int64_t ContactDialog::getLastMessageId() const
     {
+        CHECK_THREAD
         if (!messages_)
         {
             return -1;
@@ -726,6 +837,7 @@ namespace Logic
 
     bool ContactDialog::hasPending() const
     {
+        CHECK_THREAD
         if (!pendingMessages_)
         {
             return false;
@@ -736,9 +848,10 @@ namespace Logic
 
     void ContactDialog::setNewKey(const MessageKey& _key)
     {
+        CHECK_THREAD
         if (!newKey_)
         {
-            newKey_.reset(new MessageKey(_key));
+            newKey_ = std::make_unique<MessageKey>(_key);
         }
 
         *newKey_ = _key;
@@ -746,6 +859,7 @@ namespace Logic
 
     const MessageKey* ContactDialog::getNewKey() const
     {
+        CHECK_THREAD
         if (!newKey_)
         {
             return nullptr;
@@ -769,6 +883,50 @@ namespace Logic
         return recvLastMessage_;
     }
 
+    SendersVector ContactDialog::getSenders(bool _includeSelf) const
+    {
+        CHECK_THREAD
+        SendersVector result;
+
+        if (!messages_)
+            return result;
+
+        for (const auto& it : boost::adaptors::reverse(*messages_))
+        {
+            const auto& msg = it.second;
+            if (!msg.isChatEvent() && !msg.isDate())
+            {
+                if (msg.isOutgoing() && !_includeSelf)
+                    continue;
+
+                const auto buddy = it.second.getBuddy();
+                if (!buddy)
+                    continue;
+
+                const auto sender = NormalizeAimId(buddy->Chat_? buddy->GetChatSender(): buddy->AimId_);
+                QString friendly;
+                if (buddy->Chat_)
+                    friendly = GetChatFriendly(sender, buddy->ChatFriendly_);
+                else
+                {
+                    if (Logic::getContactListModel()->contains(sender))
+                        friendly = Logic::getContactListModel()->getDisplayName(sender);
+                    else
+                        friendly = buddy->ChatFriendly_;
+                }
+
+                if (!friendly.isEmpty())
+                {
+                    if (!std::any_of(result.begin(), result.end(), [&sender](const auto& s) { return s.aimId_ == sender; }))
+                    {
+                        result.emplace_back(sender, friendly);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
     //////////////////////////////////////////////////////////////////////////
     // MessagesModel
     //////////////////////////////////////////////////////////////////////////
@@ -779,67 +937,87 @@ namespace Logic
         : QObject(parent)
         , itemWidth_(0)
     {
+        setObjectName(qsl("MessagesModel"));
+        const bool connections[] = {
         connect(
             Ui::GetDispatcher(),
             &Ui::core_dispatcher::messageBuddies,
             this,
             &MessagesModel::messageBuddies,
-            Qt::QueuedConnection);
+            Qt::QueuedConnection),
+
+        connect(
+            Ui::GetDispatcher(),
+            &Ui::core_dispatcher::messageIdsFromServer,
+            this,
+            &MessagesModel::messageIdsFromServer,
+            Qt::QueuedConnection),
 
         connect(
             Ui::GetDispatcher(),
             &Ui::core_dispatcher::messagesDeleted,
             this,
             &MessagesModel::messagesDeleted,
-            Qt::QueuedConnection);
+            Qt::QueuedConnection),
 
         connect(
             Ui::GetDispatcher(),
             &Ui::core_dispatcher::messagesDeletedUpTo,
             this,
             &MessagesModel::messagesDeletedUpTo,
-            Qt::QueuedConnection);
+            Qt::QueuedConnection),
 
         connect(
             Ui::GetDispatcher(),
             &Ui::core_dispatcher::messagesModified,
             this,
             &MessagesModel::messagesModified,
-            Qt::QueuedConnection);
+            Qt::QueuedConnection),
 
         connect(
             Ui::GetDispatcher(),
             &Ui::core_dispatcher::dlgStates,
             this,
             &MessagesModel::dlgStates,
-            Qt::QueuedConnection);
+            Qt::QueuedConnection),
 
         connect(
             Ui::GetDispatcher(),
             &Ui::core_dispatcher::fileSharingUploadingResult,
             this,
             &MessagesModel::fileSharingUploadingResult,
-            Qt::DirectConnection);
+            Qt::DirectConnection),
+
+            connect(
+                Ui::GetDispatcher(),
+                &Ui::core_dispatcher::mentionMe,
+                this,
+                &MessagesModel::mentionMe,
+                Qt::QueuedConnection),
+        };
+
+        Q_UNUSED(connections);
+        assert(std::all_of(connections, connections + sizeof(connections), [](bool res) { return res; }));
     }
 
-    void MessagesModel::dlgStates(std::shared_ptr<QList<Data::DlgState>> _states)
+    void MessagesModel::dlgStates(const QVector<Data::DlgState>& _states)
     {
-        for (auto _state : *_states)
-        {
-            emit readByClient(_state.AimId_, _state.TheirsLastRead_);
-        }
+        CHECK_THREAD
+        for (const auto& _state : _states)
+            emit changeDlgState(_state);
     }
 
     void MessagesModel::fileSharingUploadingResult(
-        QString _seq, bool /*success*/, QString /*localPath*/, QString /*uri*/, int /*contentType*/, bool _isFileTooBig)
+        const QString& _seq, bool /*success*/, const QString& /*localPath*/, const QString& /*uri*/, int /*contentType*/, bool _isFileTooBig)
     {
+        CHECK_THREAD
         if (_isFileTooBig)
             failedUploads_ << _seq;
     }
 
-    void traceBuddies(std::shared_ptr<Data::MessageBuddies> _buddies, qint64 _seq)
+    static void traceBuddies(const Data::MessageBuddies& _buddies, qint64 _seq)
     {
-        for (const auto &buddy : *_buddies)
+        for (const auto &buddy : _buddies)
         {
             if (!buddy->IsFileSharing())
             {
@@ -854,17 +1032,18 @@ namespace Logic
         }
     }
 
-    void MessagesModel::messageBuddiesUnloadUnusedMessages(std::shared_ptr<Data::MessageBuddies> _buddies, const QString& _aimId, bool& _hole)
+    void MessagesModel::messageBuddiesUnloadUnusedMessages(const Data::MessageBuddySptr& _buddiesFirst, const QString& _aimId, bool& _hole)
     {
+        CHECK_THREAD
         auto& dialog = getContactDialog(_aimId);
         auto& dialogMessages = dialog.getMessages();
 
-        auto idFirst = _buddies->first()->Id_;
+        const auto idFirst = _buddiesFirst->Id_;
 
-        QList<MessageKey> deletedValues;
+        QVector<MessageKey> deletedValues;
 
         auto iter = dialogMessages.begin();
-        while(iter != dialogMessages.end())
+        while (iter != dialogMessages.end())
         {
             if (iter->first.isPending())
             {
@@ -874,6 +1053,7 @@ namespace Logic
 
             if (iter->first.getId() < idFirst)
             {
+                qDebug() << "unload less" << iter->first.getId() << "    " << iter->second.getBuddy()->GetText();
                 deletedValues << iter->first;
 
                 if (iter->first.isDate())
@@ -891,7 +1071,7 @@ namespace Logic
                 continue;
             }
 
-            if (iter->first.isDate() && (iter->second.getDate() == _buddies->first()->GetDate()))
+            if (iter->first.isDate() && (iter->second.getDate() == _buddiesFirst->GetDate()))
             {
                 deletedValues << iter->first;
 
@@ -905,7 +1085,7 @@ namespace Logic
             ++iter;
         }
 
-        MessageKey key = ( dialogMessages.empty() ? _buddies->first()->ToKey() : dialogMessages.begin()->first);
+        const MessageKey key = (dialogMessages.empty() ? _buddiesFirst->ToKey() : dialogMessages.cbegin()->first);
 
         if (dialog.getLastKey() < key)
             dialog.setLastKey(key);
@@ -916,13 +1096,105 @@ namespace Logic
         _hole = !deletedValues.isEmpty();
 
         if (_hole)
-        {
             emitDeleted(deletedValues, _aimId);
+    }
+
+    void MessagesModel::messageBuddiesUnloadUnusedMessagesToBottom(const Data::MessageBuddySptr& _buddiesLast, const QString& _aimId, bool& _hole)
+    {
+        CHECK_THREAD
+        auto& dialog = getContactDialog(_aimId);
+        auto& dialogMessages = dialog.getMessages();
+
+        const auto idLast = _buddiesLast->Id_;
+
+        QVector<MessageKey> deletedValues;
+
+        auto iter = dialogMessages.begin();
+        while (iter != dialogMessages.end())
+        {
+            if (iter->first.isPending())
+            {
+                ++iter;
+                continue;
+            }
+
+            const auto currentId = iter->first.getId();
+            if (currentId > idLast)
+            {
+                qDebug() << "unload greater" << currentId << "    " << iter->second.getBuddy()->GetText();
+                deletedValues << iter->first;
+
+                if (iter->first.isDate())
+                {
+                    dialog.removeDateItem(iter->second.getDate());
+                }
+
+                dialog.setRecvLastMessage(false);
+
+                /*if (iter->first.getId() <= dialog.getLastRequestedMessage())
+                {
+                    dialog.setLastRequestedMessage(-1);
+                }*/
+
+                iter = dialogMessages.erase(iter);
+
+                continue;
+            }
+
+            if (iter->first.isDate() && (iter->second.getDate() == _buddiesLast->GetDate()))
+            {
+                deletedValues << iter->first;
+
+                dialog.removeDateItem(iter->second.getDate());
+
+                iter = dialogMessages.erase(iter);
+
+                continue;
+            }
+
+            ++iter;
+        }
+
+
+        const MessageKey key = (dialogMessages.empty() ? _buddiesLast->ToKey() : dialogMessages.crbegin()->first);
+
+        if (key < dialog.getFirstKey())
+            dialog.setFirstKey(key);
+
+        sequences_.clear();
+        dialog.setLastRequestedMessage(-1);
+
+        _hole = !deletedValues.isEmpty();
+
+        if (_hole)
+            emitDeleted(deletedValues, _aimId);
+    }
+
+    static const char* optionToStr(Ui::MessagesBuddiesOpt option)
+    {
+        switch (option)
+        {
+        case Ui::MessagesBuddiesOpt::Requested:
+            return "Requested option";
+        case Ui::MessagesBuddiesOpt::FromServer:
+            return "FromServer option";
+        case Ui::MessagesBuddiesOpt::DlgState:
+            return "DlgState option";
+        case Ui::MessagesBuddiesOpt::Intro:
+            return "Intro option";
+        case Ui::MessagesBuddiesOpt::Pending:
+            return "Pending option";
+        case Ui::MessagesBuddiesOpt::Init:
+            return "Init option";
+        case Ui::MessagesBuddiesOpt::MessageStatus:
+            return "MessageStatus option";
+        default:
+            return "invalid option";
         }
     }
 
-    void MessagesModel::messageBuddiesInsertMessages(
-        std::shared_ptr<Data::MessageBuddies> _buddies,
+    MessagesModel::UpdatedMessageKeys MessagesModel::messageBuddiesInsertMessages(
+        const Data::MessageBuddies& _buddies,
         const QString& _aimId,
         const qint64 _modelFirst,
         const Ui::MessagesBuddiesOpt _option,
@@ -930,39 +1202,75 @@ namespace Logic
         const bool _hole,
         int64_t _mess_id,
         int64_t _last_mess_id,
-        model_regim _regim)
+        model_regim _regim,
+        bool _containsMessageId)
 
     {
+        CHECK_THREAD
         auto& dialog = getContactDialog(_aimId);
         auto& dialogMessages = dialog.getMessages();
+
+        const bool wasEmptyDialog = dialogMessages.empty();
+
+        const auto modelLastBefore = lastMessageId(dialogMessages);
+        const auto modelFirstBefore = !wasEmptyDialog ? dialogMessages.cbegin()->first.getId() : -1;
 
         if (_regim == model_regim::jump_to_bottom)
         {
             messagesDeletedUpTo(_aimId, -1);
+            dialog.setInitMessage(-1);
+            dialog.enableJumpToMessage(false);
+            dialog.enablePostponeUpdate(false);
             dialog.setLastRequestedMessage(-1);
         }
 
+        const auto messId = dialog.getInitMessage();
+
         const auto isMultichat = Logic::getContactListModel()->isChat(_aimId);
 
-        QList<MessageKey> updatedValues;
+        std::vector<MessagesMapIter> insertedMessages;
 
-        std::list<MessagesMapIter> insertedMessages;
-
-        for (auto msg : *_buddies)
+        for (const auto& msg : _buddies)
         {
             const auto key = msg->ToKey();
-
-            const auto messageAlreadyInserted = (std::find_if(dialogMessages.begin(), dialogMessages.end(), [&key](const std::pair<MessageKey, Message>& _msg)->bool
-            {
-                return (_msg.first == key);
-
-            }) != dialogMessages.end());
+            const auto it = std::find_if(dialogMessages.begin(), dialogMessages.end(), [&key](const auto& _msg) { return _msg.first == key; });
+            const auto messageAlreadyInserted = it != dialogMessages.end();
 
             if (messageAlreadyInserted)
             {
+                auto buddy = it->second.getBuddy();
+                if (buddy && !buddy->Quotes_.empty() && !msg->Quotes_.empty())
+                {
+                    if (buddy->Quotes_.constFirst().chatName_.isEmpty())
+                    {
+                        QString newHeader(msg->Quotes_.constFirst().chatName_);
+                        if (newHeader.isEmpty() && !msg->Quotes_.constFirst().chatId_.isEmpty())
+                        {
+                            const auto contact = Logic::getContactListModel()->getContactItem(msg->Quotes_.constFirst().chatId_);
+                            if (contact)
+                                newHeader = contact->Get()->GetDisplayName();
+                        }
+                        if (!newHeader.isEmpty())
+                        {
+                            for (auto& q : buddy->Quotes_)
+                                q.chatName_ = newHeader;
+                        }
+                    }
+                }
                 continue;
             }
-
+            else if (!msg->Quotes_.empty() && msg->Quotes_.constFirst().chatName_.isEmpty() && !msg->Quotes_.constFirst().chatId_.isEmpty())
+            {
+                QString newHeader;
+                const auto contact = Logic::getContactListModel()->getContactItem(msg->Quotes_.constFirst().chatId_);
+                if (contact)
+                    newHeader = contact->Get()->GetDisplayName();
+                if (!newHeader.isEmpty())
+                {
+                    for (auto& q : msg->Quotes_)
+                        q.chatName_ = newHeader;
+                }
+            }
 
             Message newMessage(_aimId);
             newMessage.setKey(key);
@@ -977,14 +1285,82 @@ namespace Logic
 
             auto insertPos = dialogMessages.emplace(newMessage.getKey(), newMessage);
             if (insertPos.second)
-            {
                 insertedMessages.push_back(insertPos.first);
-            }
         }
 
         //qDebug("insertedMessages %i", insertedMessages.size());
 
-        for (auto iter : insertedMessages)
+        QVector<MessageKey> updatedValues = processInsertedMessages(insertedMessages, _aimId, isMultichat);
+
+        updateMessagesMarginsAndAvatars(_aimId);
+
+        bool isReadyEmited = false;
+        const auto hasSeq = sequences_.contains(_seq);
+        if (_regim == model_regim::first_load && hasSeq && messId == -1) {
+            qDebug() << "emit ready1";
+            dialog.enableJumpToMessage(false);
+            emit ready(_aimId, false /* search */, -1 /* _mess_id */, dialog.getMessageCountAfter(), dialog.getScrollMode());
+            isReadyEmited = true;
+        }
+
+        const bool isNewMessageRequest = seqAndNewMessageRequest.contains(_seq);
+        if (messId > 0 && dialog.isJumpToMessageEnabled())
+        {
+            dialog.enableJumpToMessage(false);
+            dialog.enablePostponeUpdate(false);
+            auto resultId = messId;
+            if (_containsMessageId)
+            {
+                resultId = getMessageIdToJump(dialog.getMessages(), messId);
+                if (resultId < 0)
+                    qDebug() << "fall back: contains MessageId, but can not load required message with id " << messId;
+                qDebug() << "emit ready2";
+                emit ready(_aimId, true /* search */, resultId, dialog.getMessageCountAfter(), messId == resultId ? dialog.getScrollMode() : scroll_mode_type::to_deleted);
+                isReadyEmited = true;
+            }
+            else
+            {
+                qDebug() << "fall back: can not load required message with id " << messId;
+                scrollToBottom(_aimId); // jump to bottom since there is no the message
+            }
+        }
+
+        const auto modelLastAfter = lastMessageId(dialogMessages);
+        const auto modelFirstAfter = !dialogMessages.empty() ? dialogMessages.cbegin()->first.getId() : -1;
+
+        const bool areSameBounds = !wasEmptyDialog && (modelLastAfter == modelLastBefore) && (modelFirstAfter == modelFirstBefore);
+
+        const bool isSubscribed = subscribed_.contains(_aimId);
+        bool needUpdate = false;
+        if (_option != Ui::MessagesBuddiesOpt::Requested
+            || _regim == model_regim::jump_to_bottom
+            || areSameBounds
+            || (isNewMessageRequest && !isSubscribed)
+            || seqHoleOnTheEdge.contains(_seq))
+        {
+            needUpdate = true;
+            if (!_seq && !isReadyEmited && !updatedValues.isEmpty())
+            {
+                if (dialog.isPostponeUpdateEnabled() && dialog.isJumpToMessageEnabled())
+                    dialog.enableJumpToMessage(false);
+                emit newMessageReceived(_aimId);
+            }
+
+        }
+        else if (isSubscribed)
+        {
+            subscribed_.removeAll(_aimId);
+            emit canFetchMore(_aimId);
+        }
+        return { std::move(updatedValues) , needUpdate };
+    }
+
+    QVector<Logic::MessageKey> MessagesModel::processInsertedMessages(const std::vector<MessagesMapIter>& insertedMessages, const QString& _aimId, bool isMultiChat)
+    {
+        auto& dialog = getContactDialog(_aimId);
+        auto& dialogMessages = dialog.getMessages();
+        QVector<MessageKey> updatedValues;
+        for (const auto& iter : insertedMessages)
         {
             if (!updatedValues.contains(iter->first))
                 updatedValues << iter->first;
@@ -1001,20 +1377,19 @@ namespace Logic
 
             if (hasAvatar && havePrevMsg)
             {
-                hasAvatar = msgBuddy->hasAvatarWith(*prevMsg->second.getBuddy(), isMultichat);
+                hasAvatar = msgBuddy->hasAvatarWith(*prevMsg->second.getBuddy(), isMultiChat);
             }
             msgBuddy->SetHasAvatar(hasAvatar);
 
             if (haveNextMsg)
             {
-                hasAvatar = !nextMsg->first.isOutgoing() && nextMsg->second.getBuddy()->hasAvatarWith(*msgBuddy, isMultichat);
+                hasAvatar = !nextMsg->first.isOutgoing() && nextMsg->second.getBuddy()->hasAvatarWith(*msgBuddy, isMultiChat);
                 if (nextMsg->second.getBuddy()->HasAvatar() != hasAvatar)
                 {
                     nextMsg->second.getBuddy()->SetHasAvatar(hasAvatar);
                     emit hasAvatarChanged(nextMsg->first, hasAvatar);
                 }
             }
-
 
             removeDateItemIfOutdated(_aimId, *msgBuddy);
 
@@ -1044,117 +1419,205 @@ namespace Logic
                 }
             }
         }
+        return updatedValues;
+    }
 
-        updateMessagesMarginsAndAvatars(_aimId);
-
-        if (_regim == model_regim::first_load && sequences_.contains(_seq))
-            emit ready(_aimId, false /* search */, -1 /* _mess_id */);
-
-        if (_regim == model_regim::jump_to_msg && sequences_.contains(_seq))
-            emit ready(_aimId, true /* search */, _mess_id);
-
-        if (_option != Ui::MessagesBuddiesOpt::Requested || _regim == model_regim::jump_to_bottom)
+    static void traceMessageBuddies(const Data::MessageBuddies& _buddies, qint64 _messageId)
+    {
+        qDebug() << "buddies size " << _buddies.size();
+        if (_messageId != -1)
         {
-            //qDebug("updatedValues:%i", updatedValues.size());
-            emitUpdated(updatedValues, _aimId, _hole ? HOLE : BASE);
+            for (const auto& x : _buddies)
+                qDebug() << x->Id_ << " is " << (x->Id_ > _messageId ? "greater" : (x->Id_ == _messageId ? "equal" : "less")) << "  " << x->GetText() << "    prev is " << x->Prev_ << (x->IsDeleted() ? "   deleted" : "");
         }
         else
         {
-            if (subscribed_.contains(_aimId))
-            {
-                subscribed_.removeAll(_aimId);
-                emit canFetchMore(_aimId);
-            }
+            for (const auto& x : _buddies)
+                qDebug() << x->Id_ << "  " << x->GetText() << "    prev is " << x->Prev_ << (x->IsDeleted() ? "   deleted" : "");
         }
     }
 
-    void MessagesModel::messageBuddies(std::shared_ptr<Data::MessageBuddies> _buddies, QString _aimId, Ui::MessagesBuddiesOpt _option, bool _havePending, qint64 _seq, int64_t _last_msgid)
+    bool MessagesModel::isIgnoreBuddies(const QString& _aimId, const Data::MessageBuddies& _buddies, Ui::MessagesBuddiesOpt _option, bool _havePending, qint64 _seq, int64_t _last_msgid, model_regim _regim, bool _containsMessageId)
     {
-        //qDebug("messageBuddies %i", _buddies->size());
-        //for (auto& val : *_buddies)
-        //{
-        //    qDebug("  id:%lld", val->ToKey().getId());
-        //}
-
-        assert(_option > Ui::MessagesBuddiesOpt::Min);
-        assert(_option < Ui::MessagesBuddiesOpt::Max);
-        assert(_buddies);
-
-        const auto isDlgState = (_option == Ui::MessagesBuddiesOpt::DlgState || _option == Ui::MessagesBuddiesOpt::Init || _option == Ui::MessagesBuddiesOpt::MessageStatus);
+        CHECK_THREAD
+        const auto isInit = (_option == Ui::MessagesBuddiesOpt::Init);
+        const auto isDlgState = (isInit || _option == Ui::MessagesBuddiesOpt::DlgState || _option == Ui::MessagesBuddiesOpt::MessageStatus);
         const auto isPending = (_option == Ui::MessagesBuddiesOpt::Pending);
 
         auto& dialog = getContactDialog(_aimId);
         auto& dialogMessages = dialog.getMessages();
+        const auto messId = dialog.getInitMessage();
+
+        bool ignoreBuddies = false;
+        if (!_buddies.isEmpty() && _regim != model_regim::jump_to_bottom && _seq <= 0)
+        {
+            if (dialogMessages.empty())
+            {
+                if (messId > 0)
+                {
+                    if (_buddies.constFirst()->Id_ > messId && _buddies.constFirst()->Prev_ != -1)
+                    {
+                        __TRACE(
+                            "history",
+                            _aimId << " 1 out of range buddie " << _buddies.constFirst()->Id_ << "   " << _buddies.constFirst()->GetText());
+                        qDebug() << "1 out of range buddie " << _buddies.constFirst()->Id_ << "   " << _buddies.constFirst()->GetText();
+                        ignoreBuddies = true;
+                    }
+                }
+            }
+            else
+            {
+                const auto first = dialogMessages.cbegin()->first.getId();
+
+                if (messId > 0)
+                {
+                    const auto prevMessage = previousMessageWithId(dialogMessages, dialogMessages.end(), IncludeDeleted::Yes);
+                    if (prevMessage != dialogMessages.end())
+                    {
+                        const auto last = prevMessage->first.getId();
+                        if (_buddies.constFirst()->Prev_ > last && !_containsMessageId)
+                        {
+                            __TRACE(
+                                "history",
+                                _aimId << " prev mesessage " << last << "   " << prevMessage->second.getBuddy()->GetText() << '\n'
+                                    << "2 out of range buddie " << _buddies.constFirst()->Id_ << "   " << _buddies.constFirst()->GetText());
+                            qDebug() << "prev mesessage " << last << "   " << prevMessage->second.getBuddy()->GetText();
+                            qDebug() << "2 out of range buddie " << _buddies.constFirst()->Id_ << "   " << _buddies.constFirst()->GetText();
+                            requestMessages(_aimId, last, RequestDirection::ToNew, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::HoleOnTheEdge);
+                            ignoreBuddies = true;
+                        }
+                    }
+                }
+                else
+                {
+                    const auto prevMessage = previousMessageWithId(dialogMessages, dialogMessages.end(), IncludeDeleted::Yes);
+                    if (prevMessage != dialogMessages.end())
+                    {
+                        const auto last = prevMessage->first.getId();
+                        if (_buddies.constFirst()->Prev_ > last)
+                        {
+                            __TRACE(
+                                "history",
+                                _aimId << "prev mesessage " << last << "   " << prevMessage->second.getBuddy()->GetText() << '\n'
+                                << "3 out of range buddie " << _buddies.constFirst()->Id_ << "   " << _buddies.constFirst()->GetText());
+                            qDebug() << "prev mesessage " << last << "   " << prevMessage->second.getBuddy()->GetText();
+                            qDebug() << "3 out of range buddie " << _buddies.constFirst()->Id_ << "   " << _buddies.constFirst()->GetText();
+                            requestMessages(_aimId, last, RequestDirection::ToNew, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::HoleOnTheEdge);
+                            ignoreBuddies = true;
+                        }
+                    }
+                }
+            }
+
+            BOOST_SCOPE_EXIT_ALL(&) {
+                if (ignoreBuddies)
+                {
+                    const auto lastId = lastMessageId(dialogMessages);
+                    if (lastId > 0 && lastId != _last_msgid)
+                        dialog.setRecvLastMessage(false);
+                }
+            };
+        }
+        return ignoreBuddies;
+    }
+
+    void MessagesModel::messageBuddies(Data::MessageBuddies _buddies, const QString& _aimId, Ui::MessagesBuddiesOpt _option, bool _havePending, qint64 _seq, int64_t _last_msgid)
+    {
+        CHECK_THREAD
+        BOOST_SCOPE_EXIT_ALL(&) {
+            seqAndToOlder_.remove(_seq);
+            seqAndJumpBottom_.remove(_seq);
+            sequences_.removeAll(_seq);
+            seqAndNewMessageRequest.remove(_seq);
+            seqHoleOnTheEdge.remove(_seq);
+            qDebug() << "messageBuddies end -----------------------------------------------";
+        };
+
+        qDebug() << "messageBuddies start -----------------------------------------------";
+        qDebug() << optionToStr(_option);
+
+        assert(_option > Ui::MessagesBuddiesOpt::Min);
+        assert(_option < Ui::MessagesBuddiesOpt::Max);
+
+        auto regim = model_regim::normal_load;
+        if (seqAndJumpBottom_.contains(_seq))
+            regim = model_regim::jump_to_bottom;
+
+        auto& dialog = getContactDialog(_aimId);
+        auto& dialogMessages = dialog.getMessages();
+        auto messId = dialog.getInitMessage();
+
+        bool buddiesContainsId = messId > 0 && containsMessageId(_buddies, messId);
+
+        const auto isInit = (_option == Ui::MessagesBuddiesOpt::Init);
+        const auto isDlgState = (isInit || _option == Ui::MessagesBuddiesOpt::DlgState || _option == Ui::MessagesBuddiesOpt::MessageStatus || _option == Ui::MessagesBuddiesOpt::Intro);
+        const auto isPending = (_option == Ui::MessagesBuddiesOpt::Pending);
 
         if (build::is_debug())
         {
+            //traceMessageBuddies(_buddies, dialog.getInitMessage());
             traceBuddies(_buddies, _seq);
         }
 
-        auto regim = model_regim::normal_load;
+        PendingsCount pendingsCount;
+
+        const bool dialogWasEmpty = dialogMessages.empty();
+
+        if (!_buddies.isEmpty() && (_havePending || isDlgState || isPending))
+            pendingsCount = processPendingMessage(_buddies, _aimId, _option);
+
+        if (messId > 0 && dialog.getFirstUnreadMessage() == -1 && dialog.getScrollMode() == scroll_mode_type::unread)
+        {
+            const auto firstUnread = getMessageIdByPrevId(_buddies, messId);
+            // change init message to scroll to first unread
+            if (firstUnread != -1)
+            {
+                qDebug() << "replace init message " << messId << " with " << firstUnread;
+                dialog.setFirstUnreadMessage(firstUnread);
+                dialog.setInitMessage(firstUnread);
+                messId = firstUnread;
+                buddiesContainsId = true;
+            }
+        }
+
+        const auto ignore = (pendingsCount.removed == 0) && isIgnoreBuddies(_aimId, _buddies, _option, _havePending, _seq, _last_msgid, regim, buddiesContainsId);
+        if (ignore)
+            return;
+
         qint64 modelFirst = -1;
-        if (dialogMessages.empty())
-        {
+        if (dialogWasEmpty)
             regim = model_regim::first_load;
-        }
-        else
-        {
-            modelFirst = dialogMessages.begin()->first.getPrev();
-        }
+        else if (!dialogMessages.empty())
+            modelFirst = dialogMessages.cbegin()->first.getPrev();
+
         int64_t mess_id = -1;
 
-        if (dialogMessages.empty() 
-            && seqAndToOlder_.contains(_seq) 
+        if (dialogWasEmpty
+            && seqAndToOlder_.contains(_seq)
             && seqAndToOlder_[_seq] != -1)
         {
             regim = model_regim::jump_to_msg;
             mess_id = seqAndToOlder_[_seq];
         }
 
-        if (seqAndJumpBottom_.contains(_seq))
-        {
-            regim = model_regim::jump_to_bottom;
-        }
-
         bool is_bottom_upload = false;
         if (seqAndToOlder_.contains(_seq) && seqAndToOlder_[_seq] != -1)
-        {
             is_bottom_upload = true;
-        }
 
-        if (seqAndToOlder_.contains(_seq))
-        {
-            seqAndToOlder_.remove(_seq);
-        }
-
-        if (seqAndJumpBottom_.contains(_seq))
-        {
-            seqAndJumpBottom_.remove(_seq);
-        }
-
-        if (_havePending || isDlgState || isPending)
-        {
-            processPendingMessage(*_buddies, _aimId, _option);
-        }
-
-        if (!_buddies->isEmpty() && _buddies->last()->Id_ == _last_msgid)
-        {
+        if (!_buddies.isEmpty() && _buddies.constLast()->Id_ == _last_msgid)
             getContactDialog(_aimId).setRecvLastMessage(true);
-        }
 
-        if (_buddies->isEmpty())
+        if (_buddies.isEmpty())
         {
             if (sequences_.contains(_seq))
-            {
                 getContactDialog(_aimId).setLastRequestedMessage(-1);
-            }
 
             updateMessagesMarginsAndAvatars(_aimId);
 
             return;
         }
 
-        if ((!sequences_.contains(_seq) && _buddies->last()->Id_ < modelFirst) || !requestedContact_.contains(_aimId))
+        if ((!sequences_.contains(_seq) && _buddies.constLast()->Id_ < modelFirst) || !requestedContact_.contains(_aimId))
         {
             updateMessagesMarginsAndAvatars(_aimId);
 
@@ -1163,53 +1626,298 @@ namespace Logic
 
         bool hole = false;
         hole |= is_bottom_upload;
-
-        if (_option == Ui::MessagesBuddiesOpt::FromServer)
+        const auto inserted = messageBuddiesInsertMessages(_buddies, _aimId, modelFirst, _option, _seq, hole, mess_id, _last_msgid, regim, buddiesContainsId);
+        if (!inserted.keys.isEmpty() && !_buddies.isEmpty())
         {
-            messageBuddiesUnloadUnusedMessages(_buddies, _aimId, hole);
-        }
-
-        messageBuddiesInsertMessages(_buddies, _aimId, modelFirst, _option, _seq, hole, mess_id, _last_msgid, regim);
-
-        const auto isFromServer = (_option == Ui::MessagesBuddiesOpt::FromServer);
-        const auto isRequested = (_option == Ui::MessagesBuddiesOpt::Requested);
-        const auto isInit = (_option == Ui::MessagesBuddiesOpt::Init);
-
-        if (isFromServer || isRequested || isInit)
-        {
-            if ((int32_t)dialogMessages.size() >= preloadCount())
+            const auto newReqIt = seqAndNewMessageRequest.constFind(_seq);
+            if (newReqIt != seqAndNewMessageRequest.cend())
             {
-                setFirstMessage(
-                    _aimId,
-                    dialogMessages.begin()->first.getId()
-                    );
+                const auto param = newReqIt.value();
+
+                if (messId != -1)
+                {
+                    const auto hasLess = std::any_of(_buddies.cbegin(), _buddies.cend(), [messId](const auto& x) { return x->Id_ < messId; });
+                    const auto hasGreater = std::any_of(_buddies.cbegin(), _buddies.cend(), [messId](const auto& x) { return x->Id_ > messId; });
+                    if (hasLess && hasGreater)
+                    {
+                        bool oldHole = hole;
+                        messageBuddiesUnloadUnusedMessages(_buddies.constFirst(), _aimId, hole);
+                        messageBuddiesUnloadUnusedMessagesToBottom(_buddies.constLast(), _aimId, hole);
+                        hole |= oldHole;
+                    }
+                    else if (hasLess)
+                    {
+                        messageBuddiesUnloadUnusedMessages(_buddies.constFirst(), _aimId, hole);
+                    }
+                    else if (hasGreater)
+                    {
+                        messageBuddiesUnloadUnusedMessagesToBottom(_buddies.constLast(), _aimId, hole);
+                    }
+                    if (hole)
+                        dialog.setInitMessage(-1);
+                }
+                else
+                {
+                    messageBuddiesUnloadUnusedMessages(_buddies.constFirst(), _aimId, hole);
+                }
             }
         }
+        if (inserted.needUpdate)
+            emitUpdated(inserted.keys, _aimId, hole ? HOLE : BASE);
 
-        if (isInit || regim == model_regim::jump_to_msg)
-        {
+        if (isInit || isDlgState || regim == model_regim::jump_to_msg)
             updateLastSeen(_aimId);
+    }
+
+    enum class Position
+    {
+        top,
+        inside,
+        bottom,
+        outTop,
+        outBottom
+    };
+
+    static Position idsPositionDialog(const QVector<qint64>& _ids, qint64 messageFirst, qint64 messageLast)
+    {
+        if (_ids.first() >= messageFirst && _ids.last() <= messageLast)
+            return Position::inside;
+        if (_ids.first() < messageFirst && _ids.last() >= messageFirst)
+            return Position::top;
+        if (_ids.first() > messageFirst && _ids.first() < messageLast && _ids.last() > messageLast)
+            return Position::bottom;
+        if (_ids.last() < messageFirst)
+            return Position::outTop;
+        return Position::outBottom;
+    }
+
+    static qint64 findBottomBound(const QVector<qint64>& _ids, const MessagesMap& _messages)
+    {
+        for (const auto& pair : boost::adaptors::reverse(_messages))
+        {
+            const auto id = pair.first.getId();
+            if (id > 0 && _ids.first() >= id)
+                return id;
+        }
+        return -1;
+    }
+
+    static qint64 findTopBound(const QVector<qint64>& _ids, const MessagesMap& _messages)
+    {
+        for (const auto& pair : _messages)
+        {
+            const auto id = pair.first.getId();
+            if (id > 0 && id >= _ids.last())
+                return id;
+        }
+        return -1;
+    }
+
+    void MessagesModel::requestNewMessages(const QString& _aimId, const QVector<qint64>& _ids, MessagesMap& _dialogMessages)
+    {
+        CHECK_THREAD
+        const auto dialogMessagesEnd = _dialogMessages.end();
+        const auto prevMessage = previousMessageWithId(_dialogMessages, dialogMessagesEnd, IncludeDeleted::Yes);
+        const auto modelLast = prevMessage != dialogMessagesEnd ? prevMessage->first.getId() : -1;
+        const auto position = idsPositionDialog(_ids, _dialogMessages.cbegin()->first.getId(), modelLast);
+        const auto idsFirst = _ids.constFirst();
+        switch (position)
+        {
+        case Position::inside:
+        {
+            requestMessages(_aimId, modelLast, RequestDirection::ToOlder, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+        }
+        break;
+        case Position::top:
+        {
+            const auto pos = findTopBound(_ids, _dialogMessages);
+            requestMessages(_aimId, pos, RequestDirection::ToOlder, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+        }
+        break;
+        case Position::bottom:
+        {
+            const auto pos = findBottomBound(_ids, _dialogMessages);
+            requestMessages(_aimId, pos, RequestDirection::ToNew, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+        }
+        break;
+        case Position::outTop:
+        {
+            requestMessages(_aimId, _dialogMessages.begin()->first.getId(), RequestDirection::ToOlder, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+        }
+        break;
+        case Position::outBottom:
+        {
+            requestMessages(_aimId, modelLast, RequestDirection::ToNew, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+        }
+        break;
+        }
+    }
+
+    void MessagesModel::messageIdsFromServer(QVector<qint64> _ids, const QString& _aimId, qint64 _seq)
+    {
+        CHECK_THREAD
+        qDebug() << "recieve from server " << _ids.size() << ": " << _ids;
+
+        if (_ids.isEmpty())
+            return;
+
+        auto& dialog = getContactDialog(_aimId);
+        const auto messageId = dialog.getInitMessage();
+        auto& dialogMessages = dialog.getMessages();
+        if (dialogMessages.empty())
+        {
+            if (messageId == -1)
+            {
+                requestLastNewMessages(_aimId, _ids);
+            }
+            else
+            {
+                const auto idx = _ids.indexOf(messageId);
+                if (idx != -1)
+                {
+                    requestMessages(_aimId, messageId, RequestDirection::Bidirection, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+                }
+                else
+                {
+                    qDebug() << "fall back. There is no message with messageId in new messages";
+                    dialog.setInitMessage(-1);
+                    dialog.enableJumpToMessage(false);
+                    requestMessages(_aimId, -1, RequestDirection::ToOlder, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+                }
+            }
+        }
+        else
+        {
+            const auto dialogMessagesEnd = dialogMessages.end();
+            const auto firstMessage = firstMessageWithId(dialogMessages, dialogMessages.begin());
+            if (firstMessage != dialogMessagesEnd && dialogMessages.size() > moreCount())
+            {
+                const auto first = firstMessage->first.getId();
+                const auto firstPrev = firstMessage->first.getPrev();
+                _ids.erase(std::remove_if(_ids.begin(), _ids.end(), [first, firstPrev](auto id) {
+                    if (firstPrev > 0 && firstPrev == id)
+                        return false;
+                    return id < first;
+                }), _ids.end());
+                if (_ids.isEmpty())
+                    return;
+            }
+
+            if (messageId == -1)
+            {
+                requestNewMessages(_aimId, _ids, dialogMessages);
+            }
+            else
+            {
+                const auto idsFirst = _ids.constFirst();
+                if (messageId == idsFirst)
+                {
+                    requestMessages(_aimId, idsFirst, RequestDirection::ToNew, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+                }
+                else if (messageId == _ids.constLast())
+                {
+                    requestLastNewMessages(_aimId, _ids);
+                }
+                else if (_ids.contains(messageId))
+                {
+                    requestMessages(_aimId, messageId, RequestDirection::Bidirection, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+                }
+                else
+                {
+                    const auto prevMessage = previousMessageWithId(dialogMessages, dialogMessagesEnd, IncludeDeleted::Yes);
+                    if (prevMessage != dialogMessagesEnd)
+                    {
+                        const auto last = prevMessage->first.getId();
+                        if (std::any_of(_ids.cbegin(), _ids.cend(), [last, messageId](qint64 id) { return id > messageId && id < last; })) // hole in dialog
+                        {
+                            requestMessages(_aimId, messageId, RequestDirection::ToNew, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+                            return;
+                        }
+                    }
+
+                    if (firstMessage != dialogMessagesEnd)
+                    {
+                        const auto first = firstMessage->first.getId();
+                        if (std::any_of(_ids.cbegin(), _ids.cend(), [first, messageId](qint64 id) { return id < messageId && id >= first; })) // hole in dialog
+                            requestMessages(_aimId, messageId, RequestDirection::ToOlder, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+                        else
+                            requestNewMessages(_aimId, _ids, dialogMessages);
+                    }
+                }
+            }
         }
     }
 
     void MessagesModel::updateLastSeen(const QString& _aimid)
     {
+        CHECK_THREAD
         auto dlgState = Logic::getRecentsModel()->getDlgState(_aimid);
         if (dlgState.AimId_ != _aimid)
             dlgState = Logic::getUnknownsModel()->getDlgState(_aimid);
 
-        emit readByClient(dlgState.AimId_, dlgState.TheirsLastRead_);
+        emit changeDlgState(dlgState);
     }
 
-    void MessagesModel::messagesDeleted(QString _aimId, QList<int64_t> _deletedIds)
+    template<typename T>
+    static T firstNonDeleted(T first, T last)
     {
+        while (first != last)
+        {
+            if (!(*first).second.isDeleted())
+                return first;
+            ++first;
+        }
+        return last;
+    }
+
+    qint64 MessagesModel::getMessageIdToJump(const MessagesMap& _messages, qint64 _id)
+    {
+        CHECK_THREAD
+        const auto f_end = _messages.end();
+        const auto f_id_it = std::find_if(_messages.begin(), f_end, [_id](const auto& x) { return x.first.getId() == _id; });
+
+        const auto f_it = firstNonDeleted(f_id_it, f_end);
+        if (f_it != f_end)
+            return (*f_it).first.getId();
+
+        const auto r_end = _messages.rend();
+        const auto r_it = firstNonDeleted(std::make_reverse_iterator(f_id_it), r_end);
+        if (r_it != r_end)
+            return (*r_it).first.getId();
+
+        return -1;
+    }
+
+    bool MessagesModel::containsMessageId(const MessagesMap& _messages, qint64 _id)
+    {
+        CHECK_THREAD
+        return std::any_of(_messages.begin(), _messages.end(), [_id](const auto& x) { return x.first.getId() == _id; });
+    }
+
+    bool MessagesModel::containsMessageId(const Data::MessageBuddies& _messages, qint64 _id)
+    {
+        CHECK_THREAD
+        return std::any_of(_messages.begin(), _messages.end(), [_id](const auto& x) { return x->Id_ == _id; });
+    }
+
+    qint64 MessagesModel::getMessageIdByPrevId(const Data::MessageBuddies& _messages, qint64 _prevId)
+    {
+        CHECK_THREAD
+        const auto end = _messages.end();
+        const auto it = std::find_if(_messages.begin(), end, [_prevId](const auto& x) { return x->Prev_ == _prevId; });
+        return it != end ? (*it)->Id_ : -1;
+    }
+
+    void MessagesModel::messagesDeleted(const QString& _aimId, const QVector<int64_t>& _deletedIds)
+    {
+        CHECK_THREAD
         assert(!_aimId.isEmpty());
         assert(!_deletedIds.isEmpty());
+        auto& dialog = getContactDialog(_aimId);
+        auto &dialogMessages = dialog.getMessages();
 
-        auto &dialogMessages = getContactDialog(_aimId).getMessages();
-
-        QList<Logic::MessageKey> messageKeys;
-
+        QVector<Logic::MessageKey> messageKeys;
+        messageKeys.reserve(_deletedIds.size());
         for (const auto id : _deletedIds)
         {
             assert(id > 0);
@@ -1241,16 +1949,20 @@ namespace Logic
         updateMessagesMarginsAndAvatars(_aimId);
 
         updateDateItems(_aimId);
+
+        if (const auto newKey = dialog.getNewKey())
+            updateNew(_aimId, newKey->getId());
     }
 
-    void MessagesModel::messagesDeletedUpTo(QString _aimId, int64_t _id)
+    void MessagesModel::messagesDeletedUpTo(const QString& _aimId, int64_t _id)
     {
+        CHECK_THREAD
         assert(!_aimId.isEmpty());
 
         auto &dialog = getContactDialog(_aimId);
         auto &dialogMessages = dialog.getMessages();
 
-        QList<Logic::MessageKey> messageKeys;
+        QVector<Logic::MessageKey> messageKeys;
 
         auto iter = dialogMessages.cbegin();
         for (; iter != dialogMessages.cend(); ++iter)
@@ -1263,39 +1975,39 @@ namespace Logic
 
             const Logic::MessageKey key(currentId, -1, QString(), -1, 0, core::message_type::base, false, Logic::preview_type::none, Logic::control_type::ct_message);
 
+            if (currentId <= dialog.getLastRequestedMessage())
+                dialog.setLastRequestedMessage(-1);
+
             messageKeys.push_back(key);
         }
 
         emitDeleted(messageKeys, _aimId);
 
-        dialogMessages.erase(dialogMessages.begin(), iter);
+        dialogMessages.erase(dialogMessages.cbegin(), iter);
 
         updateDateItems(_aimId);
 
         if (dialogMessages.empty())
-        {
             dialog.deleteLastKey();
-        }
         else
-        {
-            dialog.setLastKey(dialogMessages.begin()->first);
-        }
+            dialog.setLastKey(dialogMessages.cbegin()->first);
     }
 
-    void MessagesModel::setRecvLastMsg(QString _aimId, bool _value)
+    void MessagesModel::setRecvLastMsg(const QString& _aimId, bool _value)
     {
+        CHECK_THREAD
         getContactDialog(_aimId).setRecvLastMessage(_value);
     }
 
-    void MessagesModel::messagesModified(QString _aimId, std::shared_ptr<Data::MessageBuddies> _modifications)
+    void MessagesModel::messagesModified(const QString& _aimId, const Data::MessageBuddies& _modifications)
     {
+        CHECK_THREAD
         assert(!_aimId.isEmpty());
-        assert(_modifications);
-        assert(!_modifications->empty());
+        assert(!_modifications.isEmpty());
 
-        QList<Logic::MessageKey> messageKeys;
+        QVector<Logic::MessageKey> messageKeys;
 
-        for (const auto &modification : *_modifications)
+        for (const auto &modification : _modifications)
         {
             if (!modification->HasText() &&
                 !modification->IsChatEvent())
@@ -1323,27 +2035,195 @@ namespace Logic
         emitUpdated(messageKeys, _aimId, MODIFIED);
     }
 
-    void MessagesModel::processPendingMessage(InOut Data::MessageBuddies& _msgs, const QString& _aimId, const Ui::MessagesBuddiesOpt _state)
+    void MessagesModel::addMentionMe(const QString& _contact, Data::MessageBuddySptr _mention)
     {
+        CHECK_THREAD
+        auto iter_contact = mentionsMe_.find(_contact);
+        if (iter_contact != mentionsMe_.end())
+        {
+            const qint64 messageId = _mention->Id_;
+
+
+            const auto& mentions = iter_contact->second;
+
+            const auto found = std::any_of(mentions.begin(), mentions.end(), [messageId](const Data::MessageBuddySptr& _mention){
+                return (_mention->Id_ == messageId); });
+
+            if (found)
+                return;
+        }
+
+        mentionsMe_[_contact].push_back(_mention);
+    }
+
+    void MessagesModel::addMentionMe2Pending(const QString& _contact, Data::MessageBuddySptr _mention)
+    {
+        CHECK_THREAD
+        auto iter_contact = pendingMentionsMe_.find(_contact);
+        if (iter_contact != pendingMentionsMe_.end())
+        {
+            const qint64 messageId = _mention->Id_;
+
+            const auto& mentions = iter_contact->second;
+
+            const auto found = std::any_of(mentions.begin(), mentions.end(), [messageId](const Data::MessageBuddySptr& _mention) {
+                return (_mention->Id_ == messageId); });
+
+            if (found)
+                return;
+        }
+
+        pendingMentionsMe_[_contact].push_back(_mention);
+    }
+
+    void MessagesModel::removeMentionMe(const QString& _contact, Data::MessageBuddySptr _mention)
+    {
+        CHECK_THREAD
+        auto iter_contact = mentionsMe_.find(_contact);
+        if (iter_contact != mentionsMe_.end())
+        {
+            auto& mentions = iter_contact->second;
+
+            const qint64 messageId = _mention->Id_;
+
+            mentions.erase(std::remove_if(
+                mentions.begin(), mentions.end(), [messageId](const Data::MessageBuddySptr& _mention)
+                {
+                    return (_mention->Id_ == messageId);
+                }), mentions.end());
+
+            if (mentions.empty())
+                mentionsMe_.erase(iter_contact);
+        }
+    }
+
+    int MessagesModel::getMentionsCount(const QString& _contact) const
+    {
+        CHECK_THREAD
+        auto iter_contact = mentionsMe_.find(_contact);
+        if (iter_contact == mentionsMe_.end())
+            return 0;
+
+        return iter_contact->second.size();
+    }
+
+    Data::MessageBuddySptr MessagesModel::getNextUnreadMention(const QString& _contact) const
+    {
+        CHECK_THREAD
+        auto iter_contact = mentionsMe_.find(_contact);
+        if (iter_contact == mentionsMe_.end())
+            return nullptr;
+
+        const auto& mentions = iter_contact->second;
+
+        if (mentions.empty())
+            return nullptr;
+
+        return mentions.front();
+    }
+
+    void MessagesModel::mentionMe(const QString _contact, Data::MessageBuddySptr _mention)
+    {
+        CHECK_THREAD
+        auto dlgState = Logic::getRecentsModel()->getDlgState(_contact);
+        if (dlgState.YoursLastRead_ >= _mention->Id_)
+            return;
+
+        addMentionMe(_contact, _mention);
+    }
+
+    void MessagesModel::onMessageItemRead(const QString& _contact, const qint64 _messageId, const bool _visible)
+    {
+        CHECK_THREAD
+        auto iter_contact = pendingMentionsMe_.find(_contact);
+        if (iter_contact != pendingMentionsMe_.end())
+        {
+            auto& mentions = iter_contact->second;
+
+            auto iter_mention = std::find_if(mentions.begin(), mentions.end(), [_messageId](const Data::MessageBuddySptr& _mention)->bool {
+                    return (_mention->Id_ == _messageId); });
+
+            if (iter_mention != mentions.end())
+            {
+                if (_visible)
+                    return;
+
+                addMentionMe(_contact, *iter_mention);
+
+                mentions.erase(iter_mention);
+
+                if (mentions.empty())
+                    pendingMentionsMe_.erase(iter_contact);
+
+                return;
+            }
+        }
+
+        if (_visible)
+        {
+            iter_contact = mentionsMe_.find(_contact);
+            if (iter_contact == mentionsMe_.end())
+                return;
+
+            auto& mentions = iter_contact->second;
+
+            auto iter_mention = std::find_if(mentions.begin(), mentions.end(), [_messageId](const Data::MessageBuddySptr& _mention)->bool {
+                return (_mention->Id_ == _messageId); });
+
+            if (iter_mention != mentions.end())
+            {
+                addMentionMe2Pending(_contact, *iter_mention);
+
+                mentions.erase(iter_mention);
+                if (mentions.empty())
+                    mentionsMe_.erase(iter_contact);
+
+                QTimer::singleShot(500, this, [this, _contact, _messageId]()
+                {
+                    auto iter_contact = pendingMentionsMe_.find(_contact);
+                    if (iter_contact != pendingMentionsMe_.end())
+                    {
+                        auto& mentions = iter_contact->second;
+
+                        auto iter_mention = std::find_if(mentions.begin(), mentions.end(), [_messageId](const Data::MessageBuddySptr& _mention){
+                            return (_mention->Id_ == _messageId); });
+
+                        if (iter_mention != mentions.end())
+                        {
+                            mentions.erase(iter_mention);
+
+                            if (mentions.empty())
+                                pendingMentionsMe_.erase(iter_contact);
+
+                            emit mentionRead(_contact, _messageId);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    MessagesModel::PendingsCount MessagesModel::processPendingMessage(InOut Data::MessageBuddies& _msgs, const QString& _aimId, const Ui::MessagesBuddiesOpt _state)
+    {
+        CHECK_THREAD
         assert(_state > Ui::MessagesBuddiesOpt::Min);
         assert(_state < Ui::MessagesBuddiesOpt::Max);
 
-        if (_msgs.empty())
-        {
-            return;
-        }
+        PendingsCount result;
+        if (_msgs.isEmpty())
+            return result;
 
-        QList<MessageKey> updatedValues;
+        QVector<MessageKey> updatedValues;
 
         auto& dialog = getContactDialog(_aimId);
         auto& pendingMessages = dialog.getPendingMessages();
         auto& dialogMessages = dialog.getMessages();
 
-        for (Data::MessageBuddies::iterator iter = _msgs.begin(); iter != _msgs.end();)
+        for (auto iter = _msgs.begin(); iter != _msgs.end();)
         {
             auto msg = *iter;
 
-            MessageKey key = msg->ToKey();
+            const MessageKey key = msg->ToKey();
             if (msg->IsPending())
             {
                 msg->SetHasAvatar(!msg->IsOutgoing());
@@ -1364,14 +2244,14 @@ namespace Logic
                 pendingMessages.emplace(newMessage.getKey(), newMessage);
                 dialogMessages.emplace(newMessage.getKey(), newMessage);
 
+                ++result.added;
+
                 updatedValues << newMessage.getKey();
             }
             else if (key.isOutgoing())
             {
-                auto exist_pending = std::find_if(pendingMessages.begin(), pendingMessages.end(), [key](const std::pair<MessageKey, Message>& _pair)->bool
-                {
-                    return (key == _pair.first);
-                });
+                auto isKeyEqual = [&key](const std::pair<MessageKey, Message>& _pair) { return key == _pair.first; };
+                auto exist_pending = std::find_if(pendingMessages.begin(), pendingMessages.end(), isKeyEqual);
 
                 if (exist_pending != pendingMessages.end())
                 {
@@ -1379,16 +2259,14 @@ namespace Logic
                     assert(!key.getInternalId().isEmpty());
                     emit messageIdFetched(_aimId, key);
 
-                    auto exist_message = std::find_if(dialogMessages.begin(), dialogMessages.end(), [key](const std::pair<MessageKey, Message>& _pair)->bool
-                    {
-                        return (key == _pair.first);
-                    });
+                    auto exist_message = std::find_if(dialogMessages.begin(), dialogMessages.end(), isKeyEqual);
 
                     if (exist_message != dialogMessages.end())
                     {
                         dialogMessages.erase(exist_message);
                     }
 
+                    ++result.removed;
                     pendingMessages.erase(exist_pending);
                 }
 
@@ -1400,43 +2278,61 @@ namespace Logic
             }
         }
 
-
-        if (_state != Ui::MessagesBuddiesOpt::Requested)
+        if (_state != Ui::MessagesBuddiesOpt::Requested && !updatedValues.isEmpty())
             emitUpdated(updatedValues, _aimId, BASE);
+
+        return result;
     }
 
     Data::MessageBuddy MessagesModel::item(const Message& _message)
     {
+        CHECK_THREAD
         Data::MessageBuddy result;
 
         result.Id_ = _message.getKey().getId();
         result.Prev_ = _message.getKey().getPrev();
         result.InternalId_ = _message.getKey().getInternalId();
 
-        const auto &dialogMessages = getContactDialog(_message.getAimId()).getMessages();
+        auto& dialog = getContactDialog(_message.getAimId());
 
+        std::shared_ptr<Data::MessageBuddy> buddy;
+
+        const auto &dialogMessages = dialog.getMessages();
         auto iterMsg = dialogMessages.find(_message.getKey());
 
         if (iterMsg != dialogMessages.end())
         {
+            buddy = iterMsg->second.getBuddy();
+        }
+        else
+        {
+            const auto &pendingMessages = dialog.getPendingMessages();
+            auto itPending = pendingMessages.find(_message.getKey());
+            if (itPending != pendingMessages.end())
+                buddy = itPending->second.getBuddy();
+        }
+
+        if (buddy)
+        {
             result.SetType(_message.getKey().getType());
             result.AimId_ = _message.getAimId();
-            result.SetOutgoing(iterMsg->second.getBuddy()->IsOutgoing());
-            result.Chat_ = iterMsg->second.getBuddy()->Chat_;
-            result.SetChatSender(iterMsg->second.getBuddy()->GetChatSender());
-            result.ChatFriendly_ = iterMsg->second.getBuddy()->ChatFriendly_;
-            result.SetHasAvatar(iterMsg->second.getBuddy()->HasAvatar());
-            result.SetIndentBefore(iterMsg->second.getBuddy()->GetIndentBefore());
+            result.SetOutgoing(buddy->IsOutgoing());
+            result.Chat_ = buddy->Chat_;
+            result.SetChatSender(buddy->GetChatSender());
+            result.ChatFriendly_ = buddy->ChatFriendly_;
+            result.SetHasAvatar(buddy->HasAvatar());
+            result.SetIndentBefore(buddy->GetIndentBefore());
 
-            result.FillFrom(*iterMsg->second.getBuddy());
+            result.FillFrom(*buddy);
 
-            result.SetTime(iterMsg->second.getBuddy()->GetTime());
+            result.SetTime(buddy->GetTime());
 
             result.SetFileSharing(_message.getFileSharing());
             result.SetSticker(_message.getSticker());
             result.SetChatEvent(_message.getChatEvent());
             result.SetVoipEvent(_message.getVoipEvent());
             result.Quotes_ = _message.getBuddy()->Quotes_;
+            result.Mentions_ = _message.getBuddy()->Mentions_;
 
             if (_message.getKey().getId() == -1)
             {
@@ -1453,6 +2349,7 @@ namespace Logic
 
     void MessagesModel::removeDateItemIfOutdated(const QString& _aimId, const Data::MessageBuddy& _msg)
     {
+        CHECK_THREAD
         assert(_msg.HasId());
 
         const auto msgKey = _msg.ToKey();
@@ -1479,28 +2376,18 @@ namespace Logic
 
         dialog.getMessages().erase(indexRecord.getKey());
 
-        QList<Logic::MessageKey> toRemove;
-        toRemove << indexRecord.getKey();
-
-        emitDeleted(toRemove, _aimId);
+        emitDeleted({ indexRecord.getKey() }, _aimId);
 
         dateItems.erase(dateItemIter);
     }
 
-
-
-    void MessagesModel::emitUpdated(const QList<Logic::MessageKey>& _list, const QString& _aimId, unsigned _mode)
+    void MessagesModel::emitUpdated(const QVector<Logic::MessageKey>& _list, const QString& _aimId, unsigned _mode)
     {
-        bool containsChatEvent = false;
-        for (auto iter : _list)
-        {
-            if (iter.isChatEvent())
-            {
-                containsChatEvent = true;
-                break;
-            }
-        }
+        CHECK_THREAD
+        if (_list.isEmpty())
+            return;
 
+        const bool containsChatEvent = std::any_of(_list.begin(), _list.end(), [](const auto& key) { return key.isChatEvent(); });
         if (containsChatEvent && Logic::getContactListModel()->isChat(_aimId))
             emit chatEvent(_aimId);
 
@@ -1511,8 +2398,8 @@ namespace Logic
         }
 
         int i = 0;
-        QList<Logic::MessageKey> updatedList;
-        for (auto iter : _list)
+        QVector<Logic::MessageKey> updatedList;
+        for (const auto& iter : _list)
         {
             if (++i < moreCount())
             {
@@ -1531,13 +2418,15 @@ namespace Logic
             emit updated(updatedList, _aimId, _mode);
     }
 
-    void MessagesModel::emitDeleted(const QList<Logic::MessageKey>& _list, const QString& _aimId)
+    void MessagesModel::emitDeleted(const QVector<Logic::MessageKey>& _list, const QString& _aimId)
     {
+        CHECK_THREAD
         emit deleted(_list, _aimId);
     }
 
     void MessagesModel::createFileSharingWidget(Ui::MessageItem& _messageItem, const Data::MessageBuddy& _messageBuddy) const
     {
+        CHECK_THREAD
         auto parent = &_messageItem;
 
         std::unique_ptr<HistoryControl::MessageContentWidget> item;
@@ -1545,13 +2434,13 @@ namespace Logic
         const auto previewsEnabled = Ui::get_gui_settings()->get_value<bool>(settings_show_video_and_images, true);
 
 
-        item.reset(
-            new HistoryControl::FileSharingWidget(
-                parent,
-                _messageBuddy.IsOutgoing(),
-                _messageBuddy.AimId_,
-                _messageBuddy.GetFileSharing(),
-                previewsEnabled));
+        item = std::make_unique<HistoryControl::FileSharingWidget>(
+            parent,
+            _messageBuddy.IsOutgoing(),
+            _messageBuddy.AimId_,
+            _messageBuddy.GetFileSharing(),
+            previewsEnabled
+        );
 
         item->setFixedWidth(itemWidth_);
 
@@ -1560,16 +2449,15 @@ namespace Logic
             &HistoryControl::MessageContentWidget::removeMe,
             [_messageBuddy]
             {
-                QList<MessageKey> keys;
-                keys << _messageBuddy.ToKey();
-                emit GetMessagesModel()->deleted(keys, _messageBuddy.AimId_);
+                emit GetMessagesModel()->deleted({ _messageBuddy.ToKey() }, _messageBuddy.AimId_);
             });
 
         _messageItem.setContentWidget(item.release());
     }
 
-    MessageKey MessagesModel::applyMessageModification(const QString& _aimId, Data::MessageBuddy& _modification)
+    MessageKey MessagesModel::applyMessageModification(const QString& _aimId, const Data::MessageBuddy& _modification)
     {
+        CHECK_THREAD
         assert(_modification.AimId_ == _aimId);
 
         auto &dialogMessages = getContactDialog(_aimId).getMessages();
@@ -1613,6 +2501,7 @@ namespace Logic
 
     bool MessagesModel::hasItemsInBetween(const QString& _aimId, const Message& _l, const Message& _r) const
     {
+        CHECK_THREAD
         assert(!_aimId.isEmpty());
 
         const ContactDialog* dialog = getContactDialogConst(_aimId);
@@ -1624,11 +2513,12 @@ namespace Logic
 
     void MessagesModel::updateDateItems(const QString& _aimId)
     {
+        CHECK_THREAD
         assert(!_aimId.isEmpty());
 
         auto &dateRecords = getContactDialog(_aimId).getDatesMap();
 
-        QList<MessageKey> toRemove;
+        QVector<MessageKey> toRemove;
         toRemove.reserve(dateRecords.size());
 
         for(
@@ -1668,6 +2558,7 @@ namespace Logic
 
     void MessagesModel::updateMessagesMarginsAndAvatars(const QString& _aimId)
     {
+        CHECK_THREAD
         assert(!_aimId.isEmpty());
 
         const auto isMultichat = Logic::getContactListModel()->isChat(_aimId);
@@ -1754,6 +2645,7 @@ namespace Logic
 
     MessagesMapIter MessagesModel::findIndexRecord(MessagesMap& _indexRecords, const Logic::MessageKey& _key) const
     {
+        CHECK_THREAD
         assert(!_key.isEmpty());
 
         return std::find_if(_indexRecords.begin(), _indexRecords.end(), [&_key](const std::pair<MessageKey, Message>& _pair)
@@ -1764,6 +2656,7 @@ namespace Logic
 
     Logic::MessageKey MessagesModel::findFirstKeyAfter(const QString& _aimId, const Logic::MessageKey& _key) const
     {
+        CHECK_THREAD
         assert(!_aimId.isEmpty());
         assert(!_key.isEmpty());
 
@@ -1776,10 +2669,36 @@ namespace Logic
         return dialog->findFirstKeyAfter(_key);
     }
 
-    void MessagesModel::requestMessages(const QString& _aimId, qint64 _messageId, bool _toOlder, bool _needPrefetch, bool _is_jump_to_bottom)
+    Logic::MessageKey MessagesModel::getKey(const QString& _aimId, qint64 _id) const
     {
+        CHECK_THREAD
+        assert(!_aimId.isEmpty());
+        const ContactDialog* dialog = getContactDialogConst(_aimId);
+        if (!dialog)
+            return Logic::MessageKey();
+        return dialog->getKey(_id);
+    }
+
+    void MessagesModel::requestLastNewMessages(const QString& _aimId, const QVector<qint64>& _ids)
+    {
+        CHECK_THREAD
+        if (_ids.size() <= Data::PRELOAD_MESSAGES_COUNT)
+        {
+            requestMessages(_aimId, _ids.first(), RequestDirection::ToNew, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+        }
+        else
+        {
+            const auto id = *std::next(_ids.rbegin(), Data::PRELOAD_MESSAGES_COUNT - 1);
+            requestMessages(_aimId, id, RequestDirection::ToNew, Prefetch::No, JumpToBottom::No, FirstRequest::No, Reason::ServerUpdate);
+        }
+    }
+
+    void MessagesModel::requestMessages(const QString& _aimId, qint64 _messageId, RequestDirection _direction, Prefetch _prefetch, JumpToBottom _jump_to_bottom, FirstRequest _firstRequest, Reason _reason)
+    {
+        CHECK_THREAD
         //qDebug("request message : %lld %i %i", _messageId, _toOlder, _needPrefetch);
         assert(!_aimId.isEmpty());
+        assert(_direction != RequestDirection::Bidirection || _messageId > 0);
 
         if (!requestedContact_.contains(_aimId))
             requestedContact_.append(_aimId);
@@ -1787,40 +2706,63 @@ namespace Logic
         auto& dialog = getContactDialog(_aimId);
         auto& dialogMessages = dialog.getMessages();
 
-        qint64 lastId = dialogMessages.empty() ? -1 : dialogMessages.begin()->second.getBuddy()->Id_;
-        qint64 lastPrev = dialogMessages.empty() ? -1 : dialogMessages.begin()->second.getBuddy()->Prev_;
+        qint64 lastId = dialogMessages.empty() ? -1 : dialogMessages.cbegin()->second.getBuddy()->Id_;
+        qint64 lastPrev = dialogMessages.empty() ? -1 : dialogMessages.cbegin()->second.getBuddy()->Prev_;
 
-        if (_is_jump_to_bottom)
+        if (_jump_to_bottom == JumpToBottom::Yes)
         {
+            auto dlgState = Logic::getRecentsModel()->getDlgState(_aimId);
+            if (dlgState.AimId_ != _aimId)
+                dlgState = Logic::getUnknownsModel()->getDlgState(_aimId);
+            if (dlgState.LastMsgId_ > 0 && containsMessageId(dialogMessages, dlgState.LastMsgId_))
+            {
+                QVector<MessageKey> updatedValues;
+                updatedValues.reserve(int(dialogMessages.size()));
+                for (const auto& x : dialogMessages)
+                    updatedValues.push_back(x.first);
+                emitUpdated(updatedValues, _aimId, HOLE);
+                updateLastSeen(_aimId);
+                return;
+            }
+
             lastId = -1;
-            _toOlder = true;
+            _direction = RequestDirection::ToOlder;
         }
         else
         {
-            if (!_toOlder)
+            if (_direction == RequestDirection::ToNew)
             {
-                lastId = dialogMessages.empty() ? -1 : dialogMessages.rbegin()->second.getBuddy()->Id_;
-            } 
-            else if (!dialog.isLastRequestedMessageEmpty() && dialog.getLastRequestedMessage() == lastId)
+                lastId = dialogMessages.empty() ? -1 : dialogMessages.crbegin()->second.getBuddy()->Id_;
+            }
+            else if (_reason == Reason::Plain && !dialog.isLastRequestedMessageEmpty() && dialog.getLastRequestedMessage() == lastId && dialogMessages.size() > moreCount() && _direction != RequestDirection::Bidirection)
             {
                 return;
             }
         }
 
-        if (lastId != -1 && lastPrev == -1 && _toOlder)
+        const auto requestedId = _messageId == -1 ? lastId : _messageId;
+
+        if (requestedId != -1 && lastPrev == -1 && _direction == RequestDirection::ToOlder && _reason == Reason::Plain)
             return;
+
+        const auto countEarly = (_direction == RequestDirection::ToOlder || _direction == RequestDirection::Bidirection) ? Data::PRELOAD_MESSAGES_COUNT : 0;
+        const auto countLater = (_direction == RequestDirection::ToNew || _direction == RequestDirection::Bidirection) ? Data::PRELOAD_MESSAGES_COUNT : 0;
 
         Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
         collection.set_value_as_qstring("contact", _aimId);
-        collection.set_value_as_int64("from", _messageId == -1 ? lastId : _messageId);
-        collection.set_value_as_int64("count_early", _toOlder ? Data::PRELOAD_MESSAGES_COUNT : 0);
-        collection.set_value_as_int64("count_later", _toOlder ? 0 : Data::PRELOAD_MESSAGES_COUNT);
-        collection.set_value_as_bool("need_prefetch", _needPrefetch);
-		collection.set_value_as_int64("last_read_msg", -1);
-        auto seq = Ui::GetDispatcher()->post_message_to_core("archive/messages/get", collection.get());
+        collection.set_value_as_int64("from", requestedId);
+        collection.set_value_as_int64("count_early", countEarly);
+        collection.set_value_as_int64("count_later", countLater);
+        collection.set_value_as_bool("need_prefetch", _prefetch == Prefetch::Yes);
+        collection.set_value_as_int64("last_read_msg", -1);
+        collection.set_value_as_bool("is_first_request", _firstRequest == FirstRequest::Yes);
+
+        qDebug() << qsl("request from %1. count_early: %2; count_later: %3; firstRequest: %4; isNew: %5").arg(requestedId).arg(countEarly).arg(countLater).arg(_firstRequest == FirstRequest::Yes).arg(_reason == Reason::ServerUpdate);
+
+        auto seq = Ui::GetDispatcher()->post_message_to_core(qsl("archive/messages/get"), collection.get());
         sequences_ << seq;
 
-        if (_is_jump_to_bottom)
+        if (_jump_to_bottom == JumpToBottom::Yes)
         {
             seqAndJumpBottom_.insert(seq, _messageId);
         }
@@ -1829,19 +2771,25 @@ namespace Logic
             seqAndToOlder_.insert(seq, _messageId);
         }
 
-        dialog.setLastRequestedMessage(lastId);
+        if (_reason == Reason::ServerUpdate)
+            seqAndNewMessageRequest.insert(seq, { _messageId , _direction });
+        else if (_reason == Reason::HoleOnTheEdge)
+            seqHoleOnTheEdge.insert(seq);
+
+        if (_direction == RequestDirection::ToOlder)
+            dialog.setLastRequestedMessage(lastId);
     }
 
     Ui::HistoryControlPageItem* MessagesModel::makePageItem(const Data::MessageBuddy& _msg, QWidget* _parent) const
     {
+        CHECK_THREAD
         if (_msg.IsEmpty())
-            return 0;
+            return nullptr;
 
         const auto isServiceMessage = (!_msg.IsBase() && !_msg.IsFileSharing() && !_msg.IsSticker() && !_msg.IsChatEvent() && !_msg.IsVoipEvent());
         if (isServiceMessage)
         {
-            std::unique_ptr<Ui::ServiceMessageItem> serviceMessageItem(new Ui::ServiceMessageItem(_parent));
-
+            auto serviceMessageItem = std::make_unique<Ui::ServiceMessageItem>(_parent);
             serviceMessageItem->setDate(_msg.GetDate());
             serviceMessageItem->setWidth(itemWidth_);
             serviceMessageItem->setContact(_msg.AimId_);
@@ -1853,7 +2801,7 @@ namespace Logic
 
         if (_msg.IsChatEvent())
         {
-            std::unique_ptr<Ui::ChatEventItem> item(new Ui::ChatEventItem(_parent, _msg.GetChatEvent(), _msg.Id_));
+            auto item = std::make_unique<Ui::ChatEventItem>(_parent, _msg.GetChatEvent(), _msg.Id_);
             item->setContact(_msg.AimId_);
             item->setHasAvatar(_msg.HasAvatar());
             item->setFixedWidth(itemWidth_);
@@ -1865,7 +2813,7 @@ namespace Logic
         {
             const auto &voipEvent = _msg.GetVoipEvent();
 
-            std::unique_ptr<Ui::VoipEventItem> item(new Ui::VoipEventItem(_parent, voipEvent));
+            auto item = std::make_unique<Ui::VoipEventItem>(_parent, voipEvent);
             item->setTopMargin(_msg.GetIndentBefore());
             item->setFixedWidth(itemWidth_);
             item->setHasAvatar(_msg.HasAvatar());
@@ -1876,7 +2824,7 @@ namespace Logic
 
         if (_msg.IsDeleted())
         {
-            std::unique_ptr<Ui::DeletedMessageItem> deletedItem(new Ui::DeletedMessageItem(_parent));
+            auto deletedItem = std::make_unique<Ui::DeletedMessageItem>(_parent);
             deletedItem->setDeleted(true);
             return deletedItem.release();
         }
@@ -1908,26 +2856,27 @@ namespace Logic
                 senderFriendly = Logic::getContactListModel()->getDisplayName(_msg.AimId_);
             }
 
-            std::unique_ptr<Ui::ComplexMessage::ComplexMessageItem> item(
+            auto item =
                 Ui::ComplexMessage::ComplexMessageItemBuilder::makeComplexItem(
                     _parent,
                     _msg.Id_,
                     _msg.GetDate(),
                     _msg.Prev_,
-                    _msg.GetText(),
+                    _msg.GetText().trimmed(),
                     _msg.AimId_,
                     sender,
                     senderFriendly,
                     _msg.Quotes_,
+                    _msg.Mentions_,
                     _msg.GetSticker(),
                     _msg.IsOutgoing(),
-                    is_not_auth));
+                    is_not_auth);
 
             item->setContact(_msg.AimId_);
             item->setTime(_msg.GetTime());
             item->setHasAvatar(_msg.HasAvatar());
             item->setTopMargin(_msg.GetIndentBefore());
-            item->setDeliveredToServer(_msg.IsDeliveredToServer(), true);
+            item->setDeliveredToServer(_msg.IsDeliveredToServer());
 
             if (_msg.Chat_ && !senderFriendly.isEmpty())
             {
@@ -1939,7 +2888,7 @@ namespace Logic
             return item.release();
         }
 
-        std::unique_ptr<Ui::MessageItem> messageItem(new Ui::MessageItem(_parent));
+        auto messageItem = std::make_unique<Ui::MessageItem>(_parent);
         messageItem->setContact(_msg.AimId_);
         messageItem->setId(_msg.Id_, _msg.AimId_);
         messageItem->setSender(sender);
@@ -1957,6 +2906,7 @@ namespace Logic
         messageItem->setDate(_msg.GetDate());
         messageItem->setDeleted(_msg.IsDeleted());
         messageItem->setNotAuth(is_not_auth);
+        messageItem->setMentions(_msg.Mentions_);
 
         if (_msg.IsFileSharing())
         {
@@ -1973,6 +2923,7 @@ namespace Logic
 
     Ui::HistoryControlPageItem* MessagesModel::fillItemById(const QString& _aimId, const MessageKey& _key,  QWidget* _parent)
     {
+        CHECK_THREAD
         assert(!_aimId.isEmpty());
 
         if (_key.getControlType() == control_type::ct_new_messages)
@@ -1980,11 +2931,8 @@ namespace Logic
             return createNew(_aimId, _key, _parent);
         }
 
-        if (failedUploads_.contains(_key.getInternalId()))
-        {
-            failedUploads_.removeAll(_key.getInternalId());
+        if (failedUploads_.removeAll(_key.getInternalId()) > 0)
             return nullptr;
-        }
 
         auto& dialog = getContactDialog(_aimId);
 
@@ -2042,14 +2990,16 @@ namespace Logic
 
     void MessagesModel::setFirstMessage(const QString& aimId, qint64 msgId)
     {
+        CHECK_THREAD
         Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
         collection.set_value_as_qstring("contact", aimId);
         collection.set_value_as_int64("message", msgId);
-        Ui::GetDispatcher()->post_message_to_core("dialogs/set_first_message", collection.get());
+        Ui::GetDispatcher()->post_message_to_core(qsl("dialogs/set_first_message"), collection.get());
     }
 
     MessagesMapIter MessagesModel::previousMessage(MessagesMap& _map, MessagesMapIter _iter) const
     {
+        CHECK_THREAD
         MessagesMapIter result = _map.end();
 
         while (_iter != _map.begin())
@@ -2069,8 +3019,63 @@ namespace Logic
         return result;
     }
 
+    MessagesMapIter MessagesModel::previousMessageWithId(MessagesMap& _map, MessagesMapIter _iter, IncludeDeleted _mode)
+    {
+        CHECK_THREAD
+        MessagesMapIter result = _map.end();
+
+        while (_iter != _map.begin())
+        {
+            --_iter;
+
+            if (_iter->first.isDate() || !_iter->first.hasId())
+                continue;
+
+            if (_mode == IncludeDeleted::No && _iter->second.isDeleted())
+                continue;
+
+            result = _iter;
+
+            break;
+        }
+
+        return result;
+    }
+
+    MessagesMapIter MessagesModel::firstMessageWithId(MessagesMap& _map, MessagesMapIter _iter)
+    {
+        CHECK_THREAD
+        MessagesMapIter result = _map.end();
+
+        while (_iter != _map.end())
+        {
+            if (_iter->first.isDate() || _iter->second.isDeleted() || !_iter->first.hasId())
+            {
+                ++_iter;
+                continue;
+            }
+
+            result = _iter;
+
+            break;
+        }
+
+        return result;
+    }
+
+    qint64 MessagesModel::lastMessageId(MessagesMap& _map)
+    {
+        CHECK_THREAD
+        const auto end = _map.end();
+        const auto it = previousMessageWithId(_map, end);
+        if (it != end)
+            return it->first.getId();
+        return -1;
+    }
+
     MessagesMapIter MessagesModel::nextMessage(MessagesMap& _map, MessagesMapIter _iter) const
     {
+        CHECK_THREAD
         auto iter = _iter;
 
         while (++iter != _map.end())
@@ -2086,39 +3091,67 @@ namespace Logic
         return iter;
     }
 
-    void MessagesModel::contactChanged(QString contact, qint64 _messageId, qint64 quote_id)
+    void MessagesModel::contactChanged(const QString& _contact, qint64 _messageId, const Data::DlgState& _dlgState, qint64 quote_id, bool _isFirstRequest, Logic::scroll_mode_type _scrollMode)
     {
-        if (contact.isEmpty())
-        {
+        CHECK_THREAD
+        if (_contact.isEmpty())
             return;
-        }
 
-        Ui::GetDispatcher()->contactSwitched(contact);
+        Ui::GetDispatcher()->contactSwitched(_contact);
 
-        const ContactDialog* dialog = getContactDialogConst(contact);
+        const ContactDialog* dialog = getContactDialogConst(_contact);
 
         if (dialog && !dialog->isLastRequestedMessageEmpty() && _messageId == -1)
-        {
             return;
-        }
 
-        requestMessages(contact, _messageId, true /* to_older */, _messageId == -1, false /* _is_jump_to_bottom */);
+        auto& d = getContactDialog(_contact);
+        d.setInitMessage(_messageId);
+        d.setFirstUnreadMessage(-1);
+        d.setMessageCountAfter(_dlgState.UnreadCount_);
+        d.enableJumpToMessage(_messageId != -1);
+        d.setScrollMode(_scrollMode);
+        d.enablePostponeUpdate(false);
+
+        const auto firstRequest = _isFirstRequest ? FirstRequest::Yes : FirstRequest::No;
+        const auto needPrefetch = _isFirstRequest ? Prefetch::Yes : Prefetch::No;
         if (_messageId != -1)
-            requestMessages(contact, _messageId, false /* to_older */, _messageId == -1, false /* _is_jump_to_bottom */);
+            requestMessages(_contact, _messageId, RequestDirection::Bidirection, needPrefetch, JumpToBottom::No, firstRequest, Reason::Plain);
+        else
+            requestMessages(_contact, _messageId, RequestDirection::ToOlder, needPrefetch, JumpToBottom::No, firstRequest, Reason::Plain);
     }
 
     void MessagesModel::setItemWidth(int width)
     {
+        CHECK_THREAD
         itemWidth_ = width;
     }
 
-    QMap<MessageKey, Ui::HistoryControlPageItem*> MessagesModel::tail(const QString& aimId, QWidget* parent, bool _is_search, int64_t _mess_id, bool _is_jump_to_bottom)
+    bool MessagesModel::getRecvLastMsg(const QString& _aimId) const
     {
-        QMap<MessageKey, Ui::HistoryControlPageItem*> result;
+        CHECK_THREAD
+        assert(!_aimId.isEmpty());
+
+        auto dialog = getContactDialogConst(_aimId);
+        if (!dialog)
+            return false;
+
+        return dialog->getRecvLastMessage();
+    }
+
+    void MessagesModel::scrollToBottom(const QString& _aimId)
+    {
+        CHECK_THREAD
+        requestMessages(_aimId, -1 /* _messageId */, RequestDirection::ToOlder, Prefetch::Yes, JumpToBottom::Yes, FirstRequest::No, Reason::Plain);
+    }
+
+    std::map<MessageKey, Ui::HistoryControlPageItem*> MessagesModel::tail(const QString& aimId, QWidget* parent, bool _is_search, int64_t _mess_id, bool _is_jump_to_bottom)
+    {
+        CHECK_THREAD
+        std::map<MessageKey, Ui::HistoryControlPageItem*> result;
 
         auto& dialog = getContactDialog(aimId);
-        auto& dialogMessages = dialog.getMessages();
-        auto& pendingMessages = dialog.getPendingMessages();
+        const auto& dialogMessages = dialog.getMessages();
+        const auto& pendingMessages = dialog.getPendingMessages();
 
         if (!_is_jump_to_bottom && dialogMessages.empty() && pendingMessages.empty())
             return result;
@@ -2126,86 +3159,67 @@ namespace Logic
         int i = 0;
         MessageKey key;
 
-        MessagesMap::reverse_iterator iterPending = pendingMessages.rbegin();
-        
         auto margin = 0;
-        if (_mess_id != -1)
+        for (const auto& it : boost::adaptors::reverse(pendingMessages))
         {
-            auto index_of_msg = 0;
-            auto iter_of_msg = dialogMessages.begin();
-            while (iter_of_msg != dialogMessages.end() && iter_of_msg->first.getId() != _mess_id)
-            {
-                ++index_of_msg;
-                ++iter_of_msg;
-            }
+            assert(!it.second.isDeleted());
 
-            assert(iter_of_msg != dialogMessages.end());
+            key = it.first;
 
-            margin = std::min<int>(std::max<int>(dialogMessages.size() - index_of_msg - 3, 0), moreCount() / 2);
+            const auto buddy = item(it.second);
+
+            result[key] = makePageItem(buddy, parent);
         }
-
-        while (iterPending != pendingMessages.rend())
+        bool foundMessId = false;
+        const bool needToJump = _mess_id != -1;
+        auto maxSize = moreCount();
+        for (const auto& it : boost::adaptors::reverse(dialogMessages))
         {
-            assert(!iterPending->second.isDeleted());
+            key = it.first;
+            const auto buddy = item(it.second);
 
-            key = iterPending->first;
+            result.emplace(key, makePageItem(buddy, parent));
 
-            Data::MessageBuddy buddy = item(iterPending->second);
-
-            result.insert(key, makePageItem(buddy, parent));
-
-            if (++i == moreCount())
+            ++i;
+            if (needToJump)
+            {
+                if (!foundMessId && it.first.getId() == _mess_id)
+                {
+                    foundMessId = true;
+                    i = 0;
+                    if (result.size() > maxSize)
+                        maxSize /= 2;
+                }
+                if (foundMessId && i == maxSize)
+                    break;
+            }
+            else if (i == maxSize)
             {
                 break;
-            }
-
-            ++iterPending;
-        }
-
-        if (i < moreCount())
-        {
-            bool haveImcoming = false;
-            auto iterIndex = dialogMessages.rbegin();
-            
-            auto endIter = dialogMessages.rend();
-            std::advance(iterIndex, _is_search ? margin : 0);
-            while (iterIndex != endIter)
-            {
-                haveImcoming |= !iterIndex->first.isOutgoing();
-                key = iterIndex->first;
-
-                auto buddy = item(iterIndex->second);
-
-                result.insert(key, makePageItem(buddy, parent));
-
-                if (++i == moreCount())
-                {
-                    break;
-                }
-
-                ++iterIndex;
             }
         }
 
         dialog.setLastKey(key);
         dialog.setFirstKey(key);
 
-        if (dialog.getLastKey().isEmpty() 
+        if (dialog.getLastKey().isEmpty()
             || dialog.getLastKey().isPending()
-            || ( dialog.getLastKey().getPrev() != -1 && dialogMessages.begin()->first.getId() == dialog.getLastKey().getId() )
+            || (dialog.getLastKey().getPrev() != -1 && dialogMessages.begin()->first.getId() == dialog.getLastKey().getId())
             || _is_jump_to_bottom
-           )
-            requestMessages(aimId, -1 /* _messageId */, true /* to_older */, true /* _needPrefetch */, _is_jump_to_bottom);
+            )
+        {
+            requestMessages(aimId, -1 /* _messageId */, RequestDirection::ToOlder, Prefetch::Yes, _is_jump_to_bottom ? JumpToBottom::Yes : JumpToBottom::No, FirstRequest::No, Reason::Plain);
+        }
 
-        if (result.isEmpty())
+        if (result.empty())
             subscribed_ << aimId;
 
-        //qDebug("tail : %lld %i %lld", _mess_id, result.size(), key.getId());
         return result;
     }
 
-    QMap<MessageKey, Ui::HistoryControlPageItem*> MessagesModel::more(const QString& aimId, QWidget* parent, bool _isMoveToBottomIfNeed)
+    std::map<MessageKey, Ui::HistoryControlPageItem*> MessagesModel::more(const QString& aimId, QWidget* parent, bool _isMoveToBottomIfNeed)
     {
+        CHECK_THREAD
         auto& dialog = getContactDialog(aimId);
         auto& dialogMessages = dialog.getMessages();
         auto& pendingMessages = dialog.getPendingMessages();
@@ -2213,7 +3227,7 @@ namespace Logic
         if (dialog.getLastKey().isEmpty())
             return tail(aimId, parent, false /* _is_search */, -1 /* _mess_id */);
 
-        QMap<MessageKey, Ui::HistoryControlPageItem*> result;
+        std::map<MessageKey, Ui::HistoryControlPageItem*> result;
         if (dialogMessages.empty())
             return result;
 
@@ -2221,9 +3235,9 @@ namespace Logic
         MessageKey key = dialog.getLastKey();
         MessageKey firstKey = dialog.getFirstKey();
 
-        MessagesMap::const_reverse_iterator iterPending = pendingMessages.rbegin();
+        auto iterPending = pendingMessages.crbegin();
 
-        while (iterPending != pendingMessages.rend())
+        while (iterPending != pendingMessages.crend())
         {
             assert(!iterPending->second.isDeleted());
 
@@ -2236,7 +3250,7 @@ namespace Logic
             key = iterPending->first;
             Data::MessageBuddy buddy = item(iterPending->second);
 
-            result.insert(key, makePageItem(buddy, parent));
+            result[key] = makePageItem(buddy, parent);
 
             if (++i == moreCount())
             {
@@ -2252,7 +3266,7 @@ namespace Logic
             {
                 auto iterIndex = dialogMessages.rbegin();
                 auto iterEnd = dialogMessages.rend();
-            
+
                 while (iterIndex != iterEnd)
                 {
                     if (!(iterIndex->first < key))
@@ -2262,7 +3276,7 @@ namespace Logic
                     }
 
                     Data::MessageBuddy buddy = item(iterIndex->second);
-                    result.insert(iterIndex->first, makePageItem(buddy, parent));
+                    result[iterIndex->first] = makePageItem(buddy, parent);
 
                     if (iterIndex->first < key)
                     {
@@ -2281,7 +3295,7 @@ namespace Logic
             {
                 auto iterIndex = dialogMessages.begin();
                 auto iterEnd = dialogMessages.end();
-            
+
                 while (iterIndex != iterEnd)
                 {
                     if (!(firstKey < iterIndex->first))
@@ -2291,7 +3305,7 @@ namespace Logic
                     }
 
                     Data::MessageBuddy buddy = item(iterIndex->second);
-                    result.insert(iterIndex->first, makePageItem(buddy, parent));
+                    result[iterIndex->first] = makePageItem(buddy, parent);
 
                     if (!(iterIndex->first < firstKey))
                     {
@@ -2320,24 +3334,24 @@ namespace Logic
             )
         )
         {
-            if (_isMoveToBottomIfNeed)
-                requestMessages(aimId, -1 /* _messageId */, true /* _toOlder */, true /* _needPrefetch */, false /* _is_jump_to_bottom */);
+            if (_isMoveToBottomIfNeed) {
+                requestMessages(aimId, -1 /* _messageId */, RequestDirection::ToOlder, Prefetch::Yes, JumpToBottom::No, FirstRequest::No, Reason::Plain);
+                if (result.empty())
+                    subscribed_ << aimId;
+            }
         }
 
         if (!dialog.getRecvLastMessage())
         {
-            if (!_isMoveToBottomIfNeed)
-                requestMessages(aimId, -1 /* _messageId */, false /* _toOlder */, true /* _needPrefetch */, false /* _is_jump_to_bottom */);
+            if (!_isMoveToBottomIfNeed) {
+                requestMessages(aimId, -1 /* _messageId */, RequestDirection::ToNew, Prefetch::Yes, JumpToBottom::No, FirstRequest::No, Reason::Plain);
+                if (result.empty())
+                    subscribed_ << aimId;
+            }
         }
 
-        if (!result.isEmpty())
-        {
+        if (!result.empty())
             Ui::GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::history_preload);
-        }
-        else
-        {
-            subscribed_ << aimId;
-        }
 
         //qDebug("more : %i %lld %lld", result.size(), key.getId(), firstKey.getId());
         return result;
@@ -2345,6 +3359,7 @@ namespace Logic
 
     Ui::HistoryControlPageItem* MessagesModel::getById(const QString& aimId, const MessageKey& key, QWidget* parent)
     {
+        CHECK_THREAD
         return fillItemById(aimId, key, parent);
     }
 
@@ -2360,6 +3375,7 @@ namespace Logic
 
     void MessagesModel::setLastKey(const MessageKey& key, const QString& aimId)
     {
+        CHECK_THREAD
         assert(!key.isEmpty());
         assert(!aimId.isEmpty());
 
@@ -2395,14 +3411,17 @@ namespace Logic
             }
         }
 
+        /*
         if ((int32_t)dialogMessages.size() >= preloadCount())
         {
             setFirstMessage(aimId, dialogMessages.begin()->first.getId());
         }
+        */
     }
 
     void MessagesModel::removeDialog(const QString& _aimId)
     {
+        CHECK_THREAD
         dialogs_.remove(_aimId);
 
         requestedContact_.removeAll(_aimId);
@@ -2410,9 +3429,10 @@ namespace Logic
 
     Ui::ServiceMessageItem* MessagesModel::createNew(const QString& _aimId, const MessageKey& /*_key*/, QWidget* _parent) const
     {
+        CHECK_THREAD
         assert(_parent);
 
-        std::unique_ptr<Ui::ServiceMessageItem> newPlate(new Ui::ServiceMessageItem(_parent));
+        std::unique_ptr<Ui::ServiceMessageItem> newPlate = std::make_unique<Ui::ServiceMessageItem>(_parent);
 
         newPlate->setWidth(itemWidth_);
         newPlate->setNew();
@@ -2424,6 +3444,7 @@ namespace Logic
 
     void MessagesModel::hideNew(const QString& _aimId)
     {
+        CHECK_THREAD
         auto& dialog = getContactDialog(_aimId);
         auto& dialogMessages = dialog.getMessages();
 
@@ -2434,9 +3455,7 @@ namespace Logic
 
         const Logic::MessageKey& key = *dialog.getNewKey();
 
-        QList<Logic::MessageKey> keyslist;
-        keyslist.push_back(key);
-        MessagesModel::emitDeleted(keyslist, _aimId);
+        MessagesModel::emitDeleted({ key }, _aimId);
 
         auto iter_message_after_new = dialogMessages.rend();
 
@@ -2472,19 +3491,21 @@ namespace Logic
 
     void MessagesModel::updateNew(const QString& _aimId, const qint64 _newId, const bool _hide)
     {
+        CHECK_THREAD
         hideNew(_aimId);
+
+        auto& dialog = getContactDialog(_aimId);
 
         if (_hide || _newId <= 0)
             return;
 
-        auto& dialog = getContactDialog(_aimId);
         auto& dialogMessages = dialog.getMessages();
 
         bool isShow = false;
 
-        auto iter_prev_message = dialogMessages.rend();
-
-        for (auto iterMessage = dialogMessages.rbegin(); iterMessage != dialogMessages.rend(); ++iterMessage)
+        const auto end = dialogMessages.crend();
+        auto iter_prev_message = end;
+        for (auto iterMessage = dialogMessages.crbegin(); iterMessage != end; ++iterMessage)
         {
             if (iterMessage->first.getId() <= _newId)
                 break;
@@ -2497,7 +3518,7 @@ namespace Logic
                 continue;
             }
 
-            iter_prev_message = dialogMessages.rend();
+            iter_prev_message = end;
         }
 
         if (!isShow)
@@ -2505,12 +3526,9 @@ namespace Logic
 
         dialog.setNewKey(MessageKey(_newId, control_type::ct_new_messages));
 
-        QList<MessageKey> updatedValues;
-        updatedValues << *dialog.getNewKey();
+        emitUpdated({ *dialog.getNewKey() }, _aimId, NEW_PLATE);
 
-        emitUpdated(updatedValues, _aimId, NEW_PLATE);
-
-        if (iter_prev_message != dialogMessages.rend())
+        if (iter_prev_message != end)
         {
             emit hasAvatarChanged(iter_prev_message->first, true);
         }
@@ -2518,6 +3536,7 @@ namespace Logic
 
     QString MessagesModel::formatRecentsText(const Data::MessageBuddy &buddy) const
     {
+        CHECK_THREAD
         if (buddy.IsServiceMessage())
         {
             return QString();
@@ -2525,20 +3544,20 @@ namespace Logic
 
         if (buddy.IsChatEvent())
         {
-            std::unique_ptr<Ui::ChatEventItem> item(new Ui::ChatEventItem(buddy.GetChatEvent(), buddy.Id_));
+            auto item = std::make_unique<Ui::ChatEventItem>(buddy.GetChatEvent(), buddy.Id_);
             item->setContact(buddy.AimId_);
             return item->formatRecentsText();
         }
 
         if (buddy.IsVoipEvent())
         {
-            std::unique_ptr<Ui::VoipEventItem> item(new Ui::VoipEventItem(buddy.GetVoipEvent()));
+            auto item = std::make_unique<Ui::VoipEventItem>(buddy.GetVoipEvent());
             return item->formatRecentsText();
         }
 
         if (buddy.ContainsPreviewableSiteLink() || !buddy.Quotes_.isEmpty() || buddy.IsSticker())
         {
-            std::unique_ptr<Ui::ComplexMessage::ComplexMessageItem> item(
+            auto item =
                 Ui::ComplexMessage::ComplexMessageItemBuilder::makeComplexItem(
                     nullptr,
                     0,
@@ -2549,20 +3568,26 @@ namespace Logic
                     buddy.AimId_,
                     buddy.AimId_,
                     buddy.Quotes_,
+                    buddy.Mentions_,
                     buddy.GetSticker(),
                     false,
-                    false));
+                    false);
 
             return item->formatRecentsText();
         }
 
-        std::unique_ptr<Ui::MessageItem> messageItem(new Ui::MessageItem());
+        auto messageItem = std::make_unique<Ui::MessageItem>();
         messageItem->setContact(buddy.AimId_);
         if (buddy.IsFileSharing())
         {
             if (buddy.ContainsPttAudio())
             {
                 return QT_TRANSLATE_NOOP("contact_list", "Voice message");
+            }
+
+            if (buddy.ContainsGif())
+            {
+                return QT_TRANSLATE_NOOP("contact_list", "GIF");
             }
 
             if (buddy.ContainsImage())
@@ -2580,6 +3605,7 @@ namespace Logic
         }
         else
         {
+            messageItem->setMentions(buddy.Mentions_);
             messageItem->setMessage(buddy.GetText());
         }
 
@@ -2588,6 +3614,7 @@ namespace Logic
 
     int64_t MessagesModel::getLastMessageId(const QString &aimId) const
     {
+        CHECK_THREAD
         assert(!aimId.isEmpty());
 
         auto dialog = getContactDialogConst(aimId);
@@ -2599,6 +3626,7 @@ namespace Logic
 
     qint64 MessagesModel::normalizeNewMessagesId(const QString& _aimid, qint64 _id)
     {
+        CHECK_THREAD
         if (_id == -1)
             return _id;
 
@@ -2607,9 +3635,9 @@ namespace Logic
 
         qint64 newId = -1;
 
-        MessagesMap::reverse_iterator iter = dialogMessages.rbegin();
+        auto iter = dialogMessages.crbegin();
 
-        while (iter != dialogMessages.rend() && iter->first.getId() >= _id)
+        while (iter != dialogMessages.crend() && iter->first.getId() >= _id)
         {
             if (iter->first.isOutgoing())
             {
@@ -2626,17 +3654,14 @@ namespace Logic
 
     bool MessagesModel::hasPending(const QString& _aimId) const
     {
+        CHECK_THREAD
         const ContactDialog* dialog = getContactDialogConst(_aimId);
-        if (!dialog)
-        {
-            return false;
-        }
-
-        return dialog->hasPending();
+        return dialog && dialog->hasPending();
     }
 
     void MessagesModel::eraseHistory(const QString& _aimid)
     {
+        CHECK_THREAD
         const auto lastMessageId = getLastMessageId(_aimid);
 
         if (lastMessageId > 0)
@@ -2651,11 +3676,23 @@ namespace Logic
 
     void MessagesModel::emitQuote(int64_t quote_id)
     {
+        CHECK_THREAD
         emit quote(quote_id);
+    }
+
+    SendersVector Logic::MessagesModel::getSenders(const QString& _aimid, bool _includeSelf) const
+    {
+        CHECK_THREAD
+        auto dialog = getContactDialogConst(_aimid);
+        if (dialog)
+            return dialog->getSenders(_includeSelf);
+
+        return SendersVector();
     }
 
     ContactDialog& MessagesModel::getContactDialog(const QString& _aimid)
     {
+        CHECK_THREAD
         auto iter = dialogs_.find(_aimid);
         if (iter == dialogs_.end())
         {
@@ -2667,6 +3704,7 @@ namespace Logic
 
     const ContactDialog* MessagesModel::getContactDialogConst(const QString& _aimid) const
     {
+        CHECK_THREAD
         const auto iter = dialogs_.find(_aimid);
         if (iter == dialogs_.end())
             return nullptr;
@@ -2676,16 +3714,16 @@ namespace Logic
 
     MessagesModel* GetMessagesModel()
     {
+        CHECK_THREAD
         if (!g_messages_model)
-            g_messages_model.reset(new MessagesModel(0));
+            g_messages_model = std::make_unique<MessagesModel>(nullptr);
 
         return g_messages_model.get();
     }
 
-
-
     void ResetMessagesModel()
     {
+        CHECK_THREAD
         if (g_messages_model)
             g_messages_model.reset();
     }

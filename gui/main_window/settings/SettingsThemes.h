@@ -10,14 +10,14 @@ namespace Ui
         ThemesPage *themesPage_;
 
         void init();
-        
+
     public:
         ThemesSettingsWidget(QWidget* _parent);
 
         void setBackButton(bool _doSet);
         void setTargetContact(QString _aimId);
     };
-    
-    
+
+
 }
 

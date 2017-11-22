@@ -246,26 +246,31 @@ QRect ComplexMessageItemLayout::evaluateWidgetContentLtr(const int32_t widgetWid
 {
     assert(widgetWidth > 0);
 
-    auto widgetContentLeftMargin = MessageStyle::getLeftMargin(isOutgoing());
-    assert(widgetContentLeftMargin > 0);
+    const auto isOutgoing = this->isOutgoing();
 
-    const auto widgetContentRightMargin = MessageStyle::getRightMargin(isOutgoing());
+    auto widgetContentLeftMargin = MessageStyle::getLeftMargin(isOutgoing);
+    auto widgetContentRightMargin = MessageStyle::getRightMargin(isOutgoing);
+     if (isOutgoing)
+        widgetContentLeftMargin += MessageStyle::getTimeMaxWidth();
+     else
+        widgetContentRightMargin += MessageStyle::getTimeMaxWidth();
+
+    assert(widgetContentLeftMargin > 0);
     assert(widgetContentRightMargin > 0);
 
     auto widgetContentWidth = widgetWidth;
     widgetContentWidth -= widgetContentLeftMargin;
     widgetContentWidth -= widgetContentRightMargin;
-    widgetContentWidth -= MessageStyle::getTimeMaxWidth();
 
-    if (Item_->getMaxWidth() > 0 )
+    if (Item_->getMaxWidth() > 0)
     {
         int maxWidth = Item_->getMaxWidth();
-        if (!isOutgoing())
+        if (!isOutgoing)
             maxWidth += MessageStyle::getAvatarSize() + MessageStyle::getAvatarRightMargin();
 
         if (maxWidth < widgetContentWidth)
         {
-            if (isOutgoing())
+            if (isOutgoing)
                 widgetContentLeftMargin += (widgetContentWidth - maxWidth);
 
             widgetContentWidth = maxWidth;
@@ -329,7 +334,7 @@ bool ComplexMessageItemLayout::isOverAvatar(const QPoint &pos) const
     return getAvatarRect().contains(pos);
 }
 
-const QRect& ComplexMessageItemLayout::getAvatarRect() const
+QRect ComplexMessageItemLayout::getAvatarRect() const
 {
     return AvatarRect_;
 }
@@ -386,31 +391,10 @@ QRect ComplexMessageItemLayout::getShareButtonGeometry(
 {
     assert(!buttonSize.isEmpty());
 
-    const auto blockLayout = block.getBlockLayout();
-    assert(blockLayout);
-
-    const auto blockGeometry = blockLayout->getBlockGeometry();
-
-    auto buttonX = 0;
-
-    if (isBubbleRequired)
-    {
-        assert(BubbleRect_.width() > 0);
-        buttonX =
-            BubbleRect_.right() + 1 +
-            MessageStyle::getTimeMarginX();
-    }
-    else
-    {
-        buttonX =
-            blockGeometry.right() + 1 +
-            MessageStyle::getTimeMarginX();
-    }
-
-    const auto buttonY = blockGeometry.top();
+    auto buttonPos = block.getShareButtonPos(isBubbleRequired, BubbleRect_);
 
     const QRect shareButtonRect(
-        QPoint(buttonX, buttonY),
+        buttonPos,
         buttonSize);
 
     return shareButtonRect;
@@ -569,15 +553,6 @@ void ComplexMessageItemLayout::setGeometryInternal(const int32_t widgetWidth)
 
     WidgetHeight_ = (bubbleRect.bottom() + 1);
 
-    if (Item_->IsLastRead_)
-    {
-        const auto seenHeight = (
-            MessageStyle::getLastReadAvatarSize() +
-            (2 * MessageStyle::getLastReadAvatarMargin()));
-
-        WidgetHeight_ += seenHeight;
-    }
-
     assert(WidgetHeight_ >= 0);
 }
 
@@ -621,10 +596,10 @@ void ComplexMessageItemLayout::setTimeGeometry(
 
     auto timeX = 0;
 
-    //assert(!blocksGeometry.isEmpty());
-    timeX = (
-        bubbleGeometry.right() + 1 +
-        MessageStyle::getTimeMarginX());
+    if (Item_->isOutgoing())
+        timeX = bubbleGeometry.left() - 1 - timeWidgetSize.width() - MessageStyle::getTimeMarginX();
+    else
+        timeX = bubbleGeometry.right() + 1 + MessageStyle::getTimeMarginX();
 
     const auto timeY = (
         bubbleGeometry.bottom() + 1 -
@@ -639,7 +614,7 @@ void ComplexMessageItemLayout::setTimeGeometry(
 
     time.setGeometry(timeGeometry);
 
-    time.show();
+    time.showIfNeeded();
 }
 
 UI_COMPLEX_MESSAGE_NS_END

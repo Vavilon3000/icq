@@ -2,15 +2,15 @@
 
 namespace Ui
 {
-	class HistoryControl;
+    class HistoryControl;
     class HistoryControlPage;
-	class InputWidget;
+    class InputWidget;
     class Sidebar;
 
-	namespace Smiles
-	{
-		class SmilesMenu;
-	}
+    namespace Smiles
+    {
+        class SmilesMenu;
+    }
     class ContactDialog;
 
     class DragOverlayWindow : public QWidget
@@ -21,61 +21,58 @@ namespace Ui
         DragOverlayWindow(ContactDialog* _parent);
 
     protected:
-        virtual void paintEvent(QPaintEvent* _e);
-        virtual void dragEnterEvent(QDragEnterEvent* _e);
-        virtual void dragLeaveEvent(QDragLeaveEvent* _e);
-        virtual void dragMoveEvent(QDragMoveEvent* _e);
-        virtual void dropEvent(QDropEvent* _e);
+        void paintEvent(QPaintEvent* _e) override;
+        void dragEnterEvent(QDragEnterEvent* _e) override;
+        void dragLeaveEvent(QDragLeaveEvent* _e) override;
+        void dragMoveEvent(QDragMoveEvent* _e) override;
+        void dropEvent(QDropEvent* _e) override;
 
     private:
         ContactDialog* Parent_;
     };
 
-	class ContactDialog : public QWidget
-	{
-		Q_OBJECT
+    class ContactDialog : public QWidget
+    {
+        Q_OBJECT
 
-	public Q_SLOTS:
+    public Q_SLOTS:
+        void onContactSelected(const QString& _aimId, qint64 _messageId, qint64 _quoteId);
+        void onContactSelectedToLastMessage(QString _aimId, qint64 _messageId);
 
-		void onContactSelected(QString _aimId, qint64 _messageId, qint64 _quoteId);
-		void onSmilesMenu();
-		void onInputEditFocusOut();
-        void onSendMessage(QString _contact);
-
-		void onContactSelectedToLastMessage(QString _aimId, qint64 _messageId);
+        void onSmilesMenu();
+        void onInputEditFocusOut();
+        void onSendMessage(const QString& _contact);
 
     private Q_SLOTS:
         void updateDragOverlay();
         void historyControlClicked();
         void onCtrlFPressedInInputWidget();
+        void inputTyped();
 
-	Q_SIGNALS:
-		void contactSelected(QString _aimId, qint64 _messageId, qint64 _quoteId);
-		void sendMessage(QString);
+    Q_SIGNALS:
+        void contactSelected(const QString& _aimId, qint64 _messageId, qint64 _quoteId);
+        void contactSelectedToLastMessage(QString _aimId, qint64 _messageId);
+
+        void sendMessage(const QString&);
         void clicked();
 
-		void contactSelectedToLastMessage(QString _aimId, qint64 _messageId);
+    private:
+        HistoryControl* historyControlWidget_;
+        InputWidget* inputWidget_;
+        Smiles::SmilesMenu* smilesMenu_;
+        DragOverlayWindow* dragOverlayWindow_;
+        Sidebar* sidebar_;
+        QTimer* overlayUpdateTimer_;
+        QStackedWidget* topWidget_;
+        QVBoxLayout* rootLayout_;
+        QMap<QString, QWidget*> topWidgetsCache_;
 
-	private:
-		HistoryControl*				historyControlWidget_;
-		InputWidget*				inputWidget_;
-		Smiles::SmilesMenu*			smilesMenu_;
-        DragOverlayWindow*          dragOverlayWindow_;
-        Sidebar*                    sidebar_;
-        QTimer*                     overlayUpdateTimer_;
-        QTimer*                     sidebarUpdateTimer_;
-        QStackedWidget*             topWidget_;
-        QVBoxLayout*                rootLayout_;
-        QMap<QString, QWidget*>     topWidgetsCache_;
-        bool                        sidebarVisible_;
-        QHBoxLayout*                layout_;
+        void initSmilesMenu();
+        void initInputWidget();
 
-		void initSmilesMenu();
-		void initInputWidget();
-
-	public:
-		ContactDialog(QWidget* _parent);
-		~ContactDialog();
+    public:
+        ContactDialog(QWidget* _parent);
+        ~ContactDialog();
         void cancelSelection();
         void hideInput();
 
@@ -83,17 +80,10 @@ namespace Ui
         void hideDragOverlay();
 
         void showSidebar(const QString& _aimId, int _page);
+        void setSidebarVisible(bool _show);
         bool isSidebarVisible() const;
-        void setSidebarVisible(bool _show, bool _force = false);
-        bool needShowSidebar() const;
+
         void hideSmilesMenu();
-
-        static bool needShowSidebar(int _contactDialogWidth);
-        static bool sideBarShowSingle(int _contactDialogWidth);
-        static std::string getSideBarPolicy(int _contactDialogWidth);
-
-        void takeSidebar();
-        Sidebar* getSidebar() const;
 
         void insertTopWidget(const QString& _aimId, QWidget* _widget);
         void removeTopWidget(const QString& _aimId);
@@ -107,9 +97,9 @@ namespace Ui
         void notifyApplicationWindowActive(const bool isActive);
 
     protected:
-        virtual void dragEnterEvent(QDragEnterEvent *);
-        virtual void dragLeaveEvent(QDragLeaveEvent *);
-        virtual void dragMoveEvent(QDragMoveEvent *);
-        virtual void resizeEvent(QResizeEvent*);
-	};
+        void dragEnterEvent(QDragEnterEvent *) override;
+        void dragLeaveEvent(QDragLeaveEvent *) override;
+        void dragMoveEvent(QDragMoveEvent *) override;
+        void resizeEvent(QResizeEvent*) override;
+    };
 }

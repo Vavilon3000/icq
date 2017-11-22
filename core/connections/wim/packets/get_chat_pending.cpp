@@ -7,8 +7,8 @@ using namespace core;
 using namespace wim;
 
 
-get_chat_pending::get_chat_pending(const wim_packet_params& _params, const std::string& _aimId)
-    :   robusto_packet(_params),
+get_chat_pending::get_chat_pending(wim_packet_params _params, const std::string& _aimId)
+    :   robusto_packet(std::move(_params)),
         aimId_(_aimId)
 {
 }
@@ -39,13 +39,20 @@ int32_t get_chat_pending::init_request(std::shared_ptr<core::http_request_simple
         node_params.AddMember("sn", aimId_, a);
     }
 
-    doc.AddMember("params", node_params, a);
+    doc.AddMember("params", std::move(node_params), a);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
 
-    _request->push_post_parameter(buffer.GetString(), "");
+    _request->push_post_parameter(buffer.GetString(), std::string());
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_json_marker("authToken");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }
@@ -60,25 +67,25 @@ int32_t get_chat_pending::parse_results(const rapidjson::Value& _node_results)
             chat_member_info member_info;
             auto iter_aimid = iter->FindMember("sn");
             if (iter_aimid != iter->MemberEnd() && iter_aimid->value.IsString())
-                member_info.aimid_ =  iter_aimid->value.GetString();
+                member_info.aimid_ = rapidjson_get_string(iter_aimid->value);
 
             auto iter_anketa = iter->FindMember("anketa");
             if (iter_anketa != iter->MemberEnd())
             {
                 auto iter_first_name = iter_anketa->value.FindMember("firstName");
                 if (iter_first_name != iter_anketa->value.MemberEnd() && iter_first_name->value.IsString())
-                    member_info.first_name_ = iter_first_name->value.GetString();
+                    member_info.first_name_ = rapidjson_get_string(iter_first_name->value);
 
                 auto iter_last_name = iter_anketa->value.FindMember("lastName");
                 if (iter_last_name != iter_anketa->value.MemberEnd() && iter_last_name->value.IsString())
-                    member_info.last_name_ = iter_last_name->value.GetString();
+                    member_info.last_name_ = rapidjson_get_string(iter_last_name->value);
 
                 auto iter_nickname = iter_anketa->value.FindMember("nickname");
                 if (iter_nickname != iter_anketa->value.MemberEnd() && iter_nickname->value.IsString())
-                    member_info.nick_name_ = iter_nickname->value.GetString();
+                    member_info.nick_name_ = rapidjson_get_string(iter_nickname->value);
             }
 
-            result_.push_back(member_info);
+            result_.push_back(std::move(member_info));
         }
     }
 

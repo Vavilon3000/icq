@@ -17,11 +17,11 @@ namespace core
             active_dialog();
             active_dialog(const std::string& _aimid);
 
-            std::string get_aimid() const { return aimid_; }
+            const std::string& get_aimid() const { return aimid_; }
 
             int32_t unserialize(const rapidjson::Value& _node);
-            void serialize(rapidjson::Value& _node, rapidjson_allocator& _a);
-            void serialize(icollection* _coll);
+            void serialize(rapidjson::Value& _node, rapidjson_allocator& _a) const;
+            void serialize(icollection* _coll) const;
         };
 
         class active_dialogs
@@ -41,13 +41,13 @@ namespace core
             active_dialogs();
             virtual ~active_dialogs();
 
-            void update(active_dialog& _dialog);
+            void update(const active_dialog& _dialog);
             void remove(const std::string& _aimid);
-            bool contains(const std::string& _aimId);
+            bool contains(const std::string& _aimId) const;
 
             int32_t unserialize(const rapidjson::Value& _node);
-            void serialize(rapidjson::Value& _node, rapidjson_allocator& _a);
-            void serialize(icollection* _coll);
+            void serialize(rapidjson::Value& _node, rapidjson_allocator& _a) const;
+            void serialize(icollection* _coll) const;
         };
 
     }

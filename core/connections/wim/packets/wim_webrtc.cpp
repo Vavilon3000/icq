@@ -9,8 +9,8 @@
 namespace core {
     namespace wim {
 
-        wim_allocate::wim_allocate(const wim_packet_params& params, const std::string& internal_params)
-            : wim_packet(params) 
+        wim_allocate::wim_allocate(wim_packet_params params, const std::string& internal_params)
+            : wim_packet(std::move(params))
             , _internal_params(internal_params) {
 
         }
@@ -32,7 +32,7 @@ namespace core {
 
             std::stringstream randNum;
             randNum << msNow.count() << '_' << rand();;
-			
+
             std::map<std::string, std::string> params;
             params["a"] = escape_symbols(params_.a_token_);
             params["f"] = "json";
@@ -99,8 +99,8 @@ namespace core {
         }
 
 
-        wim_webrtc::wim_webrtc(const wim_packet_params& params, const voip_manager::VoipProtoMsg& internal_params)
-            : wim_packet(params) 
+        wim_webrtc::wim_webrtc(wim_packet_params params, const voip_manager::VoipProtoMsg& internal_params)
+            : wim_packet(std::move(params))
             , _internal_params(internal_params) {
 
         }
@@ -125,6 +125,14 @@ namespace core {
             }
 
             _request->set_url(ss_url.str());
+
+            if (!params_.full_log_)
+            {
+                log_replace_functor f;
+                f.add_marker("aimsid");
+                _request->set_replace_log_function(f);
+            }
+
             return 0;
         }
 

@@ -19,35 +19,29 @@ namespace
     const int BUTTON_FONTSIZE = 18;
 
     const QString AUTH_WIDGET_STYLE =
-        "background-color: #e5ffffff;"
+        qsl("background-color: #e5ffffff;"
         "border-width: 0dip;"
         "border-style: solid;"
-        "border-radius: 8dip;";
+        "border-radius: 8dip;");
 
-    const QString BUTTON_ADD_STYLE = QString(
-        "QPushButton { background-color: transparent; border: none; color: %1; }"
-        "QPushButton:hover { color: %2; }"
-        "QPushButton:pressed { color: %3; } ")
-        .arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getLinkColor()))
-        .arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getLinkColorHovered()))
-        .arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getLinkColorPressed()));
+    const QString BUTTON_ADD_STYLE = qsl(
+        "QPushButton { background-color: transparent; border: none; color: %1; }")
+        .arg(CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT).name());
 
-    const QString RED_BUTTON_STYLE = QString(
-        "QPushButton { background-color: transparent; border: none; color: %1; }"
-        "QPushButton:hover { color: %2; }")
-        .arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getRedLinkColor()))
-        .arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getRedLinkColorHovered()));
+    const QString RED_BUTTON_STYLE = qsl(
+        "QPushButton { background-color: transparent; border: none; color: %1; }")
+        .arg(CommonStyle::getColor(CommonStyle::Color::TEXT_RED).name());
 }
 
 namespace Ui
 {
 
     ContactInfoWidget::ContactInfoWidget(QWidget* _parent, const QString& _aimid)
-        :	QWidget(_parent),
-        aimid_(_aimid),
+        : QWidget(_parent),
         ref_(new bool(false)),
-        name_(new TextEmojiWidget(this, Fonts::appFontScaled(NAME_FONTSIZE, Fonts::FontWeight::Light), CommonStyle::getTextCommonColor(), Utils::scale_value(38))),
-        info_(new TextEmojiWidget(this, Fonts::appFontScaled(INFO_FONTSIZE, Fonts::FontWeight::Light), CommonStyle::getTextCommonColor(), Utils::scale_value(27) - name_->descent()))
+        aimid_(_aimid),
+        name_(new TextEmojiWidget(this, Fonts::appFontScaled(NAME_FONTSIZE, Fonts::FontWeight::Light), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(38))),
+        info_(new TextEmojiWidget(this, Fonts::appFontScaled(INFO_FONTSIZE, Fonts::FontWeight::Light), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(27) - name_->descent()))
     {
         setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
 
@@ -58,9 +52,9 @@ namespace Ui
         rootLayout->addSpacing(Utils::scale_value(AVATAR_SIZE - AVATAR_UPPER_SPACE));
 
         name_->setText(_aimid, TextEmojiAlign::allign_center);
-        name_->setStyleSheet("background-color: transparent");
-        info_->setText("", TextEmojiAlign::allign_center);
-        info_->setStyleSheet("background-color: transparent;");
+        name_->setStyleSheet(qsl("background-color: transparent"));
+        info_->setText(QString(), TextEmojiAlign::allign_center);
+        info_->setStyleSheet(qsl("background-color: transparent;"));
         rootLayout->addWidget(name_);
         rootLayout->addWidget(info_);
 
@@ -143,9 +137,9 @@ namespace Ui
             if (age > 0)
             {
                 if (!from.isEmpty())
-                    ss_info << " - ";
+                    ss_info << ql1s(" - ");
 
-                ss_info << age << " " << Utils::GetTranslator()->getNumberString(
+                ss_info << age << ql1c(' ') << Utils::GetTranslator()->getNumberString(
                     age,
                     QT_TRANSLATE_NOOP3("auth_widget", "year", "1"),
                     QT_TRANSLATE_NOOP3("auth_widget", "years", "2"),
@@ -171,10 +165,10 @@ namespace Ui
 
 
     AuthWidget::AuthWidget(QWidget* _parent, const QString& _aimid)
-        :	QWidget(_parent),
+        : QWidget(_parent),
+        aimid_(_aimid),
         rootLayout_(new QVBoxLayout()),
         avatar_(new ContactAvatarWidget(this, _aimid, Logic::getContactListModel()->getDisplayName(_aimid), Utils::scale_value(AVATAR_SIZE), true)),
-        aimid_(_aimid),
         infoWidget_(new ContactInfoWidget(this, _aimid))
     {
         avatar_->setCursor(Qt::PointingHandCursor);

@@ -27,7 +27,6 @@ Ui::VideoSettings::VideoSettings(QWidget* _parent)
     buttonAudioCaptureSet_ = new QPushButton(this);
     buttonAudioPlaybackSet_->setText(QApplication::translate("voip_pages", "Settings", 0));
     QMetaObject::connectSlotsByName(this);
-    
 
     connect(cbAudioCapture_, SIGNAL(currentIndexChanged(int)), this, SLOT(audioCaptureDevChanged(int)), Qt::QueuedConnection);
     connect(cbAudioPlayback_, SIGNAL(currentIndexChanged(int)), this, SLOT(audioPlaybackDevChanged(int)), Qt::QueuedConnection);
@@ -148,7 +147,7 @@ void Ui::VideoSettings::audioCaptureSettings()
     {
         assert(false);
     }
-    
+
 #else//WIN32
     #warning audioPlaybackSettings
 #endif//WIN32

@@ -26,7 +26,7 @@ namespace core
             virtual int32_t execute_request(std::shared_ptr<core::http_request_simple> request) override;
         public:
 
-            end_session(const wim_packet_params& _params);
+            end_session(wim_packet_params _params);
             virtual ~end_session();
         };
 

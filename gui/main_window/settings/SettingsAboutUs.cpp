@@ -12,7 +12,7 @@ using namespace Ui;
 
 void GeneralSettingsWidget::Creator::initAbout(QWidget* _parent, std::map<std::string, Synchronizator> &/*collector*/)
 {
-    auto scrollArea = CreateScrollAreaAndSetTrScrollBar(_parent);
+    auto scrollArea = CreateScrollAreaAndSetTrScrollBarV(_parent);
     scrollArea->setWidgetResizable(true);
     Utils::grabTouchWidget(scrollArea->viewport(), true);
 
@@ -21,7 +21,7 @@ void GeneralSettingsWidget::Creator::initAbout(QWidget* _parent, std::map<std::s
 
     auto scrollAreaLayout = Utils::emptyVLayout(scrollAreaWidget);
     scrollAreaLayout->setAlignment(Qt::AlignTop);
-    scrollAreaLayout->setContentsMargins(Utils::scale_value(36), 0, Utils::scale_value(36), Utils::scale_value(36));
+    scrollAreaLayout->setContentsMargins(Utils::scale_value(16), 0, Utils::scale_value(16), Utils::scale_value(36));
 
     scrollArea->setWidget(scrollAreaWidget);
 
@@ -43,8 +43,8 @@ void GeneralSettingsWidget::Creator::initAbout(QWidget* _parent, std::map<std::s
             {
                 PictureWidget* logo = new PictureWidget(logoWidget,
                     build::is_icq() ?
-                    ":/resources/main_window/content_logo_100.png" :
-                    ":/resources/main_window/content_logo_agent_100.png");
+                    qsl(":/logo/logo_100") :
+                    qsl(":/logo/logo_agent_100"));
                 logo->setSizePolicy(QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed);
                 logo->setFixedSize(QSize(Utils::scale_value(80), Utils::scale_value(80)));
                 logoLayout->addWidget(logo);
@@ -57,16 +57,15 @@ void GeneralSettingsWidget::Creator::initAbout(QWidget* _parent, std::map<std::s
             Utils::grabTouchWidget(aboutWidget);
             aboutLayout->setAlignment(Qt::AlignTop);
             {
-                auto versionLabel = QString("%1 (%2)")
-                    .arg(build::is_icq() ? QT_TRANSLATE_NOOP("title", "ICQ") : QT_TRANSLATE_NOOP("title", "Mail.Ru Agent"))
-                    .arg(VERSION_INFO_STR);
-                auto versionText = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), -1);
+                const auto versionLabel = qsl("%1 (%2)")
+                    .arg(build::is_icq() ? QT_TRANSLATE_NOOP("title", "ICQ") : QT_TRANSLATE_NOOP("title", "Mail.Ru Agent"), QString::fromUtf8(VERSION_INFO_STR));
+                auto versionText = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), -1);
                 Utils::grabTouchWidget(versionText);
                 versionText->setText(versionLabel);
                 aboutLayout->addWidget(versionText);
             }
             {
-                auto opensslLabel = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(44));
+                auto opensslLabel = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(44));
                 Utils::grabTouchWidget(opensslLabel);
                 opensslLabel->setMultiline(true);
                 opensslLabel->setText(QT_TRANSLATE_NOOP("about_us", "This product includes software developed by the OpenSSL project for use in the OpenSSL Toolkit"));
@@ -76,12 +75,12 @@ void GeneralSettingsWidget::Creator::initAbout(QWidget* _parent, std::map<std::s
                 auto opensslButton = new QPushButton(aboutWidget);
                 auto opensslLayout = Utils::emptyVLayout(opensslButton);
                 opensslButton->setFlat(true);
-                opensslButton->setStyleSheet("background-color: transparent;");
+                opensslButton->setStyleSheet(qsl("background-color: transparent;"));
                 opensslButton->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Fixed);
                 opensslButton->setCursor(QCursor(Qt::CursorShape::PointingHandCursor));
                 opensslLayout->setAlignment(Qt::AlignTop);
                 {
-                    auto opensslLink = new TextEmojiWidget(opensslButton, Fonts::appFontScaled(16), Ui::CommonStyle::getLinkColor(), Utils::scale_value(28));
+                    auto opensslLink = new TextEmojiWidget(opensslButton, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT), Utils::scale_value(28));
                     Utils::grabTouchWidget(opensslLink);
                     opensslLink->setText(QT_TRANSLATE_NOOP("about_us", "http://openssl.org"));
                     connect(opensslButton, &QPushButton::pressed, [opensslLink]()
@@ -94,29 +93,27 @@ void GeneralSettingsWidget::Creator::initAbout(QWidget* _parent, std::map<std::s
                 aboutLayout->addWidget(opensslButton);
             }
             {
-                auto voipCopyrightLabel = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(44));
+                auto voipCopyrightLabel = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(44));
                 Utils::grabTouchWidget(voipCopyrightLabel);
                 voipCopyrightLabel->setMultiline(true);
                 voipCopyrightLabel->setText(QT_TRANSLATE_NOOP("about_us", "Copyright © 2012, the WebRTC project authors. All rights reserved."));
                 aboutLayout->addWidget(voipCopyrightLabel);
             }
             {
-                auto emojiLabel = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(28));
+                auto emojiLabel = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(28));
                 Utils::grabTouchWidget(emojiLabel);
                 emojiLabel->setMultiline(true);
                 emojiLabel->setText(QT_TRANSLATE_NOOP("about_us", "Emoji provided free by Emoji One"));
                 aboutLayout->addWidget(emojiLabel);
             }
             {
-                auto copyrightLabel = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(44));
+                auto copyrightLabel = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(44));
                 Utils::grabTouchWidget(copyrightLabel);
-                copyrightLabel->setText(
-                    build::is_icq() ? QT_TRANSLATE_NOOP("about_us", "© ICQ LLC") : QT_TRANSLATE_NOOP("about_us", "© Mail.Ru LLC")
-                    + ", "
-                    + QDate::currentDate().toString("yyyy"));
+                const auto aboutUs = build::is_icq() ? QT_TRANSLATE_NOOP("about_us", "© ICQ LLC") : QT_TRANSLATE_NOOP("about_us", "© Mail.Ru LLC");
+                copyrightLabel->setText(aboutUs % ql1s(", ") % QDate::currentDate().toString(qsl("yyyy")));
                 aboutLayout->addWidget(copyrightLabel);
 
-                auto presentedMailru = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(32));
+                auto presentedMailru = new TextEmojiWidget(aboutWidget, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(32));
                 Utils::grabTouchWidget(presentedMailru);
                 presentedMailru->setText(QT_TRANSLATE_NOOP("about_us", "Presented by Mail.Ru"));
                 presentedMailru->setVisible(build::is_icq());

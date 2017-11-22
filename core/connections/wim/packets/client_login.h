@@ -23,7 +23,7 @@ namespace core
         {
             std::string login_;
             std::string password_;
-            
+
             std::string session_secret_;
             std::string session_key_;
             std::string a_token_;
@@ -52,7 +52,7 @@ namespace core
         public:
 
             client_login(
-                const wim_packet_params& params,
+                wim_packet_params params,
                 const std::string& login,
                 const std::string& password);
 

@@ -59,7 +59,7 @@ namespace core { namespace tools { namespace system {
         size_t len = sizeof( size );
         if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
             return (size_t)size / mb;
-        return 0L;			/* Failed? */
+        return 0L; /* Failed? */
 
 #elif defined(_SC_AIX_REALMEM)
         /* AIX. ----------------------------------------------------- */
@@ -80,19 +80,19 @@ namespace core { namespace tools { namespace system {
         int32_t mib[2];
         mib[0] = CTL_HW;
 #if defined(HW_REALMEM)
-        mib[1] = HW_REALMEM;		/* FreeBSD. ----------------- */
+        mib[1] = HW_REALMEM; /* FreeBSD. ----------------- */
 #elif defined(HW_PYSMEM)
-        mib[1] = HW_PHYSMEM;		/* Others. ------------------ */
+        mib[1] = HW_PHYSMEM; /* Others. ------------------ */
 #endif
-        unsigned int32_t size = 0;		/* 32-bit */
+        unsigned int32_t size = 0; /* 32-bit */
         size_t len = sizeof( size );
         if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
             return (size_t)size / mb;
-        return 0L;			/* Failed? */
+        return 0L; /* Failed? */
 #endif /* sysctl and sysconf variants */
 
 #else
-        return 0L;			/* Unknown OS. */
+        return 0L; /* Unknown OS. */
 #endif
     }
 
@@ -132,7 +132,7 @@ namespace core { namespace tools { namespace system {
             return system::create_directory(_path);
         return true;
     }
-    
+
     std::wstring create_temp_file_path()
     {
         std::wstring result;
@@ -263,10 +263,11 @@ namespace core { namespace tools { namespace system {
 
     bool clean_directory(const boost::filesystem::path& _dir)
     {
+        boost::system::error_code e;
         for(auto& entry : boost::make_iterator_range(
             boost::filesystem::directory_iterator(_dir), boost::filesystem::directory_iterator()))
         {
-            boost::filesystem::remove_all(entry);
+            boost::filesystem::remove_all(entry, e);
         }
         return true;
     }

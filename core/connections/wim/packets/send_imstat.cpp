@@ -13,9 +13,9 @@ using namespace wim;
 const std::string im_stat_url = "https://imstat.mail.ru/imstat";
 
 
-send_imstat::send_imstat(const wim_packet_params& params, const std::string& _data)
+send_imstat::send_imstat(const wim_packet_params& params, std::string _data)
     :	wim_packet(params),
-    data_(_data)
+    data_(std::move(_data))
 {
 }
 
@@ -41,19 +41,6 @@ int32_t send_imstat::init_request(std::shared_ptr<core::http_request_simple> _re
     return 0;
 }
 
-
-int32_t send_imstat::execute_request(std::shared_ptr<core::http_request_simple> _request)
-{
-    if (!_request->post())
-        return wpie_network_error;
-
-    http_code_ = (uint32_t)_request->get_response_code();
-
-    if (http_code_ != 200)
-        return wpie_http_error;
-
-    return 0;
-}
 
 void send_imstat::execute_request_async(std::shared_ptr<core::http_request_simple> _request, handler_t _handler)
 {

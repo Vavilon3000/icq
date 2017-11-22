@@ -5,11 +5,13 @@
 #include "../../types/contact.h"
 #include "../../types/message.h"
 #include "../../types/chat.h"
+#include "../../core_dispatcher.h"
 #include "ContactItem.h"
 
 namespace core
 {
     struct icollection;
+    enum class group_chat_info_errors;
 }
 
 namespace Data
@@ -25,7 +27,7 @@ namespace Logic
     class ChatMembersModel : public CustomAbstractListModel
     {
         Q_OBJECT
-        
+
     Q_SIGNALS:
         void results();
 
@@ -33,13 +35,14 @@ namespace Logic
         void chatInfo(qint64, std::shared_ptr<Data::ChatInfo>);
 
     private Q_SLOTS:
-        void avatarLoaded(QString);
-        void chatBlocked(QList<Data::ChatMemberInfo>);
-        void chatPending(QList<Data::ChatMemberInfo>);
+        void avatarLoaded(const QString&);
+        void chatBlocked(const QVector<Data::ChatMemberInfo>&);
+        void chatPending(const QVector<Data::ChatMemberInfo>&);
+        void chatInfoFailed(qint64, core::group_chat_info_errors);
 
     public:
         ChatMembersModel(QObject* _parent);
-        ChatMembersModel(std::shared_ptr<Data::ChatInfo>& _info, QObject* _parent);
+        ChatMembersModel(const std::shared_ptr<Data::ChatInfo>& _info, QObject* _parent);
 
         ~ChatMembersModel();
 
@@ -61,9 +64,26 @@ namespace Logic
 
         bool isContactInChat(const QString& _aimId) const;
         QString getChatAimId() const;
-        void updateInfo(std::shared_ptr<Data::ChatInfo> &_info, bool _isAllChatInfo);
-        static qint64  loadAllMembers(QString _aimId, int _limit, QObject* _recv);
-        static bool receiveMembers(qint64 _sendSeq, qint64 _seq, QObject* _recv);
+        void updateInfo(const std::shared_ptr<Data::ChatInfo> &_info, bool _isAllChatInfo);
+        void updateInfo(qint64 _seq, const std::shared_ptr<Data::ChatInfo> &_info, bool _isAllChatInfo);
+
+        template<class Obj>
+        static qint64 loadAllMembers(const QString& _aimId, int _limit, const Obj* _recv)
+        {
+            connect(Ui::GetDispatcher(), &Ui::core_dispatcher::chatInfo, _recv, &Obj::chatInfo, Qt::UniqueConnection);
+            connect(Ui::GetDispatcher(), &Ui::core_dispatcher::chatInfoFailed, _recv, &Obj::chatInfoFailed, Qt::UniqueConnection);
+            return loadAllMembersImpl(_aimId, _limit);
+        }
+
+        template<class Obj>
+        static bool receiveMembers(qint64 _sendSeq, qint64 _seq, const Obj* _recv)
+        {
+            if (_seq != _sendSeq)
+                return false;
+            disconnect(Ui::GetDispatcher(), &Ui::core_dispatcher::chatInfo, _recv, &Obj::chatInfo);
+            disconnect(Ui::GetDispatcher(), &Ui::core_dispatcher::chatInfoFailed, _recv, &Obj::chatInfoFailed);
+            return true;
+        }
         unsigned getVisibleRowsCount() const;
 
         static int get_limit(int limit);
@@ -72,9 +92,18 @@ namespace Logic
         bool isModer() const;
         void clear();
 
-        std::vector<Data::ChatMemberInfo> getMembers() { return members_; }
+        const std::vector<Data::ChatMemberInfo>& getMembers() const { return members_; }
 
     private:
+        static qint64 loadAllMembersImpl(const QString& _aimId, int _limit);
+
+    private:
+        enum class mode
+        {
+            all,
+            admins
+        };
+
         mutable std::vector<Data::ChatMemberInfo>   members_;
         int                                         membersCount_;
         std::shared_ptr<Data::ChatInfo>             info_;
@@ -84,11 +113,10 @@ namespace Logic
         bool                                        selectEnabled_;
         bool                                        single_;
 
+        mode                                        mode_;
+
         friend class SearchMembersModel;
     };
-
-    ChatMembersModel* getChatMembersModel();
-    void setChatMembersModel(ChatMembersModel*);
 
     void updateIgnoredModel(const QVector<QString>& _ignoredList);
     ChatMembersModel* getIgnoreModel();

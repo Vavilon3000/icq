@@ -124,18 +124,6 @@ QRect PttBlockLayout::setTextButtonGeometry(PttBlock &pttBlock, const QRect &bub
     return btnRect;
 }
 
-QRect PttBlockLayout::getAuthorAvatarRect() const
-{
-    assert(!"method is not expected to be called");
-    return QRect();
-}
-
-QRect PttBlockLayout::getAuthorNickRect() const
-{
-    assert(!"method is not expected to be called");
-    return QRect();
-}
-
 const QRect& PttBlockLayout::getContentRect() const
 {
     assert(!contentRect_.isEmpty());

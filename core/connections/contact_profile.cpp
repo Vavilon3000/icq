@@ -7,17 +7,18 @@ namespace core
     {
         bool address::unserialize(const rapidjson::Value& _node)
         {
-            auto iter_city = _node.FindMember("city");
-            if (iter_city != _node.MemberEnd() && iter_city->value.IsString())
-                city_ = iter_city->value.GetString();
+            const auto end = _node.MemberEnd();
+            const auto iter_city = _node.FindMember("city");
+            if (iter_city != end && iter_city->value.IsString())
+                city_ = rapidjson_get_string(iter_city->value);
 
-            auto iter_state = _node.FindMember("state");
-            if (iter_state != _node.MemberEnd() && iter_state->value.IsString())
-                state_ = iter_state->value.GetString();
+            const auto iter_state = _node.FindMember("state");
+            if (iter_state != end && iter_state->value.IsString())
+                state_ = rapidjson_get_string(iter_state->value);
 
-            auto iter_country = _node.FindMember("country");
-            if (iter_country != _node.MemberEnd() && iter_country->value.IsString())
-                country_ = iter_country->value.GetString();
+            const auto iter_country = _node.FindMember("country");
+            if (iter_country != end && iter_country->value.IsString())
+                country_ = rapidjson_get_string(iter_country->value);
 
             return true;
         }
@@ -31,13 +32,14 @@ namespace core
 
         bool phone::unserialize(const rapidjson::Value &_node)
         {
-            auto iter_phone = _node.FindMember("number");
-            if (iter_phone != _node.MemberEnd() && iter_phone->value.IsString())
-                phone_ = iter_phone->value.GetString();
+            const auto end = _node.MemberEnd();
+            const auto iter_phone = _node.FindMember("number");
+            if (iter_phone != end && iter_phone->value.IsString())
+                phone_ = rapidjson_get_string(iter_phone->value);
 
-            auto iter_type = _node.FindMember("type");
-            if (iter_type != _node.MemberEnd() && iter_type->value.IsString())
-                type_ = iter_type->value.GetString();
+            const auto iter_type = _node.FindMember("type");
+            if (iter_type != end && iter_type->value.IsString())
+                type_ = rapidjson_get_string(iter_type->value);
 
             return true;
         }
@@ -50,43 +52,45 @@ namespace core
 
         bool info::unserialize(const rapidjson::Value& _root)
         {
-            auto iter_phones = _root.FindMember("abPhones");
-            if (iter_phones != _root.MemberEnd() && iter_phones->value.IsArray())
+            const auto root_end = _root.MemberEnd();
+            const auto iter_phones = _root.FindMember("abPhones");
+            if (iter_phones != root_end && iter_phones->value.IsArray())
             {
                 for (auto iter_phone = iter_phones->value.Begin(), iter_phone_end = iter_phones->value.End(); iter_phone != iter_phone_end; ++iter_phone)
                 {
                     phone p;
                     if (p.unserialize(*iter_phone))
-                        phones_.push_back(p);
+                        phones_.push_back(std::move(p));
                 }
             }
 
-            auto iter_profile = _root.FindMember("profile");
-            if (iter_profile == _root.MemberEnd() || !iter_profile->value.IsObject())
+            const auto iter_profile = _root.FindMember("profile");
+            if (iter_profile == root_end || !iter_profile->value.IsObject())
                 return false;
 
             const rapidjson::Value& _node = iter_profile->value;
 
-            auto iter_first_name = _node.FindMember("firstName");
-            if (iter_first_name != _node.MemberEnd() && iter_first_name->value.IsString())
-                first_name_ = iter_first_name->value.GetString();
+            const auto node_end = _node.MemberEnd();
+            const auto iter_first_name = _node.FindMember("firstName");
+            if (iter_first_name != node_end && iter_first_name->value.IsString())
+                first_name_ = rapidjson_get_string(iter_first_name->value);
 
-            auto iter_last_name = _node.FindMember("lastName");
-            if (iter_last_name != _node.MemberEnd() && iter_last_name->value.IsString())
-                last_name_ = iter_last_name->value.GetString();
+            const auto iter_last_name = _node.FindMember("lastName");
+            if (iter_last_name != node_end && iter_last_name->value.IsString())
+                last_name_ = rapidjson_get_string(iter_last_name->value);
 
-            auto iter_friendly_name = _node.FindMember("friendlyName");
-            if (iter_friendly_name != _node.MemberEnd() && iter_friendly_name->value.IsString())
-                friendly_ = iter_friendly_name->value.GetString();
+            const auto iter_friendly_name = _node.FindMember("friendlyName");
+            if (iter_friendly_name != node_end && iter_friendly_name->value.IsString())
+                friendly_ = rapidjson_get_string(iter_friendly_name->value);
 
-            auto iter_displayid = _node.FindMember("displayId");
-            if (iter_displayid != _node.MemberEnd() && iter_displayid->value.IsString())
-                displayid_ = iter_displayid->value.GetString();
+            const auto iter_displayid = _node.FindMember("displayId");
+            if (iter_displayid != node_end && iter_displayid->value.IsString())
+                displayid_ = rapidjson_get_string(iter_displayid->value);
 
-            auto iter_gender = _node.FindMember("gender");
-            if (iter_gender != _node.MemberEnd() && iter_gender->value.IsString())
+            const auto iter_gender = _node.FindMember("gender");
+            if (iter_gender != node_end && iter_gender->value.IsString())
             {
-                std::string sex = iter_gender->value.GetString();
+                const auto sex = rapidjson_get_string(iter_gender->value);
                 if (sex == "male")
                     gender_ = gender::male;
                 else if (sex == "female")
@@ -95,24 +99,24 @@ namespace core
                     gender_ = gender::unknown;
             }
 
-            auto iter_relationship = _node.FindMember("relationshipStatus");
-            if (iter_relationship != _node.MemberEnd() && iter_relationship->value.IsString())
-                relationship_ = iter_relationship->value.GetString();
+            const auto iter_relationship = _node.FindMember("relationshipStatus");
+            if (iter_relationship != node_end && iter_relationship->value.IsString())
+                relationship_ = rapidjson_get_string(iter_relationship->value);
 
-            auto iter_birthdate = _node.FindMember("birthDate");
-            if (iter_birthdate != _node.MemberEnd() && iter_birthdate->value.IsInt64())
+            const auto iter_birthdate = _node.FindMember("birthDate");
+            if (iter_birthdate != node_end && iter_birthdate->value.IsInt64())
                 birthdate_ = iter_birthdate->value.GetInt64();
 
-            auto iter_home_address = _node.FindMember("homeAddress");
-            if (iter_home_address != _node.MemberEnd() && iter_home_address->value.IsArray())
+            const auto iter_home_address = _node.FindMember("homeAddress");
+            if (iter_home_address != node_end && iter_home_address->value.IsArray())
             {
                 if (iter_home_address->value.Size() > 0)
                     home_address_.unserialize(*iter_home_address->value.Begin());
             }
 
-            auto iter_about = _node.FindMember("aboutMe");
-            if (iter_about != _node.MemberEnd() && iter_about->value.IsString())
-                about_ = iter_about->value.GetString();
+            const auto iter_about = _node.FindMember("aboutMe");
+            if (iter_about != node_end && iter_about->value.IsString())
+                about_ = rapidjson_get_string(iter_about->value);
 
             return true;
         }
@@ -140,7 +144,7 @@ namespace core
 
             ifptr<iarray> phones(_coll->create_array());
             phones->reserve((int32_t)phones_.size());
-            for (auto phone: phones_)
+            for (const auto& phone : phones_)
             {
                 coll_helper coll_phone(_coll->create_collection(), true);
                 phone.serialize(coll_phone);
@@ -153,6 +157,5 @@ namespace core
             _coll.set_value_as_array("phones", phones.get());
         }
     }
-
 }
 

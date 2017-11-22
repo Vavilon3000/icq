@@ -73,7 +73,7 @@ namespace core
         void clear_post_data();
         std::string get_post_param() const;
         void set_post_params(curl_context* ctx);
-        bool send_request(bool _post);
+        bool send_request(bool _post, double& _request_time);
         void* send_request_async(bool _post, completion_function _completion_function);
         proxy_settings proxy_settings_;
 
@@ -88,21 +88,21 @@ namespace core
 
         void set_output_stream(std::shared_ptr<tools::stream> _output);
 
-        std::shared_ptr<tools::stream> get_response();
-        std::shared_ptr<tools::binary_stream> get_header();
-        long get_response_code();
+        std::shared_ptr<tools::stream> get_response() const;
+        std::shared_ptr<tools::binary_stream> get_header() const;
+        long get_response_code() const;
 
         void set_modified_time_condition(time_t _modified_time);
 
         void set_url(const std::wstring& url);
         void set_url(const std::string& url);
-        std::string get_post_url();
+        std::string get_post_url() const;
 
         void push_post_parameter(const std::wstring& name, const std::wstring& value);
-        void push_post_parameter(const std::string& name, const std::string& value);
+        void push_post_parameter(std::string name, std::string value);
         void set_post_data(const char* _data, int32_t _size, bool _copy_post_data);
         void push_post_form_parameter(const std::wstring& name, const std::wstring& value);
-        void push_post_form_parameter(const std::string& name, const std::string& value);
+        void push_post_form_parameter(std::string name, std::string value);
         void push_post_form_file(const std::wstring& name, const std::wstring& file_name);
         void push_post_form_file(const std::string& name, const std::string& file_name);
         void push_post_form_filedata(const std::wstring& name, const std::wstring& file_name);
@@ -110,10 +110,10 @@ namespace core
         void set_need_log(bool _need);
         void set_keep_alive();
         void set_priority(priority_t _priority);
-        void set_etag(const char *etag);
+        void set_etag(const std::string& etag);
         void set_replace_log_function(replace_log_function _func);
 
-        void get_post_parameters(std::map<std::string, std::string>& params);
+        const std::map<std::string, std::string>& get_post_parameters() const;
 
         void set_range(int64_t _from, int64_t _to);
 
@@ -122,6 +122,7 @@ namespace core
 
         bool post();
         bool get();
+        bool get(double& _connect_time);
         void set_post_form(bool _is_post_form);
 
         void set_custom_header_param(const std::string& _value);
@@ -129,7 +130,7 @@ namespace core
         void set_connect_timeout(int32_t _timeout_ms);
         void set_timeout(int32_t _timeout_ms);
 
-        static std::vector<std::mutex*> ssl_sync_objects;
+        static std::vector<boost::mutex*> ssl_sync_objects;
         proxy_settings get_user_proxy() const;
 
         void replace_host(const hosts_map& _hosts);

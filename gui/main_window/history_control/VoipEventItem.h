@@ -21,6 +21,11 @@ namespace Ui
     {
         Q_OBJECT
 
+    private Q_SLOTS:
+        void showHiddenControls();
+        void hideHiddenControls();
+        void setTimestampHoverEnabled(const bool _enabled);
+
     public:
         VoipEventItem(const ::HistoryControl::VoipEventInfoSptr& eventInfo);
 
@@ -32,7 +37,7 @@ namespace Ui
 
         virtual void setHasAvatar(const bool value) override;
 
-        virtual bool setLastRead(const bool _isLastRead) override;
+        void setLastStatus(LastStatus _lastStatus) override;
 
         virtual bool isOutgoing() const override;
 
@@ -42,7 +47,7 @@ namespace Ui
 
         void updateStyle();
 
-		virtual void setQuoteSelection() override;
+        virtual void setQuoteSelection() override;
 
     protected:
         virtual void mouseMoveEvent(QMouseEvent *) override;
@@ -54,6 +59,7 @@ namespace Ui
         virtual void paintEvent(QPaintEvent *) override;
 
         virtual void resizeEvent(QResizeEvent *event) override;
+        virtual void hideEvent(QHideEvent*) override;
     private:
 
         std::shared_ptr<const QPixmap> Avatar_;
@@ -71,14 +77,13 @@ namespace Ui
         bool IsAvatarHovered_;
 
         bool IsBubbleHovered_;
+        bool timestampHoverEnabled_;
 
         QString Text_;
 
         MessageTimeWidget *TimeWidget_;
 
         QRect TimeWidgetGeometry_;
-
-        bool lastRead_;
 
         qint64 id_;
 
@@ -91,7 +96,6 @@ namespace Ui
         void updateHeight();
 
         QColor getTextColor(const bool isHovered);
-
     };
 
 }

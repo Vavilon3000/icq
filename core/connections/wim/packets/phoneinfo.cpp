@@ -8,8 +8,8 @@
 using namespace core;
 using namespace wim;
 
-phoneinfo::phoneinfo(const wim_packet_params &params, const std::string &phone, const std::string &gui_locale):
-    wim_packet(params), phone_(phone), gui_locale_(gui_locale)
+phoneinfo::phoneinfo(wim_packet_params params, const std::string &phone, const std::string &gui_locale):
+    wim_packet(std::move(params)), phone_(phone), gui_locale_(gui_locale)
 {
     set_can_change_hosts_scheme(true);
 }
@@ -30,7 +30,7 @@ int32_t phoneinfo::init_request(std::shared_ptr<core::http_request_simple> reque
 
     request->set_url(get_request.str());
     request->set_keep_alive();
-    
+
 
     return 0;
 }
@@ -39,43 +39,34 @@ int32_t phoneinfo::parse_response(std::shared_ptr<core::tools::binary_stream> re
 {
     if (!response->available())
         return wpie_http_empty_response;
-    
+
     response->write((char)0);
     uint32_t size = response->available();
     load_response_str((const char *)response->read(size), size);
     response->reset_out();
-    
+
     try
     {
         const auto json_str = response->read(response->available());
-        
+
         rapidjson::Document doc;
         if (doc.ParseInsitu(json_str).HasParseError())
             return wpie_error_parse_response;
-        
+
         const auto _info = doc.FindMember("info");
         if (_info != doc.MemberEnd() && _info->value.IsObject())
         {
             const auto _operator = _info->value.FindMember("operator");
             if (_operator != _info->value.MemberEnd() && _operator->value.IsString())
-            {
-                const auto value = _operator->value.GetString();
-                info_operator_ = value;
-            }
-            
+                info_operator_ = rapidjson_get_string(_operator->value);
+
             const auto _phone = _info->value.FindMember("phone");
             if (_phone != _info->value.MemberEnd() && _phone->value.IsString())
-            {
-                const auto value = _phone->value.GetString();
-                info_phone_ = value;
-            }
-            
+                info_phone_ = rapidjson_get_string(_phone->value);
+
             const auto _iso_country = _info->value.FindMember("iso_country_code");
             if (_iso_country != _info->value.MemberEnd() && _iso_country->value.IsString())
-            {
-                const auto value = _iso_country->value.GetString();
-                info_iso_country_ = value;
-            }
+                info_iso_country_ = rapidjson_get_string(_iso_country->value);
         }
 
         const auto _printable = doc.FindMember("printable");
@@ -84,37 +75,25 @@ int32_t phoneinfo::parse_response(std::shared_ptr<core::tools::binary_stream> re
             for (auto it = _printable->value.Begin(), itend = _printable->value.End(); it != itend; ++it)
             {
                 if (it->IsString())
-                {
-                    const auto value = it->GetString();
-                    printable_.push_back(value);
-                }
+                    printable_.push_back(rapidjson_get_string(*it));
             }
         }
 
         const auto _status = doc.FindMember("status");
         if (_status != doc.MemberEnd() && _status->value.IsString())
-        {
-            const auto value = _status->value.GetString();
-            status_ = value;
-        }
-        
+            status_ = rapidjson_get_string(_status->value);
+
         const auto _typing_check = doc.FindMember("typing_check");
         if (_typing_check != doc.MemberEnd() && _typing_check->value.IsObject())
         {
             const auto _trunk_code = _typing_check->value.FindMember("trunk_code");
             if (_trunk_code != _typing_check->value.MemberEnd() && _trunk_code->value.IsString())
-            {
-                const auto value = _trunk_code->value.GetString();
-                trunk_code_ = value;
-            }
-            
+                trunk_code_ = rapidjson_get_string(_trunk_code->value);
+
             const auto _modified_phone_number = _typing_check->value.FindMember("modified_phone_number");
             if (_modified_phone_number != _typing_check->value.MemberEnd() && _modified_phone_number->value.IsString())
-            {
-                const auto value = _modified_phone_number->value.GetString();
-                modified_phone_number_ = value;
-            }
-            
+                modified_phone_number_ = rapidjson_get_string(_modified_phone_number->value);
+
             const auto _remaining_lengths = _typing_check->value.FindMember("remaining_lengths");
             if (_remaining_lengths != _typing_check->value.MemberEnd() && _remaining_lengths->value.IsArray())
             {
@@ -134,25 +113,19 @@ int32_t phoneinfo::parse_response(std::shared_ptr<core::tools::binary_stream> re
                 for (auto it = _prefix_state->value.Begin(), itend = _prefix_state->value.End(); it != itend; ++it)
                 {
                     if (it->IsString())
-                    {
-                        const auto value = it->GetString();
-                        prefix_state_.push_back(value);
-                    }
+                        prefix_state_.push_back(rapidjson_get_string(*it));
                 }
             }
 
             const auto _modified_prefix = _typing_check->value.FindMember("modified_prefix");
             if (_modified_prefix != _typing_check->value.MemberEnd() && _modified_prefix->value.IsString())
-            {
-                const auto value = _modified_prefix->value.GetString();
-                modified_prefix_ = value;
-            }
+                modified_prefix_ = rapidjson_get_string(_modified_prefix->value);
         }
     }
     catch (...)
     {
         return 0;
     }
-    
+
     return 0;
 }

@@ -51,7 +51,7 @@ namespace Utils
    public Q_SLOTS:
 
             void initMainWindow(const bool _has_valid_login);
-            void receiveUrlCommand(QString _urlCommand);
+            void receiveUrlCommand(const QString& _urlCommand);
             void applicationStateChanged(Qt::ApplicationState state);
             void coreLogins(const bool _has_valid_login);
             void guiSettings();

@@ -10,8 +10,8 @@ namespace Ui
     {
         Q_OBJECT
 
-            LineEditEx*	keyword_;
-        QPushButton*	searchButton_;
+            LineEditEx* keyword_;
+        QPushButton* searchButton_;
 
 Q_SIGNALS:
 

@@ -1,13 +1,6 @@
 Ui--LiveChatProfile
 {
-	background: #ffffff;
-	padding: 0;
-	margin: 0;
+    background-color: #ffffff;
+    padding: 0;
+    margin: 0;
 }
-
-QLabel#LiveChatMembersCount
-{
-	font-size: 12dip;
-	color: #767676;
-}
-

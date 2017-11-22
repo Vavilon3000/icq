@@ -19,9 +19,9 @@ namespace core
             return request_id_;
         }
 
-        void imstate::set_request_id(const std::string& _request_id)
+        void imstate::set_request_id(std::string _request_id)
         {
-            request_id_ = _request_id;
+            request_id_ = std::move(_request_id);
         }
 
         const std::string& imstate::get_msg_id() const
@@ -29,9 +29,9 @@ namespace core
             return msg_id_;
         }
 
-        void imstate::set_msg_id(const std::string& _msg_id)
+        void imstate::set_msg_id(std::string _msg_id)
         {
-            msg_id_ = _msg_id;
+            msg_id_ = std::move(_msg_id);
         }
 
         const int64_t& imstate::get_hist_msg_id() const

@@ -10,13 +10,13 @@ namespace Ui
     const auto size2 = 56;
     const auto size3 = 32;
     const auto size4 = 16;
-    
+
     const auto margin1 = 12;
     const auto margin2 = 28;
 
     AvatarPreview::AvatarPreview(QPixmap _img, QWidget* _parent)
         : QWidget(_parent)
-        , img_(_img)
+        , img_(std::move(_img))
     {}
 
     AvatarPreview::~AvatarPreview()
@@ -24,9 +24,9 @@ namespace Ui
 
     void AvatarPreview::paintEvent(QPaintEvent* _e)
     {
-        const auto &avatar = Utils::roundImage(img_, "", false, false);
+        const auto avatar = Utils::roundImage(img_, QString(), false, false);
         QPainter p(this);
-        
+
         p.setRenderHint(QPainter::Antialiasing);
         p.setRenderHint(QPainter::SmoothPixmapTransform);
 

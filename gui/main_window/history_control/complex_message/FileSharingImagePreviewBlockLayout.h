@@ -17,10 +17,6 @@ public:
 
     virtual QSize blockSizeForMaxWidth(const int32_t maxWidth) override;
 
-    virtual QRect getAuthorAvatarRect() const override;
-
-    virtual QRect getAuthorNickRect() const override;
-
     virtual const QRect& getContentRect() const override;
 
     const IItemBlockLayout::IBoxModel& getBlockBoxModel() const override;
@@ -35,14 +31,6 @@ public:
 
 private:
     QRect PreviewRect_;
-
-    QRect AuthorAvatarRect_;
-
-    QRect AuthorNickRect_;
-
-    QRect evaluateAuthorAvatarRect(const bool isStandalone) const;
-
-    QRect evaluateAuthorNickRect(const bool isStandalone, const QRect &authorAvatarRect, const int32_t blockWidth) const;
 
     QRect evaluatePreviewRect(const FileSharingBlock &block, const int32_t blockWidth) const;
 

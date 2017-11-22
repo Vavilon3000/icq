@@ -7,9 +7,9 @@
 using namespace core;
 using namespace wim;
 
-end_session::end_session(const wim_packet_params& _params)
+end_session::end_session(wim_packet_params _params)
     :
-    wim_packet(_params)
+    wim_packet(std::move(_params))
 {
 }
 
@@ -22,10 +22,18 @@ int32_t end_session::init_request(std::shared_ptr<core::http_request_simple> _re
     std::stringstream ss_url;
     ss_url << c_wim_host << "aim/endSession" <<
         "?f=json" <<
-        "&aimsid=" << escape_symbols(get_params().aimsid_);
- 
+        "&aimsid=" << escape_symbols(get_params().aimsid_) <<
+        "&invalidateToken=1";
+
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

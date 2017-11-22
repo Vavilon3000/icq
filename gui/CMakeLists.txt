@@ -27,6 +27,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ICQ_BIN_DIR})
 
 
 # -------------------------- definitions -------------------------
+if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+	add_definitions(-DQT_NO_DEBUG_OUTPUT)
+endif()
+
 if(MSVC)
     add_definitions(/FI"stdafx.h")
     set(SYSTEM_LIBRARIES d3d9 dxguid opengl32 Ws2_32 Imm32 Winmm runtimeobject strmiids secur32 glu32)
@@ -110,9 +114,10 @@ elseif(IS_AGENT)
     set(MACOSX_BUNDLE_ICON_FILE ${ICQ_MAC_ROOT}/icons-bundle-agent.icns)
 endif()
     set_source_files_properties(${MACOSX_BUNDLE_ICON_FILE} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    set_source_files_properties(${MACOSX_BUNDLE_ICON_FILE} PROPERTIES XCODE_EXPLICIT_FILE_TYPE "compiled")
+
 elseif(LINUX)
     add_definitions(-include "stdafx.h")
-    add_definitions(-DSTRIP_VOIP)
     set(SYSTEM_LIBRARIES corelib core
         ${ICQ_EXTERNAL_PLATFORM}/libcurl_static.a
         ${ICQ_EXTERNAL_PLATFORM}/libssl_static.a
@@ -123,8 +128,9 @@ elseif(LINUX)
         ${ICQ_EXTERNAL_PLATFORM}/system/libgnutls.a
         ${ICQ_EXTERNAL_PLATFORM}/system/libgpg-error.a
         ${ICQ_EXTERNAL_PLATFORM}/system/libtasn1.a
-        ${ICQ_EXTERNAL_PLATFORM}/system/libstdc++.a
-        -Wl,-Bdynamic -ldl -lpthread -lX11 -lX11-xcb -lxcb)
+        ${ICQ_EXTERNAL_PLATFORM}/libglfw3.a
+        ${VOIP_LIBRARIES}
+        -Wl,-Bdynamic -ldl -lpthread -lX11 -lX11-xcb -lxcb -lXrandr -lXinerama -lXcursor)
     if(LINUX32)
         set(SYSTEM_LIBRARIES ${SYSTEM_LIBRARIES} ${ICQ_EXTERNAL_PLATFORM}/system/libp11-kit.a)
     endif()
@@ -146,8 +152,11 @@ set_source_group("sources" "${SUBPROJECT_ROOT}" ${SUBPROJECT_SOURCES} ${SUBPROJE
 
 
 # --------------------------   common    -------------------------
-set(COMMON_ROOT "${ICQ_ROOT}/common.shared")
-
+if (NOT LINUX)
+	set(COMMON_ROOT "${ICQ_ROOT}/common.shared")
+else()
+	set(COMMON_ROOT "${ICQ_ROOT}/common.shared/message_processing")
+endif()
 find_sources(COMMON_SOURCES "${COMMON_ROOT}" "cpp")
 find_sources(COMMON_HEADERS "${COMMON_ROOT}" "h")
 
@@ -221,6 +230,7 @@ file(GLOB_RECURSE ICQ_JPG_FILES "${SUBPROJECT_ROOT}/*.jpg")
 file(GLOB_RECURSE ICQ_PNG_FILES "${SUBPROJECT_ROOT}/*.png")
 file(GLOB_RECURSE ICQ_TTF_FILES "${SUBPROJECT_ROOT}/*.ttf")
 file(GLOB_RECURSE ICQ_WAV_FILES "${SUBPROJECT_ROOT}/*.wav")
+
 set_source_group("resources" ${ICQ_RESOURCES_DIR} ${ICQ_GIF_FILES} ${ICQ_ICO_FILES}
     ${ICQ_JPG_FILES} ${ICQ_PNG_FILES} ${ICQ_TTF_FILES} ${ICQ_WAV_FILES})
 
@@ -229,6 +239,16 @@ set_source_group("qss" ${SUBPROJECT_ROOT} ${ICQ_QSS_FILES})
 
 set(ICQ_RESOURCE_FILES ${ICQ_QSS_FILES} ${ICQ_GIF_FILES} ${ICQ_ICO_FILES}
     ${ICQ_JPG_FILES} ${ICQ_PNG_FILES} ${ICQ_TTF_FILES} ${ICQ_WAV_FILES})
+
+if(APPLE)
+    set_source_files_properties(${ICQ_GIF_FILES} PROPERTIES XCODE_EXPLICIT_FILE_TYPE "compiled" )
+    set_source_files_properties(${ICQ_ICO_FILES} PROPERTIES XCODE_EXPLICIT_FILE_TYPE "compiled" )
+    set_source_files_properties(${ICQ_JPG_FILES} PROPERTIES XCODE_EXPLICIT_FILE_TYPE "compiled" )
+    set_source_files_properties(${ICQ_PNG_FILES} PROPERTIES XCODE_EXPLICIT_FILE_TYPE "compiled" )
+    set_source_files_properties(${ICQ_TTF_FILES} PROPERTIES XCODE_EXPLICIT_FILE_TYPE "compiled" )
+    set_source_files_properties(${ICQ_WAV_FILES} PROPERTIES XCODE_EXPLICIT_FILE_TYPE "compiled" )
+    set_source_files_properties(${ICQ_QSS_FILES} PROPERTIES XCODE_EXPLICIT_FILE_TYPE "compiled" )
+endif()
 
 set(ICQ_RESOURCES "${SUBPROJECT_ROOT}/resource.qrc")
 get_filename_component(ICQ_RCC_EXE "${ICQ_QT_BIN_DIR}/rcc" ABSOLUTE)
@@ -298,7 +318,6 @@ if(ICQ_CORELIB_STATIC_LINKING)
     target_link_libraries(${PROJECT_NAME}
         ${OPEN_AL_LIBRARIES}
         ${FFMPEG_LIBRARIES}
-        ${PREPROCESSOR_LIBRARIES}
         ${QT_LIBRARIES}
         ${SYSTEM_LIBRARIES}
         corelib)
@@ -306,7 +325,6 @@ else()
     target_link_libraries(${PROJECT_NAME}
         ${OPEN_AL_LIBRARIES}
         ${FFMPEG_LIBRARIES}
-        ${PREPROCESSOR_LIBRARIES}
         ${QT_LIBRARIES}
         ${ZLIB_LIBRARIES}
         ${SYSTEM_LIBRARIES})

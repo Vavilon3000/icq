@@ -23,10 +23,10 @@ CORE_WIM_NS_BEGIN
         return -1;
     }
 
-    requester_uid_ = requester_iter->value.GetString();
+    requester_uid_ = rapidjson_get_string(requester_iter->value);
     assert(!requester_uid_.empty());
 
-    display_aimid_ = display_aimid_iter->value.GetString();
+    display_aimid_ = rapidjson_get_string(display_aimid_iter->value);
     assert(!display_aimid_.empty());
 
     if (requester_uid_.empty() || display_aimid_.empty())

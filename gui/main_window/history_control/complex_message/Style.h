@@ -94,23 +94,6 @@ namespace Style
         QPen getDurationTextPen();
         QBrush getPlaybackProgressBrush();
     }
-
-    namespace Snaps
-    {
-        int32_t getAuthorAvatarBottomMargin();
-        int32_t getAuthorAvatarLeft(const bool isStandalone);
-        int32_t getAuthorAvatarSize();
-        QSize getAuthorAvatarSizeInLayout();
-        int32_t getAuthorNickBaseline();
-        int32_t getAuthorNickTopMargin(const bool isStandalone);
-        QFont getAuthorNickFont();
-        int32_t getAuthorNickLeftMargin();
-        QSize getFailedSnapSizeMax();
-        QBrush getFailedSnapBrush();
-        QColor getFailedSnapColor();
-        QFont getFailedSnapFont();
-    }
-
 }
 
 UI_COMPLEX_MESSAGE_NS_END

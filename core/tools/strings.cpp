@@ -10,7 +10,7 @@ namespace core
 {
     namespace tools
     {
-        const std::string from_utf16(const std::wstring& _source_16)
+        std::string from_utf16(const std::wstring& _source_16)
         {
 #ifdef __linux__
             return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(_source_16);
@@ -19,7 +19,7 @@ namespace core
 #endif //__linux__
         }
 
-        const std::wstring from_utf8(const std::string& _source_8)
+        std::wstring from_utf8(const std::string& _source_8)
         {
 #ifdef __linux__
             return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(_source_8);
@@ -137,7 +137,7 @@ namespace core
         }
 #endif // _WIN32
 
-        const std::string wstring_to_string(const std::wstring& _wstr)
+        std::string wstring_to_string(const std::wstring& _wstr)
         {
 #if defined(__linux__)
             return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(_wstr);
@@ -223,7 +223,30 @@ namespace core
             return false;
         }
 
-        bool contains(const std::vector<std::vector<std::string>>& _patterns, const std::string& _word, unsigned fixed_patterns_count, int32_t& priority)
+        std::vector<std::string> get_words(std::string _word)
+        {
+            std::vector<std::string> words;
+            auto prev_pos = 0;
+            auto pos = _word.find(' ');
+            while (pos != _word.npos)
+            {
+                words.push_back(_word.substr(prev_pos, pos - prev_pos));
+                prev_pos = pos + 1;
+                while (prev_pos < _word.length() - 1 && _word[prev_pos] == ' ')
+                    ++prev_pos;
+
+                pos = _word.find(' ', prev_pos);
+            }
+
+            if (prev_pos != 0 && _word.length() > prev_pos)
+            {
+                words.push_back(_word.substr(prev_pos, _word.length() - prev_pos));
+            }
+
+            return words;
+        }
+
+        bool contains(const std::vector<std::vector<std::string>>& _patterns, const std::string& _word, unsigned fixed_patterns_count, int32_t& priority, bool starts_with)
         {
             priority = -1;
 
@@ -234,8 +257,12 @@ namespace core
             {
                 auto s = _patterns[0][symb_i];
                 auto pos = _word.find(s, 0);
+                if (starts_with && pos != 0)
+                    continue;
+
                 while (pos != std::string::npos && !s.empty())
                 {
+                    auto prev_pos = pos;
                     std::string pattern = s;
                     pos += s.size();
                     if (pos > _word.length() - 1)
@@ -243,7 +270,7 @@ namespace core
 
                     if (contains_on_pos(_patterns, _word, (int)pos, pattern, fixed_patterns_count))
                     {
-                        priority = _word.length() == pattern.length() ? fixed_patterns_count : fixed_patterns_count * 2 + 1;
+                        priority = (_word.length() == pattern.length() || prev_pos == 0 || _word[prev_pos - 1] == ' ') ? 0 : 1;
                         return true;
                     }
 
@@ -265,15 +292,21 @@ namespace core
             auto upper = system::to_upper(str);
 
             if (lower.empty() || (lower.size() == 1 && lower[0] == '\0'))
-                lower = str;
+                lower = std::move(str);
 
             auto id = 0u;
-            for (auto symb : _table)
+            for (const auto& symb : _table)
             {
                 if (symb.first == lower)
                     break;
                 ++id;
             }
+
+            _indexes.push_back((int)_symbols.size());
+            _symbols.append(lower);
+
+            _indexes.push_back((int)_symbols.size());
+            _symbols.append(upper);
 
             auto result = -1;
             if (id < _table.size())
@@ -284,14 +317,8 @@ namespace core
             {
                 ++(*_last_symb_id);
                 result = *_last_symb_id;
-                _table.push_back(std::make_pair(lower, *_last_symb_id));
+                _table.push_back(std::make_pair(std::move(lower), *_last_symb_id));
             }
-
-            _indexes.push_back((int)_symbols.size());
-            _symbols.append(lower);
-
-            _indexes.push_back((int)_symbols.size());
-            _symbols.append(upper);
 
             return result;
         }
@@ -301,7 +328,7 @@ namespace core
         {
             std::vector<int32_t> result;
 
-            for (auto i = 0u; i < _str.size(); )
+            for (std::string::size_type i = 0; i < _str.size(); )
             {
                 int32_t len = 0;
                 auto id = get_char_index(_str.c_str() + i, len, _last_symb_id, _symbols, _indexes, _table);

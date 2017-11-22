@@ -16,11 +16,11 @@ namespace Ui
     class ConnectionSettingsWidget : public QWidget
     {
         Q_OBJECT
-        
+
     private Q_SLOTS:
         void enterClicked();
 
-    public: 
+    public:
         ConnectionSettingsWidget(QWidget* _parent);
         void show();
     private:

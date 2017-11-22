@@ -8,14 +8,14 @@ namespace Utils
 	{
 	public:
 		virtual void init() override;
-		QString getCurrentPhoneCode();
-        QString getCurrentLang();
+		QString getCurrentPhoneCode() const;
+        QString getCurrentLang() const;
 
         void updateLocale();
-		
+
 	private:
 
-		virtual QString getLang() override;
+		virtual QString getLang() const override;
 	};
 
 	Translator* GetTranslator();

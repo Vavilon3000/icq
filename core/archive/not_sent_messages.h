@@ -61,8 +61,10 @@ namespace core
             const std::string& get_file_sharing_local_path() const;
 
             core::archive::quotes_vec get_quotes() const;
+            void attach_quotes(const core::archive::quotes_vec& _quotes);
 
-            void attach_quotes(core::archive::quotes_vec _quotes);
+            const core::archive::mentions_map& get_mentions() const;
+            void set_mentions(const core::archive::mentions_map& _mentions);
 
             bool is_ready_to_send() const;
 
@@ -86,8 +88,8 @@ namespace core
             not_sent_message();
 
             not_sent_message(
-                const not_sent_message_sptr& _message, 
-                const std::string& _wimid, 
+                const not_sent_message_sptr& _message,
+                const std::string& _wimid,
                 const uint64_t _time);
 
             not_sent_message(
@@ -128,7 +130,7 @@ namespace core
             void mark_duplicated(const std::string& _message_internal_id);
 
             void update_message_post_time(
-                const std::string& _message_internal_id, 
+                const std::string& _message_internal_id,
                 const std::chrono::system_clock::time_point& _time_point);
 
             not_sent_message_sptr update_with_imstate(

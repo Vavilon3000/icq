@@ -7,8 +7,8 @@ using namespace core;
 using namespace wim;
 
 
-robusto_add_client::robusto_add_client(const wim_packet_params& _params)
-    :	robusto_packet(_params),
+robusto_add_client::robusto_add_client(wim_packet_params _params)
+    :	robusto_packet(std::move(_params)),
     client_id_(0)
 {
 }
@@ -33,13 +33,20 @@ int32_t robusto_add_client::init_request(std::shared_ptr<core::http_request_simp
     doc.AddMember("authToken", robusto_params_.robusto_token_, a);
 
     rapidjson::Value node_params(rapidjson::Type::kObjectType);
-    doc.AddMember("params", node_params, a);
+    doc.AddMember("params", std::move(node_params), a);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
 
-    _request->push_post_parameter(buffer.GetString(), "");
+    _request->push_post_parameter(buffer.GetString(), std::string());
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_json_marker("authToken");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

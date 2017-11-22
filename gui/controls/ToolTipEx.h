@@ -1,28 +1,23 @@
 #pragma once
 
-
-namespace Ui 
+namespace Ui
 {
+    class ToolTipEx : public QWidget
+    {
+    public:
+        ToolTipEx(QWidget* parent);
+        virtual ~ToolTipEx(void);
 
-class ToolTipEx : public QWidget
-{
-public:
-	ToolTipEx(QWidget* parent);
-	virtual ~ToolTipEx(void);
+        void setText(const QString& text);
+        void updatePosition();
 
-	void setText(const QString& text);
-	void updatePosition();
+    protected:
+        virtual void showEvent(QShowEvent* _e) override;
 
-protected:
-
-	virtual void showEvent(QShowEvent* _e) override;
-
-private:
-
-	void updateMask();
-
-	QString text;
-	QLabel* textLabel;
-};
+    private:
+        void updateMask();
+        QString text;
+        QLabel* textLabel;
+    };
 
 }

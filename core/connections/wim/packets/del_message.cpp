@@ -8,12 +8,12 @@
 CORE_WIM_NS_BEGIN
 
 del_message::del_message(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const int64_t _message_id,
     const std::string &_contact_aimid,
     const bool _for_all
 )
-    : robusto_packet(_params)
+    : robusto_packet(std::move(_params))
     , message_id_(_message_id)
     , contact_aimid_(_contact_aimid)
     , for_all_(_for_all)
@@ -42,7 +42,7 @@ int32_t del_message::init_request(std::shared_ptr<core::http_request_simple> _re
     node_params.AddMember("msgId", message_id_, a);
     node_params.AddMember("shared", for_all_, a);
 
-    doc.AddMember("params", node_params, a);
+    doc.AddMember("params", std::move(node_params), a);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -58,6 +58,13 @@ int32_t del_message::init_request(std::shared_ptr<core::http_request_simple> _re
         "    for_all=<%3%>",
         contact_aimid_ % message_id_ % logutils::yn(for_all_)
     );
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_json_marker("authToken");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

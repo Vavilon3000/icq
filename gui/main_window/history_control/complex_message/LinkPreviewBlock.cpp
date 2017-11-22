@@ -28,20 +28,15 @@
 
 UI_COMPLEX_MESSAGE_NS_BEGIN
 
-namespace
-{
-    int getLinesNumber(const TextEditEx &textControl);
-
-    int getLinesNumber(const TextEditEx &textControl);
-}
-
 LinkPreviewBlock::LinkPreviewBlock(ComplexMessageItem *parent, const QString &uri, const bool _hasLinkInMessage)
     : GenericBlock(parent, uri, MenuFlagLinkCopyable, false)
+    , Title_(nullptr)
     , Uri_(uri)
     , RequestId_(-1)
-    , Title_(nullptr)
-    , Annotation_(nullptr)
     , Layout_(nullptr)
+    , PreviewSize_(0, 0)
+    , PreloadingTickerAnimation_(nullptr)
+    , PreloadingTickerValue_(0)
     , Time_(-1)
     , PressedOverSiteLink_(false)
     , MetaDownloaded_(false)
@@ -49,11 +44,6 @@ LinkPreviewBlock::LinkPreviewBlock(ComplexMessageItem *parent, const QString &ur
     , FaviconDownloaded_(false)
     , IsSelected_(false)
     , ActionButton_(nullptr)
-    , PreviewSize_(0, 0)
-    , PreloadingTickerValue_(0)
-    , PreloadingTickerAnimation_(nullptr)
-    , SnapMetainfoRequestId_(-1)
-    , SnapId_(0)
     , TextFontSize_(-1)
     , TextOpacity_(1.0)
     , MaxPreviewWidth_(0)
@@ -108,11 +98,6 @@ IItemBlockLayout* LinkPreviewBlock::getBlockLayout() const
     }
 
     return Layout_->asBlockLayout();
-}
-
-const QString& LinkPreviewBlock::getDescription() const
-{
-    return Meta_.getDescription();
 }
 
 QSize LinkPreviewBlock::getFaviconSizeUnscaled() const
@@ -194,7 +179,7 @@ void LinkPreviewBlock::hideActionButton()
 
 bool LinkPreviewBlock::isInPreloadingState() const
 {
-    return (!Title_ && !Annotation_ && PreviewImage_.isNull());
+    return (!Title_ && PreviewImage_.isNull());
 }
 
 bool LinkPreviewBlock::isSelected() const
@@ -205,6 +190,8 @@ bool LinkPreviewBlock::isSelected() const
 void LinkPreviewBlock::onVisibilityChanged(const bool isVisible)
 {
     GenericBlock::onVisibilityChanged(isVisible);
+    if (ActionButton_)
+        ActionButton_->onVisibilityChanged(isVisible);
 
     if (isVisible && (RequestId_ > 0))
     {
@@ -313,12 +300,6 @@ void LinkPreviewBlock::setFontSize(int size)
         f.setPixelSize(size);
         Title_->setFont(f);
     }
-    if (Annotation_)
-    {
-        auto f = Annotation_->font();
-        f.setPixelSize(size);
-        Annotation_->setFont(f);
-    }
 }
 
 void LinkPreviewBlock::setTextOpacity(double opacity)
@@ -329,12 +310,6 @@ void LinkPreviewBlock::setTextOpacity(double opacity)
         QPalette p = Title_->palette();
         p.setColor(QPalette::Text, MessageStyle::getTextColor(TextOpacity_));
         Title_->setPalette(p);
-    }
-    if (Annotation_)
-    {
-        QPalette p = Annotation_->palette();
-        p.setColor(QPalette::Text, MessageStyle::getTextColor(TextOpacity_));
-        Annotation_->setPalette(p);
     }
 }
 
@@ -395,14 +370,8 @@ void LinkPreviewBlock::mouseReleaseEvent(QMouseEvent *event)
     {
         assert(!Uri_.isEmpty());
 
-        const auto hasSnapId = (SnapId_ > 0);
-        if (hasSnapId)
-        {
-            GetDispatcher()->read_snap(getSenderAimid(), SnapId_, false);
-        }
-
-        QString uin;
-        if (Utils::extractUinFromIcqLink(Uri_, Out uin))
+        const QString uin = Utils::extractUinFromIcqLink(Uri_);
+        if (!uin.isEmpty())
         {
             emit Utils::InterConnector::instance().profileSettingsShow(uin);
         }
@@ -414,9 +383,8 @@ void LinkPreviewBlock::mouseReleaseEvent(QMouseEvent *event)
             if (parser.hasUrl())
             {
                 auto url = parser.getUrl().url_;
-                QDesktopServices::openUrl(QString::fromUtf8(url.c_str(), url.size()));
+                Utils::openUrl(QString::fromUtf8(url.c_str(), url.size()));
             }
-
         }
 
         return;
@@ -433,13 +401,13 @@ void LinkPreviewBlock::showEvent(QShowEvent *event)
 
     // text controls creation postponing
 
-    const auto hasTextControls = (Title_ || Annotation_);
+    const auto hasTextControls = (Title_);
     if (hasTextControls)
     {
         return;
     }
 
-    const auto hasText = (!Meta_.getTitle().isEmpty() || !Meta_.getDescription().isEmpty());
+    const auto hasText = (!Meta_.getTitle().isEmpty());
     if (!hasText)
     {
         return;
@@ -463,7 +431,7 @@ bool LinkPreviewBlock::drag()
     return Utils::dragUrl(this, PreviewImage_, Uri_);
 }
 
-void LinkPreviewBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_color)
+void LinkPreviewBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& _quoteColor)
 {
     if (isInPreloadingState())
     {
@@ -484,7 +452,7 @@ void LinkPreviewBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& 
         p.fillRect(rect(), brush);
     }
 
-    GenericBlock::drawBlock(p, _rect, quate_color);
+    GenericBlock::drawBlock(p, _rect, _quoteColor);
 }
 
 void LinkPreviewBlock::onLinkMetainfoMetaDownloaded(int64_t seq, bool success, Data::LinkMetadata meta)
@@ -511,10 +479,9 @@ void LinkPreviewBlock::onLinkMetainfoMetaDownloaded(int64_t seq, bool success, D
     // 2. on error replace the current block with the text one and exit
 
     const auto &title = Meta_.getTitle();
-    const auto &description = Meta_.getDescription();
 
-    const auto isDescriptionEmpty = (!success || (title.isEmpty() && description.isEmpty()));
-    if (isDescriptionEmpty)
+    const auto isTitleEmpty = (!success || (title.isEmpty()));
+    if (isTitleEmpty)
     {
         if (isHasLinkInMessage())
             getParentComplexMessage()->removeBlock(this);
@@ -608,104 +575,43 @@ void LinkPreviewBlock::onLinkMetainfoImageDownloaded(int64_t seq, bool success, 
     scalePreview(image);
 }
 
-void LinkPreviewBlock::onSnapMetainfoDownloaded(int64_t seq, bool success, uint64_t snap_id)
-{
-    assert(seq > 0);
-    assert(!success || (snap_id > 0));
-
-    if (SnapMetainfoRequestId_ != seq)
-    {
-        return;
-    }
-
-    SnapMetainfoRequestId_ = -1;
-
-    if (success)
-    {
-        assert(SnapId_ == 0);
-        SnapId_ = snap_id;
-    }
-}
-
-bool LinkPreviewBlock::createDescriptionControl(const QString &description)
-{
-    const auto createDescription = (
-        !description.isEmpty() &&
-        Layout_->isAnnotationVisible());
-
-    if (!createDescription)
-    {
-        return false;
-    }
-
-    auto annotationFont = Layout_->getAnnotationFont();
-    if (TextFontSize_ != -1)
-        annotationFont.setPixelSize(TextFontSize_);
-
-    assert(!Annotation_);
-    Annotation_ = createTextEditControl(description, annotationFont, TextOptions::PlainText);
-    Annotation_->show();
-
-    return true;
-}
-
 void LinkPreviewBlock::createTextControls(const QRect &blockGeometry)
 {
     assert(!Title_);
-    assert(!Annotation_);
 
     const auto &title = Meta_.getTitle();
-    const auto &description = Meta_.getDescription();
 
     auto cutTitle = std::make_shared<QString>();
-    auto cutDescription = std::make_shared<QString>();
-
-    const auto hasPreview = !PreviewSize_.isEmpty();
-    if (hasPreview)
-    {
-        Layout_->cutTextByPreferredSize(
-            title,
-            description,
-            blockGeometry,
-            Out *cutTitle,
-            Out *cutDescription);
-    }
-    else
-    {
-        *cutTitle = title;
-        *cutDescription = description;
-    }
+    *cutTitle = title;
 
     QTimer::singleShot(
         0,
         Qt::CoarseTimer,
         this,
-        [this, cutTitle, cutDescription]
-        {
-            const auto isTitleCreated = createTitleControl(*cutTitle);
+        [this, cutTitle]
+    {
+        const auto isTitleCreated = createTitleControl(*cutTitle);
 
+        QTimer::singleShot(
+            0,
+            Qt::CoarseTimer,
+            this,
+            [this, isTitleCreated]
+        {
             QTimer::singleShot(
                 0,
                 Qt::CoarseTimer,
                 this,
-                [this, isTitleCreated, cutDescription]
+                [this, isTitleCreated]
+            {
+                const auto isContentsChanged = (isTitleCreated );
+                if (isContentsChanged)
                 {
-                    const auto isDescriptionCreated = createDescriptionControl(*cutDescription);
-
-                    QTimer::singleShot(
-                        0,
-                        Qt::CoarseTimer,
-                        this,
-                        [this, isTitleCreated, isDescriptionCreated]
-                        {
-                            const auto isContentsChanged = (isTitleCreated || isDescriptionCreated);
-                            if (isContentsChanged)
-                            {
-                                notifyBlockContentsChanged();
-                            }
-                        });
-                });
+                    notifyBlockContentsChanged();
+                }
+            });
         });
+    });
 }
 
 bool LinkPreviewBlock::createTitleControl(const QString &title)
@@ -732,31 +638,6 @@ int LinkPreviewBlock::getPreloadingTickerValue() const
     assert(PreloadingTickerValue_ <= 100);
 
     return PreloadingTickerValue_;
-}
-
-void LinkPreviewBlock::requestSnapMetainfo()
-{
-    assert(SnapMetainfoRequestId_ == -1);
-
-    const auto fileSharingId = extractIdFromFileSharingUri(Uri_);
-    if (fileSharingId.isEmpty())
-    {
-        return;
-    }
-
-    const auto fileSharingType = extractContentTypeFromFileSharingId(fileSharingId);
-
-    const auto isSnap = (
-        (fileSharingType == core::file_sharing_content_type::snap_gif) ||
-        (fileSharingType == core::file_sharing_content_type::snap_image) ||
-        (fileSharingType == core::file_sharing_content_type::snap_video));
-
-    if (!isSnap)
-    {
-        return;
-    }
-
-    SnapMetainfoRequestId_ = GetDispatcher()->download_snap_metainfo(getChatAimid(), fileSharingId);
 }
 
 void LinkPreviewBlock::setPreloadingTickerValue(const int32_t _val)
@@ -794,13 +675,6 @@ void LinkPreviewBlock::connectSignals(const bool isConnected)
             &LinkPreviewBlock::onLinkMetainfoFaviconDownloaded);
         assert(connection);
 
-        connection = QObject::connect(
-            GetDispatcher(),
-            &core_dispatcher::snapMetainfoDownloaded,
-            this,
-            &LinkPreviewBlock::onSnapMetainfoDownloaded);
-        assert(connection);
-
         return;
     }
 
@@ -830,7 +704,7 @@ TextEditEx* LinkPreviewBlock::createTextEditControl(const QString &text, const Q
 {
     assert(!text.isEmpty());
 
-    blockSignals(true);
+    QSignalBlocker sb(this);
     setUpdatesEnabled(false);
 
     auto textControl = new TextEditEx(
@@ -848,7 +722,7 @@ TextEditEx* LinkPreviewBlock::createTextEditControl(const QString &text, const Q
     textControl->setOpenLinks(false);
     textControl->setOpenExternalLinks(false);
     textControl->setWordWrapMode(QTextOption::WordWrap);
-    textControl->setStyleSheet("background: transparent");
+    textControl->setStyleSheet(qsl("background: transparent"));
     textControl->setContextMenuPolicy(Qt::NoContextMenu);
     textControl->setReadOnly(true);
     textControl->setUndoRedoEnabled(false);
@@ -865,7 +739,6 @@ TextEditEx* LinkPreviewBlock::createTextEditControl(const QString &text, const Q
     textControl->verticalScrollBar()->blockSignals(false);
 
     setUpdatesEnabled(true);
-    blockSignals(false);
 
     return textControl;
 }
@@ -905,9 +778,6 @@ void LinkPreviewBlock::drawPreloader(QPainter &p)
 
     const auto &titleRect = Layout_->getTitleRect();
     p.drawRect(titleRect);
-
-    const auto &annotationRect = Layout_->getAnnotationRect();
-    p.drawRect(annotationRect);
 }
 
 QPainterPath LinkPreviewBlock::evaluateClippingPath(const QRect &imageRect) const
@@ -989,7 +859,7 @@ void LinkPreviewBlock::initialize()
     SiteNameFont_ = Style::Snippet::getSiteNameFont();
 
     assert(!PreloadingTickerAnimation_);
-    PreloadingTickerAnimation_ = new QPropertyAnimation(this, "PreloadingTicker");
+    PreloadingTickerAnimation_ = new QPropertyAnimation(this, QByteArrayLiteral("PreloadingTicker"), this);
 
     PreloadingTickerAnimation_->setDuration(4000);
     PreloadingTickerAnimation_->setLoopCount(-1);
@@ -997,8 +867,6 @@ void LinkPreviewBlock::initialize()
     PreloadingTickerAnimation_->setEndValue(100);
 
     PreloadingTickerAnimation_->start();
-
-    requestSnapMetainfo();
 }
 
 void LinkPreviewBlock::initializeActionButton()
@@ -1007,8 +875,8 @@ void LinkPreviewBlock::initializeActionButton()
     assert(!ActionButton_);
     assert(!ContentType_.isEmpty());
 
-    const auto isVideo = (ContentType_ == "article-video");
-    const auto isGif = (ContentType_ == "article-gif");
+    const auto isVideo = (ContentType_ == ql1s("article-video"));
+    const auto isGif = !isVideo && (ContentType_ == ql1s("article-gif"));
 
     const auto isPlayablePreview = (isVideo || isGif);
     if (!isPlayablePreview)
@@ -1055,8 +923,8 @@ void LinkPreviewBlock::scalePreview(QPixmap &image)
     const auto previewSize = image.size();
     const auto scaledPreviewSize = scalePreviewSize(previewSize);
 
-    const auto shouldScalePreviewDown = (previewSize != scaledPreviewSize);
-    if (!shouldScalePreviewDown)
+    const auto shouldScalePreview = (previewSize != scaledPreviewSize);
+    if (!shouldScalePreview)
     {
         PreviewImage_ = image;
 
@@ -1077,7 +945,7 @@ void LinkPreviewBlock::scalePreview(QPixmap &image)
         this,
         [this](QPixmap scaled)
         {
-            PreviewImage_ = scaled;
+            PreviewImage_ = std::move(scaled);
 
             Utils::check_pixel_ratio(PreviewImage_);
 
@@ -1118,7 +986,7 @@ QSize LinkPreviewBlock::scalePreviewSize(const QSize &size) const
         result *= scaleDownK;
     }
 
-    return result;
+    return Utils::scale_bitmap(result);
 }
 
 void LinkPreviewBlock::updateRequestId()
@@ -1136,14 +1004,9 @@ void LinkPreviewBlock::updateRequestId()
 
 void LinkPreviewBlock::connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover)
 {
-    if (Annotation_ && hover)
-    {
-        Annotation_->installEventFilter(Annotation_);
-        Annotation_->setMouseTracking(true);
-    }
     if (Title_ && hover)
     {
-        Title_->installEventFilter(Annotation_);
+        Title_->installEventFilter(Title_);
         Title_->setMouseTracking(true);
     }
     if (hover)
@@ -1167,5 +1030,21 @@ bool LinkPreviewBlock::isHasLinkInMessage() const
 int LinkPreviewBlock::getMaxWidth() const
 {
     return MessageStyle::getSnippetMaxWidth();
+}
+
+QPoint LinkPreviewBlock::getShareButtonPos(const bool _isBubbleRequired, const QRect& _bubbleRect) const
+{
+    if (PreviewImage_.isNull())
+        return GenericBlock::getShareButtonPos(_isBubbleRequired, _bubbleRect);
+
+    const auto &blockGeometry = Layout_->asBlockLayout()->getBlockGeometry();
+
+    const auto &imageRect = Layout_->getPreviewImageRect();
+
+    auto buttonX = blockGeometry.left() + imageRect.right() + 1 + MessageStyle::getTimeMarginX();
+
+    const auto buttonY = blockGeometry.top() + imageRect.top();
+
+    return QPoint(buttonX, buttonY);
 }
 UI_COMPLEX_MESSAGE_NS_END

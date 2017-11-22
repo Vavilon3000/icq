@@ -7,6 +7,19 @@ namespace Ui
     class ContactDialog;
 }
 
+
+namespace Data
+{
+    class ChatInfo;
+    class DlgState;
+}
+
+namespace Logic
+{
+    enum class scroll_mode_type;
+    class SearchModelDLG;
+}
+
 namespace Utils
 {
     enum class CommonSettingsType
@@ -45,20 +58,18 @@ namespace Utils
     {
         Q_OBJECT
 
-    public:
-
 Q_SIGNALS:
-        void profileSettingsShow(QString uin);
+        void profileSettingsShow(const QString& uin);
         void profileSettingsBack();
 
         void themesSettingsOpen();
 
         void generalSettingsShow(int type);
         void generalSettingsBack();
-        void themesSettingsShow(bool, QString);
+        void themesSettingsShow(bool, const QString&);
         void themesSettingsBack();
         void profileSettingsUpdateInterface();
-        
+
         void generalSettingsContactUsShown();
 
         void attachPhoneBack();
@@ -79,18 +90,18 @@ Q_SIGNALS:
         void showNoSearchResults();
         void hideNoSearchResults();
 
-        void showSearchSpinner();
+        void showSearchSpinner(Logic::SearchModelDLG* _senderModel);
         void hideSearchSpinner();
         void disableSearchInDialog();
         void repeatSearch();
-        void dialogClosed(QString _aimid);
+        void dialogClosed(const QString& _aimid);
 
         void resetSearchResults();
 
         void onThemes();
-        void cancelTheme(QString);
-        void setToAllTheme(QString);
-        void setTheme(QString);
+        void cancelTheme(const QString&);
+        void setToAllTheme(const QString&);
+        void setTheme(const QString&);
 
         void closeAnyPopupWindow();
         void closeAnyPopupMenu();
@@ -99,43 +110,71 @@ Q_SIGNALS:
         void forceRefreshList(QAbstractItemModel *, bool);
         void updateFocus();
         void liveChatsShow();
-        
-        void schemeUrlClicked(QString);
+
+        void schemeUrlClicked(const QString&);
 
         void setAvatar(qint64 _seq, int error);
-        void setAvatarId(QString);
+        void setAvatarId(const QString&);
 
-        void historyControlPageFocusIn(QString);
-        
+        void historyControlPageFocusIn(const QString&);
+
         void unknownsGoSeeThem();
         void unknownsGoBack();
         void unknownsDeleteThemAll();
-        
+
         void liveChatSelected();
+        void showLiveChat(std::shared_ptr<Data::ChatInfo> _info);
 
         void activateNextUnread();
 
-        void historyControlReady(QString, qint64 _message_id, qint64 _last_read_msg);
+        void clSortChanged();
+
+        void historyControlReady(const QString&, qint64 _message_id, const Data::DlgState&, qint64 _last_read_msg, bool _isFirstRequest, Logic::scroll_mode_type _scrollMode);
 
         void imageCropDialogIsShown(QWidget *);
         void imageCropDialogIsHidden(QWidget *);
         void imageCropDialogMoved(QWidget *);
         void imageCropDialogResized(QWidget *);
 
-        void startSearchInDialog(QString);
+        void startSearchInDialog(const QString&);
         void setSearchFocus();
 
         void searchEnd();
         void myProfileBack();
 
         void compactModeChanged();
-        void showSnapsChanged();
         void mailBoxOpened();
 
         void logout();
         void authError(const int _error);
         void contacts();
-        void showHeader(QString);
+        void showHeader(const QString&);
+
+        void currentPageChanged();
+
+        void showMessageHiddenControls();
+        void hideMessageHiddenControls();
+
+        void forceShowMessageTimestamps();
+        void forceHideMessageTimestamps();
+        void setTimestampHoverActionsEnabled(const bool _enabled);
+
+        void globalSearchHeaderNeeded(const QString& _headerText);
+        void hideGlobalSearchHeader();
+        void globalHeaderBackClicked();
+
+        void updateTitleButtons();
+        void hideTitleButtons();
+        void titleButtonsUpdated();
+
+        void hideMentionCompleter();
+        void showStickersStore();
+
+        void addPageToDialogHistory(const QString& _aimid);
+        void switchToPrevDialog();
+        void clearDialogHistory();
+        void pageAddedToDialogHistory();
+        void noPagesInDialogHistory();
 
     public:
         static InterConnector& instance();
@@ -157,24 +196,8 @@ Q_SIGNALS:
         void setDragOverlay(bool enable);
         bool isDragOverlay() const;
 
-        void setUrlHandler();
-        void unsetUrlHandler();
-
         void setFocusOnInput();
         void onSendMessage(const QString&);
-
-        int getSemiwindowsCount() const;
-        void incSemiwindowsCount();
-        void decSemiwindowsCount();
-
-        bool isSemiWindowsTouchSwallowed() const;
-        void setSemiwindowsTouchSwallowed(bool _val);
-
-    public Q_SLOTS:
-        void open_url(const QUrl& url);
-
-    private:
-        bool parseLocalUrl(const QString& _urlString);
 
     private:
         InterConnector();
@@ -185,8 +208,5 @@ Q_SIGNALS:
 
         Ui::MainWindow* MainWindow_;
         bool dragOverlay_;
-
-        int semiWindowsCount_;
-        bool semiWindowsTouchSwallowed_;
     };
 }

@@ -11,7 +11,7 @@ namespace Ui
         void onAutoScrollTimer();
 
     public:
-        MessagesScrollbar(QWidget *page);
+        explicit MessagesScrollbar(QWidget *page);
 
         bool canScrollDown() const;
         bool isInFetchRange(const int32_t scrollPos) const;

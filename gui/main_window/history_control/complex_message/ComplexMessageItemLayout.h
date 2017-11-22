@@ -30,7 +30,7 @@ public:
 
     bool isOverAvatar(const QPoint &pos) const;
 
-    const QRect& getAvatarRect() const;
+    QRect getAvatarRect() const;
 
     QRect getBlockSeparatorRect(const IItemBlock *block) const;
 

@@ -5,6 +5,7 @@
 #include "TextEmojiWidget.h"
 #include "TextEditEx.h"
 #include "SemitransparentWindowAnimated.h"
+#include "CustomButton.h"
 #include "../fonts.h"
 #include "../gui_settings.h"
 #include "../main_window/MainWindow.h"
@@ -13,8 +14,7 @@
 
 namespace
 {
-    const QString SHARE_BOTTOM_PANEL_COLOR = "background: #ebebeb;";
-    const int DURATION = 200;
+    constexpr int DURATION = 100;
 }
 
 namespace Ui
@@ -22,14 +22,13 @@ namespace Ui
     GeneralDialog::GeneralDialog(QWidget* _mainWidget, QWidget* _parent, bool _ignoreKeyPressEvents/* = false*/)
         : QDialog(nullptr)
         , mainWidget_(_mainWidget)
-        , semiWindow_(new SemitransparentWindowAnimated(_parent, DURATION))
         , nextButton_(nullptr)
-        , labelHost_(nullptr)
-        , headHost_(nullptr)
+        , semiWindow_(new SemitransparentWindowAnimated(_parent, DURATION))
+        , headerBtnHost_(nullptr)
+        , headerLabelHost_(nullptr)
         , keepCenter_(true)
         , x_(-1)
         , y_(-1)
-        , bottomLabel_(nullptr)
         , ignoreKeyPressEvents_(_ignoreKeyPressEvents)
         , shadow_(true)
         , leftButtonDisableOnClicked_(false)
@@ -41,32 +40,36 @@ namespace Ui
         semiWindow_->hide();
 
         auto mainLayout = Utils::emptyVLayout(this);
-        auto mainHost = new QWidget(this);
-        mainHost->setObjectName("mainHost");
+        mainHost_ = new QWidget(this);
+        mainHost_->setObjectName(qsl("mainHost"));
 
-        auto globalLayout = Utils::emptyVLayout(mainHost);
+        auto globalLayout = Utils::emptyVLayout(mainHost_);
 
-        headHost_ = new QWidget(mainHost);
-        headHost_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-        Utils::ApplyStyle(headHost_, "height: 1dip;");
-        headHost_->setVisible(false);
-        globalLayout->addWidget(headHost_);
+        auto headerHost = new QWidget(mainHost_);
+        auto headerLayout = Utils::emptyHLayout(mainHost_);
 
-        labelHost_ = new QWidget(mainHost);
-        labelHost_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-        Utils::ApplyStyle(labelHost_, "height: 1dip;");
-        labelHost_->setVisible(false);
-        globalLayout->addWidget(labelHost_);
+        headerLabelHost_ = new QWidget(mainHost_);
+        headerLabelHost_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+        headerLabelHost_->setVisible(false);
+        headerLayout->addWidget(headerLabelHost_);
 
-        errorHost_ = new QWidget(mainHost);
+        headerBtnHost_ = new QWidget(mainHost_);
+        headerBtnHost_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+        headerBtnHost_->setVisible(false);
+        headerLayout->addWidget(headerBtnHost_);
+
+        headerHost->setLayout(headerLayout);
+        globalLayout->addWidget(headerHost);
+
+        errorHost_ = new QWidget(mainHost_);
         errorHost_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-        Utils::ApplyStyle(errorHost_, "height: 1dip;");
+        Utils::ApplyStyle(errorHost_, qsl("height: 1dip;"));
         errorHost_->setVisible(false);
         globalLayout->addWidget(errorHost_);
 
-        textHost_ = new QWidget(mainHost);
+        textHost_ = new QWidget(mainHost_);
         textHost_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-        Utils::ApplyStyle(textHost_, "height: 1dip;");
+        Utils::ApplyStyle(textHost_, qsl("height: 1dip;"));
         textHost_->setVisible(false);
         globalLayout->addWidget(textHost_);
 
@@ -75,97 +78,41 @@ namespace Ui
             globalLayout->addWidget(mainWidget_);
         }
 
-        bottomWidget_ = new QWidget(mainHost);
+        bottomWidget_ = new QWidget(mainHost_);
         bottomWidget_->setVisible(false);
         globalLayout->addWidget(bottomWidget_);
 
-        setStyleSheet("background-color: #ffffff;");
+        setStyleSheet(qsl("background-color: %1;")
+        .arg(CommonStyle::getFrameColor().name()));
 
         setWindowFlags(Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint | Qt::WindowSystemMenuHint);
         setSizePolicy(QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Minimum);
 
         QWidget::connect(&Utils::InterConnector::instance(), &Utils::InterConnector::closeAnySemitransparentWindow, this, &GeneralDialog::reject);
         QWidget::connect(&Utils::InterConnector::instance(), &Utils::InterConnector::closeAnyPopupWindow, this, &GeneralDialog::reject);
-        
+
         mainLayout->setSizeConstraint(QLayout::SetFixedSize);
-        mainLayout->addWidget(mainHost);
+        mainLayout->addWidget(mainHost_);
     }
 
     void GeneralDialog::reject()
     {
-        semiWindow_->hide();
+        semiWindow_->Hide();
         QDialog::reject();
-    }
-
-    void GeneralDialog::addBottomLabel(const QString& _text, const int32_t _marginPx)
-    {
-        assert(!_text.isEmpty());
-        assert(bottomWidget_);
-        assert(_marginPx >= 0);
-
-        assert(!bottomLabel_);
-        if (bottomLabel_)
-        {
-            return;
-        }
-
-        bottomWidget_->setVisible(true);
-        Utils::ApplyStyle(bottomWidget_, SHARE_BOTTOM_PANEL_COLOR);
-
-        auto bottomLayout = initBottomLayout(_marginPx);
-
-        bottomLabel_ = new QLabel(this);
-        bottomLabel_->setVisible(true);
-
-        bottomLabel_->setMargin(0);
-        bottomLabel_->setContentsMargins(0, 0, 0, 0);
-
-        const auto qss = QString(
-            "color: %4;"
-            "padding-bottom: %1; margin: 0 %2 %3 %2;"
-            "border-bottom: 1px solid #c0c0c0"
-        )
-            .arg(Utils::scale_value(14))
-            .arg(Utils::scale_value(16))
-            .arg(Utils::scale_value(16))
-            .arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getTextCommonColor()));
-
-        bottomLabel_->setFixedWidth(mainWidget_->width());
-        bottomLabel_->setFont(Fonts::appFontScaled(16));
-        bottomLabel_->setStyleSheet(qss);
-
-        const auto fontMetrics = bottomLabel_->fontMetrics();
-
-        auto maxTextWidth = Utils::scale_value(320);
-        maxTextWidth -= fontMetrics.width("...");
-
-        const auto elidedText = fontMetrics.elidedText(_text, Qt::ElideRight, maxTextWidth);
-
-        bottomLabel_->setText(elidedText);
-
-        bottomLayout->addWidget(bottomLabel_);
     }
 
     void GeneralDialog::addLabel(const QString& _text)
     {
-        labelHost_->setVisible(true);
-        auto hostLayout = Utils::emptyHLayout(labelHost_);
-        int horMargin = Utils::scale_value(24);
-        hostLayout->setContentsMargins(horMargin, 0, horMargin, 0);
-        hostLayout->setAlignment(Qt::AlignLeft);
-        labelHost_->setSizePolicy(QSizePolicy::Policy::Preferred, QSizePolicy::Policy::Preferred);
-        {
-            auto nameText = _text;
-            auto name_ = new TextEditEx(labelHost_, Fonts::appFontScaled(20), CommonStyle::getTextCommonColor(), false, true);
-            name_->setPlainText(nameText, false, QTextCharFormat::AlignNormal);
-            name_->setAlignment(Qt::AlignLeft);
-            name_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-            name_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-            name_->setFrameStyle(QFrame::NoFrame);
-            name_->setContentsMargins(0, 0, 0, 0);
-            name_->setContextMenuPolicy(Qt::NoContextMenu);
-            hostLayout->addWidget(name_);
-        }
+        headerLabelHost_->setVisible(true);
+        auto hostLayout = Utils::emptyHLayout(headerLabelHost_);
+        hostLayout->setContentsMargins(Utils::scale_value(16), 0, 0, 0);
+        hostLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        headerLabelHost_->setSizePolicy(QSizePolicy::Policy::Preferred, QSizePolicy::Policy::Preferred);
+
+        auto label = new TextEmojiWidget(headerLabelHost_, Fonts::appFontScaled(22), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(32));
+        label->setText(_text);
+        label->setEllipsis(true);
+        hostLayout->addWidget(label);
     }
 
     void GeneralDialog::addText(QString _messageText, int _upperMarginPx)
@@ -173,16 +120,16 @@ namespace Ui
         textHost_->setVisible(true);
         auto textLayout = Utils::emptyVLayout(textHost_);
 
-        auto label = new Ui::TextEditEx(textHost_, Fonts::appFontScaled(15), QColor("#767676"), true, true);
+        auto label = new Ui::TextEditEx(textHost_, Fonts::appFontScaled(15), CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY), true, true);
         label->setFixedHeight(Utils::scale_value(16));
         label->setContentsMargins(0, 0, 0, 0);
         label->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Preferred);
-        label->setPlaceholderText("");
+        label->setPlaceholderText(QString());
         label->setAutoFillBackground(false);
         label->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         label->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         {
-            QString ls = "QWidget { border: none; padding-left: 24dip; padding-right: 24dip; padding-top: 0dip; padding-bottom: 0dip; }";
+            const QString ls = qsl("QWidget { border: none; padding-left: 16dip; padding-right: 16dip; padding-top: 0dip; padding-bottom: 0dip; }");
             Utils::ApplyStyle(label, ls);
         }
 
@@ -193,11 +140,11 @@ namespace Ui
         textLayout->addWidget(label);
     }
 
-    void GeneralDialog::addAcceptButton(QString _buttonText, int _buttonMarginPx, const bool _isEnabled)
+    void GeneralDialog::addAcceptButton(QString _buttonText, const bool _isEnabled)
     {
         bottomWidget_->setVisible(true);
 
-        auto bottomLayout = initBottomLayout(_buttonMarginPx);
+        auto bottomLayout = initBottomLayout();
 
         bottomWidget_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Policy::Preferred);
         {
@@ -206,8 +153,8 @@ namespace Ui
             Utils::ApplyStyle(
                 nextButton_,
                 _isEnabled ?
-                    Ui::CommonStyle::getGreenButtonStyle() :
-                    Ui::CommonStyle::getDisabledButtonStyle());
+                    CommonStyle::getGreenButtonStyle() :
+                    CommonStyle::getDisabledButtonStyle());
 
             setButtonActive(_isEnabled);
             nextButton_->setFlat(true);
@@ -218,28 +165,56 @@ namespace Ui
 
             QObject::connect(nextButton_, &QPushButton::clicked, this, &GeneralDialog::accept, Qt::QueuedConnection);
 
-            auto button_layout = Utils::emptyVLayout(bottomWidget_);
-            button_layout->setAlignment(Qt::AlignHCenter);
-            button_layout->addWidget(nextButton_);
-            bottomLayout->addItem(button_layout);
+            auto buttonLayout = Utils::emptyVLayout(bottomWidget_);
+            buttonLayout->setAlignment(Qt::AlignHCenter);
+            buttonLayout->addWidget(nextButton_);
+            bottomLayout->addItem(buttonLayout);
         }
 
-        Testing::setAccessibleName(nextButton_, "nextButton_");
+        Testing::setAccessibleName(nextButton_, qsl("nextButton_"));
     }
 
-    void GeneralDialog::addButtonsPair(QString _buttonTextLeft, QString _buttonTextRight, int _marginPx, int _buttonBetweenPx, bool _rejectable, bool _acceptable)
+    void GeneralDialog::addCancelButton(QString _buttonText)
+    {
+        bottomWidget_->setVisible(true);
+
+        auto bottomLayout = initBottomLayout();
+
+        bottomWidget_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Policy::Preferred);
+        {
+            nextButton_ = new QPushButton(bottomWidget_);
+
+            Utils::ApplyStyle(nextButton_, CommonStyle::getGrayButtonStyle());
+
+            nextButton_->setFlat(true);
+            nextButton_->setCursor(QCursor(Qt::PointingHandCursor));
+            nextButton_->setText(_buttonText);
+            nextButton_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+            nextButton_->adjustSize();
+
+            QObject::connect(nextButton_, &QPushButton::clicked, this, &GeneralDialog::reject, Qt::QueuedConnection);
+
+            auto buttonLayout = Utils::emptyVLayout(bottomWidget_);
+            buttonLayout->setAlignment(Qt::AlignHCenter);
+            buttonLayout->addWidget(nextButton_);
+            bottomLayout->addItem(buttonLayout);
+        }
+
+        Testing::setAccessibleName(nextButton_, qsl("nextButton_"));
+    }
+
+    void GeneralDialog::addButtonsPair(QString _buttonTextLeft, QString _buttonTextRight, bool _isActive, bool _rejectable, bool _acceptable)
     {
         bottomWidget_->setVisible(true);
         auto bottomLayout = Utils::emptyHLayout(bottomWidget_);
 
-        bottomLayout->setContentsMargins(_marginPx, _marginPx, _marginPx, _marginPx);
+        bottomLayout->setContentsMargins(Utils::scale_value(16), Utils::scale_value(16), Utils::scale_value(16), Utils::scale_value(16));
         bottomLayout->setAlignment(Qt::AlignCenter | Qt::AlignBottom);
         bottomWidget_->setSizePolicy(QSizePolicy::Policy::Preferred, QSizePolicy::Policy::Preferred);
         {
             auto cancelButton = new QPushButton(bottomWidget_);
-            Utils::ApplyStyle(cancelButton, Ui::CommonStyle::getGrayButtonStyle());
-            setButtonActive(true);
-            cancelButton->setAccessibleName("left_button");
+            Utils::ApplyStyle(cancelButton, CommonStyle::getGrayButtonStyle());
+            cancelButton->setAccessibleName(qsl("left_button"));
             cancelButton->setFlat(true);
             cancelButton->setCursor(QCursor(Qt::PointingHandCursor));
             cancelButton->setText(_buttonTextLeft);
@@ -249,12 +224,12 @@ namespace Ui
                 QObject::connect(cancelButton, &QPushButton::clicked, this, &GeneralDialog::reject, Qt::QueuedConnection);
             bottomLayout->addWidget(cancelButton);
 
-            auto betweenSpacer = new QSpacerItem(_buttonBetweenPx, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
+            auto betweenSpacer = new QSpacerItem(Utils::scale_value(16), 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
             bottomLayout->addItem(betweenSpacer);
 
             nextButton_ = new QPushButton(bottomWidget_);
-            Utils::ApplyStyle(nextButton_, Ui::CommonStyle::getGreenButtonStyle());
-            setButtonActive(true);
+            Utils::ApplyStyle(nextButton_, CommonStyle::getGreenButtonStyle());
+            setButtonActive(_isActive);
             nextButton_->setFlat(true);
             nextButton_->setCursor(QCursor(Qt::PointingHandCursor));
             nextButton_->setText(_buttonTextRight);
@@ -265,7 +240,7 @@ namespace Ui
             bottomLayout->addWidget(nextButton_);
         }
 
-        Testing::setAccessibleName(nextButton_, "nextButton_");
+        Testing::setAccessibleName(nextButton_, qsl("nextButton_"));
     }
 
     QPushButton* GeneralDialog::takeAcceptButton()
@@ -278,26 +253,24 @@ namespace Ui
 
     void GeneralDialog::addHead()
     {
-        headHost_->setVisible(true);
-        auto hostLayout = Utils::emptyHLayout(headHost_);
-        hostLayout->setAlignment(Qt::AlignRight);
-        headHost_->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Minimum);
-        {
-            auto closeButton = new QPushButton(headHost_);
-            closeButton->setFlat(true);
-            closeButton->setCursor(Qt::PointingHandCursor);
-            Utils::ApplyStyle(closeButton, Ui::CommonStyle::getCloseButtonStyle());
-            QObject::connect(closeButton, SIGNAL(clicked()), this, SLOT(reject()), Qt::QueuedConnection);
-            hostLayout->addWidget(closeButton);
-        }
+        headerLabelHost_->setVisible(true);
+        headerBtnHost_->setVisible(true);
+        auto hostLayout = Utils::emptyHLayout(headerBtnHost_);
+        hostLayout->setAlignment(Qt::AlignRight | Qt::AlignTop);
+        headerBtnHost_->setSizePolicy(QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Preferred);
+
+        auto btn = new CustomButton(headerBtnHost_, qsl(":/controls/close_big_e_100"));
+        btn->setFixedWidth(Utils::scale_value(48));
+        btn->setFixedHeight(Utils::scale_value(48));
+        btn->setCursor(Qt::PointingHandCursor);
+        connect(btn, &QPushButton::clicked, this, &GeneralDialog::reject, Qt::QueuedConnection);
+        hostLayout->addWidget(btn);
     }
 
     GeneralDialog::~GeneralDialog()
     {
-//        semiWindow_->setVisible(false);
         semiWindow_->setParent(0);
         semiWindow_->deleteLater();
-        //delete semiWindow_;
     }
 
     void GeneralDialog::setKeepCenter(bool _isKeepCenter)
@@ -323,6 +296,11 @@ namespace Ui
         return result;
     }
 
+    QWidget* GeneralDialog::getMainHost()
+    {
+        return mainHost_;
+    }
+
     void GeneralDialog::setButtonActive(bool _active)
     {
         if (!nextButton_)
@@ -330,19 +308,15 @@ namespace Ui
             return;
         }
 
-        Utils::ApplyStyle(
-            nextButton_,
-            _active ?
-                CommonStyle::getGreenButtonStyle() :
-                CommonStyle::getDisabledButtonStyle());
+        Utils::ApplyStyle(nextButton_, _active ?
+            CommonStyle::getGreenButtonStyle() : CommonStyle::getDisabledButtonStyle());
 
         nextButton_->setEnabled(_active);
     }
 
-    QLayout* GeneralDialog::initBottomLayout(const int32_t _buttonMarginPx)
+    QLayout* GeneralDialog::initBottomLayout()
     {
         assert(bottomWidget_);
-        assert(_buttonMarginPx >= 0);
 
         if (bottomWidget_->layout())
         {
@@ -352,7 +326,7 @@ namespace Ui
 
         auto bottomLayout = Utils::emptyVLayout(bottomWidget_);
 
-        bottomLayout->setContentsMargins(0, _buttonMarginPx, 0, _buttonMarginPx);
+        bottomLayout->setContentsMargins(0, Utils::scale_value(16), 0, Utils::scale_value(16));
         bottomLayout->setAlignment(Qt::AlignBottom);
 
         return bottomLayout;
@@ -400,7 +374,7 @@ namespace Ui
             return;
         }
 
-        if (_e->key() == Qt::Key_Return)
+        if (_e->key() == Qt::Key_Return || _e->key() == Qt::Key_Enter)
         {
             if (!ignoreKeyPressEvents_ && nextButton_->isEnabled())
             {
@@ -424,13 +398,6 @@ namespace Ui
 
     void GeneralDialog::hideEvent(QHideEvent *event)
     {
-//        QPixmap imageCropHolderOverlay(geometry().size());
-//        render(&imageCropHolderOverlay, QPoint(), QRegion(geometry()));
-//        QPalette palette;
-//        palette.setBrush(imageCropHolder_->backgroundRole(), QBrush(imageCropHolderOverlay));
-//        imageCropHolder_->setPalette(palette);
-        
-        
         emit hidden(this);
         QDialog::hideEvent(event);
     }
@@ -440,21 +407,17 @@ namespace Ui
         QDialog::moveEvent(_event);
         emit moved(this);
     }
-    
+
     void GeneralDialog::resizeEvent(QResizeEvent *_event)
     {
         QDialog::resizeEvent(_event);
         if (semiWindow_)
         {
             semiWindow_->updateSize();
-        }        
+        }
         if (keepCenter_)
         {
             moveToPosition(x_, y_);
-        }
-        if (bottomLabel_)
-        {
-            bottomLabel_->setFixedWidth(mainWidget_->geometry().width());
         }
         emit resized(this);
     }
@@ -470,18 +433,18 @@ namespace Ui
         auto upperSpacer = new QSpacerItem(0, Utils::scale_value(16), QSizePolicy::Minimum);
         textLayout->addSpacerItem(upperSpacer);
 
-        QString backgroundStyle = "background: #fbdbd9; ";
-        QString labelStyle = "QWidget { "+backgroundStyle+"border: none; padding-left: 24dip; padding-right: 24dip; padding-top: 0dip; padding-bottom: 0dip; }";
+        const QString backgroundStyle = qsl("background-color: #fbdbd9; ");
+        const QString labelStyle = ql1s("QWidget { ") % backgroundStyle % ql1s("border: none; padding-left: 16dip; padding-right: 16dip; padding-top: 0dip; padding-bottom: 0dip; }");
 
         auto upperSpacerRedUp = new QLabel();
         upperSpacerRedUp->setFixedHeight(Utils::scale_value(16));
         Utils::ApplyStyle(upperSpacerRedUp, backgroundStyle);
         textLayout->addWidget(upperSpacerRedUp);
 
-        auto errorLabel = new Ui::TextEditEx(errorHost_, Fonts::appFontScaled(16), Ui::CommonStyle::getRedLinkColor(), true, true);
+        auto errorLabel = new Ui::TextEditEx(errorHost_, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_RED), true, true);
         errorLabel->setContentsMargins(0, 0, 0, 0);
         errorLabel->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding);
-        errorLabel->setPlaceholderText("");
+        errorLabel->setPlaceholderText(QString());
         errorLabel->setAutoFillBackground(false);
         errorLabel->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         errorLabel->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -490,10 +453,10 @@ namespace Ui
         errorLabel->setText(QT_TRANSLATE_NOOP("popup_window", "Unfortunately, an error occurred:"));
         textLayout->addWidget(errorLabel);
 
-        auto errorText = new Ui::TextEditEx(errorHost_, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), true, true);
+        auto errorText = new Ui::TextEditEx(errorHost_, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), true, true);
         errorText->setContentsMargins(0, 0, 0, 0);
         errorText->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding);
-        errorText->setPlaceholderText("");
+        errorText->setPlaceholderText(QString());
         errorText->setAutoFillBackground(false);
         errorText->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         errorText->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -513,7 +476,7 @@ namespace Ui
 
     void GeneralDialog::leftButtonClick()
     {
-        if (auto leftButton = bottomWidget_->findChild<QPushButton *>("left_button"))
+        if (auto leftButton = bottomWidget_->findChild<QPushButton *>(qsl("left_button")))
             leftButton->setEnabled(!leftButtonDisableOnClicked_);
         emit leftButtonClicked();
     }

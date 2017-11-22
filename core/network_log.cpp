@@ -12,8 +12,8 @@ namespace core
     const int64_t max_logs_size_full = max_file_size*50;
 
     network_log::network_log(const boost::filesystem::wpath& _logs_directory)
-        :   write_thread_(new async_executer()),
-            file_context_(new log_file_context(_logs_directory))
+        :   write_thread_(std::make_unique<async_executer>()),
+            file_context_(std::make_shared<log_file_context>(_logs_directory))
     {
         max_size_ = core::configuration::get_app_config().full_log_ ? max_logs_size_full : max_logs_size;
     }
@@ -164,12 +164,12 @@ namespace core
                 {
                     ++file_context->file_index_;
                 }
-                
+
                 std::ios_base::openmode open_mode = std::fstream::binary | std::fstream::out | std::fstream::app;
 
                 const auto file_path = get_file_path(file_context->file_index_, file_context->logs_directory_);
 
-                file_context->file_stream_.reset(new boost::filesystem::ofstream(file_path, open_mode));
+                file_context->file_stream_ = std::make_unique<boost::filesystem::ofstream>(file_path, open_mode);
                 if (!file_context->file_stream_->good())
                 {
                     file_context->file_stream_.reset();
@@ -192,14 +192,14 @@ namespace core
 #endif
 
             const auto fraction = (current_time.time_since_epoch().count() % 1000);
-            ss_header << "[" << std::put_time<char>(&now_tm, "%c") << "." << fraction << "].[" << current_thread_id << "] \n";
-            
+            ss_header << '[' << std::put_time<char>(&now_tm, "%c") << '.' << fraction << "].[" << current_thread_id << "] \n";
+
             uint32_t data_size = bs_data->available();
 
             file_context->file_stream_->write((const char*) ss_header.str().c_str(), ss_header.str().length());
             file_context->file_stream_->write((const char*) bs_data->read(data_size), data_size);
             file_context->file_stream_->write((const char*) "\n", sizeof(char));
-                        
+
             file_context->file_stream_->flush();
 
             auto file_size = file_context->file_stream_->tellp();

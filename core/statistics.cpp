@@ -35,10 +35,10 @@ std::shared_ptr<statistics::stop_objects> statistics::stop_objects_;
 statistics::statistics(const std::wstring& _file_name)
     : file_name_(_file_name)
     , changed_(false)
-    , stats_thread_(new async_executer())
+    , stats_thread_(std::make_unique<async_executer>())
     , last_sent_time_(std::chrono::system_clock::now())
 {
-    stop_objects_.reset(new stop_objects());
+    stop_objects_ = std::make_shared<stop_objects>();
 }
 
 void statistics::init()
@@ -73,7 +73,7 @@ void statistics::start_save()
             return;
 
         ptr_this->save_if_needed();
-    }, save_to_file_interval_ms);
+    }, save_to_file_interval);
 }
 
 void statistics::delayed_start_send()
@@ -88,13 +88,13 @@ void statistics::delayed_start_send()
         ptr_this->start_send();
         g_core->stop_timer(ptr_this->start_send_timer_);
 
-    }, delay_send_on_start_ms);
+    }, delay_send_on_start);
 }
 
 void statistics::start_send()
 {
     auto current_time = std::chrono::system_clock::now();
-    if (current_time - last_sent_time_ >= std::chrono::milliseconds(send_interval_ms))
+    if (current_time - last_sent_time_ >= send_interval)
         send_async();
 
     std::weak_ptr<statistics> wr_this = shared_from_this();
@@ -106,7 +106,7 @@ void statistics::start_send()
             return;
 
         ptr_this->send_async();
-    }, send_interval_ms);
+    }, send_interval);
 }
 
 bool statistics::load()
@@ -296,8 +296,7 @@ void statistics::clear()
     while (last_service_event_ptr != events_.begin())
     {
         --last_service_event_ptr;
-        if (last_service_event_ptr->get_name() == stats_event_names::service_session_start
-            || last_service_event_ptr->get_name() == stats_event_names::absolete_service_session_start)
+        if (last_service_event_ptr->get_name() == stats_event_names::service_session_start)
             break;
     }
 
@@ -374,13 +373,11 @@ std::vector<std::string> statistics::get_post_data() const
     while (begin != events_.end())
     {
         events_ci end = std::next(begin);
-        while (end != events_.end() 
-            && end->get_name() != stats_event_names::service_session_start
-            && end->get_name() != stats_event_names::absolete_service_session_start)
+        while (end != events_.end()
+            && end->get_name() != stats_event_names::service_session_start)
             ++end;
 
-        assert(begin->get_name() == stats_event_names::service_session_start 
-            || begin->get_name() == stats_event_names::absolete_service_session_start);
+        assert(begin->get_name() == stats_event_names::service_session_start);
 
         const long long time_now = std::chrono::system_clock::to_time_t(begin->get_time()) * 1000; // milliseconds
 
@@ -463,7 +460,7 @@ bool statistics::send(const proxy_settings& _user_proxy, const std::string& post
         auto path = _file_name + L".txt";
         boost::system::error_code e;
         boost::filesystem::ofstream fOut;
-        
+
         fOut.open(path.c_str(), std::ios::out);
         fOut << post_data;
         fOut.close();
@@ -486,7 +483,7 @@ void statistics::insert_event(stats_event_names _event_name, const event_props_t
 
 void statistics::insert_event(stats_event_names _event_name, const event_props_type& _props)
 {
-    if (_event_name == stats_event_names::start_session || _event_name == stats_event_names::absolete_start_session)
+    if (_event_name == stats_event_names::start_session)
     {
         stats_event::reset_session_event_id();
         insert_event(core::stats::stats_event_names::service_session_start, _props);
@@ -503,8 +500,8 @@ void statistics::insert_event(stats_event_names _event_name)
 statistics::stats_event::stats_event(stats_event_names _name,
                                      std::chrono::system_clock::time_point _event_time, int32_t _event_id, const event_props_type& _props)
     : name_(_name)
-    , event_time_(_event_time)
     , props_(_props)
+    , event_time_(_event_time)
 {
     if (_event_id == -1)
         event_id_ = session_event_id_++; // started from 1
@@ -512,7 +509,7 @@ statistics::stats_event::stats_event(stats_event_names _name,
         event_id_ = _event_id;
 }
 
-const std::string statistics::stats_event::to_string(time_t _start_time) const
+std::string statistics::stats_event::to_string(time_t _start_time) const
 {
     std::stringstream result;
 

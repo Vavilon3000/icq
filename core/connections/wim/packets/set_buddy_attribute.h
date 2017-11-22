@@ -29,7 +29,7 @@ namespace core
         public:
 
             set_buddy_attribute(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const std::string& _aimid,
                 const std::string& _friendly);
 

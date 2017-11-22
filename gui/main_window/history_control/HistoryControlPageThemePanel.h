@@ -15,31 +15,31 @@ namespace Ui
         ThemePanelSetToAll,
         ThemePanelBackToSettings
     };
-    
+
     typedef std::function<void(ThemePanelChoice)> ThemePanelCallback;
-    
+
     class HistoryControlPageThemePanel : public QWidget
     {
         Q_OBJECT
-        
+
         virtual void paintEvent(QPaintEvent*) override;
-        
+
         LabelEx *cancelButton_;
         QPushButton *setToAllButton_;
         QPushButton *setButton_;
         BackButton *backFromThemeButton_;
-        
+
         HistoryControlPage *historyControlPage_;
         ThemePanelCallback callback_;
-        
+
         bool selectionThemeFromSettings_;
-        
+
     public:
         HistoryControlPageThemePanel(HistoryControlPage* _parent);
         ~HistoryControlPageThemePanel();
-        
+
         void setShowSetThemeButton(const bool _show);
-        
+
         void setCallback(ThemePanelCallback);
         bool settingThemeToAll_;
         void setSelectionToAll(bool _fromSettings);

@@ -14,7 +14,7 @@ namespace Utils
         Q_OBJECT
 
     Q_SIGNALS:
-        void loadedSignal(QPixmap pixmap);
+        void loadedSignal(const QPixmap& pixmap);
 
     public:
         LoadPixmapFromDataTask(core::istream *stream);

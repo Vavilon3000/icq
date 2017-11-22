@@ -30,17 +30,17 @@ core::wim::file_sharing_meta_uptr core::wim::file_sharing_meta::parse_json(InOut
     if (iter_flist->value.Empty())
         return file_sharing_meta_uptr();
 
-    auto meta = file_sharing_meta_uptr(new file_sharing_meta(_uri));
+    auto meta = std::make_unique<file_sharing_meta>(_uri);
 
     auto iter_flist0 = iter_flist->value.Begin();
 
     auto iter_dlink = iter_flist0->FindMember("dlink");
     if (iter_dlink != iter_flist0->MemberEnd())
-        meta->file_download_url_ = iter_dlink->value.GetString();
+        meta->file_download_url_ = rapidjson_get_string(iter_dlink->value);
 
     auto iter_mime = iter_flist0->FindMember("mime");
     if (iter_mime != iter_flist0->MemberEnd())
-        meta->mime_ = iter_mime->value.GetString();
+        meta->mime_ = rapidjson_get_string(iter_mime->value);
 
     auto iter_file_size = iter_flist0->FindMember("filesize");
     if (iter_file_size != iter_flist0->MemberEnd())
@@ -48,27 +48,27 @@ core::wim::file_sharing_meta_uptr core::wim::file_sharing_meta::parse_json(InOut
 
     auto iter_file_name = iter_flist0->FindMember("filename");
     if (iter_file_name != iter_flist0->MemberEnd())
-        meta->file_name_short_ = iter_file_name->value.GetString();
+        meta->file_name_short_ = rapidjson_get_string(iter_file_name->value);
 
     auto iter_iphone = iter_flist0->FindMember("iphone");
     if (iter_iphone != iter_flist0->MemberEnd())
-        meta->file_mini_preview_url_ = iter_iphone->value.GetString();
+        meta->file_mini_preview_url_ = rapidjson_get_string(iter_iphone->value);
 
     auto iter_file_preview800 = iter_flist0->FindMember("static800");
     if (iter_file_preview800 != iter_flist0->MemberEnd())
     {
-        meta->file_full_preview_url_ = iter_file_preview800->value.GetString();
+        meta->file_full_preview_url_ = rapidjson_get_string(iter_file_preview800->value);
     }
     else
     {
         auto iter_file_preview600 = iter_flist0->FindMember("static600");
         if (iter_file_preview600 != iter_flist0->MemberEnd())
-            meta->file_full_preview_url_ = iter_file_preview600->value.GetString();
+            meta->file_full_preview_url_ = rapidjson_get_string(iter_file_preview600->value);
         else
         {
             auto iter_file_preview194 = iter_flist0->FindMember("static194");
             if (iter_file_preview194 != iter_flist0->MemberEnd())
-                meta->file_full_preview_url_ = iter_file_preview194->value.GetString();
+                meta->file_full_preview_url_ = rapidjson_get_string(iter_file_preview194->value);
         }
     }
 

@@ -13,6 +13,8 @@ class StickerBlock final : public GenericBlock
 
     Q_OBJECT
 
+    bool failed_;
+
 public:
     StickerBlock(ComplexMessageItem *parent, const HistoryControl::StickerInfoSptr& _info);
 
@@ -41,12 +43,14 @@ public:
     virtual HistoryControl::StickerInfoSptr getStickerInfo() const override { return Info_; };
 
 protected:
-    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_color) override;
+    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& _quoteColor) override;
 
     virtual void initialize() override;
 
+    virtual void mouseReleaseEvent(QMouseEvent* _event) override;
+
 private Q_SLOTS:
-    void onSticker(qint32 setId, qint32 stickerId);
+    void onSticker(const qint32 _error, qint32 _setId, qint32 _stickerId);
 
     void onStickers();
 

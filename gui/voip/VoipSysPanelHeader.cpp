@@ -16,13 +16,21 @@
 
 Ui::IncomingCallControls::IncomingCallControls(QWidget* _parent)
     : BaseBottomVideoPanel(_parent)
-    , rootWidget_(NULL)
     , parent_(_parent)
+    , rootWidget_(nullptr)
 {
-    setStyleSheet(Utils::LoadStyle(":/voip/incoming_call.qss"));
+#ifndef __linux__
+    setStyleSheet(Utils::LoadStyle(":/qss/incoming_call"));
+#else
+    setStyleSheet(Utils::LoadStyle(":/qss/incoming_call_linux"));
+#endif
+
     setProperty("IncomingCallControls", true);
+
+#ifndef __linux__
     setAttribute(Qt::WA_NoSystemBackground, true);
     setAttribute(Qt::WA_TranslucentBackground, true);
+#endif
 
     QVBoxLayout* rootLayout = Utils::emptyVLayout();
     rootLayout->setAlignment(Qt::AlignVCenter);
@@ -32,13 +40,10 @@ Ui::IncomingCallControls::IncomingCallControls(QWidget* _parent)
     rootWidget_->setContentsMargins(0, 0, 0, 0);
     rootWidget_->setProperty("IncomingCallControls", true);
     layout()->addWidget(rootWidget_);
-    
+
     QHBoxLayout* layoutTarget = Utils::emptyHLayout();
     layoutTarget->setAlignment(Qt::AlignVCenter);
     rootWidget_->setLayout(layoutTarget);
-
-    QFont font = QApplication::font();
-    font.setStyleStrategy(QFont::PreferAntialias);
 
     QWidget* rootWidget = rootWidget_;
     const int btnMinWidth = Utils::scale_value(40);
@@ -64,7 +69,7 @@ Ui::IncomingCallControls::IncomingCallControls(QWidget* _parent)
         return widget;
     };
 
-    auto getButton = [this, &font, btnMinWidth] (QWidget* _parent, const char* _propertyName, const char* /*text*/, const char* _slot, QPushButton** _btnOut)->int
+    auto getButton = [this, btnMinWidth] (QWidget* _parent, const char* _propertyName, const char* /*text*/, const char* _slot, QPushButton** _btnOut)->int
     {
         QPushButton* btn = new voipTools::BoundBox<QPushButton>(_parent);
         btn->setProperty(_propertyName, true);
@@ -72,23 +77,22 @@ Ui::IncomingCallControls::IncomingCallControls(QWidget* _parent)
         btn->setCursor(QCursor(Qt::PointingHandCursor));
         connect(btn, SIGNAL(clicked()), this, _slot, Qt::QueuedConnection);
         *_btnOut = btn;
-        
+
         btn->resize(btn->sizeHint().width(), btn->sizeHint().height());
         return (btn->width() - btnMinWidth) / 2;
     };
 
-    auto getLabel = [this, &font, btnMinWidth] (QWidget* _parent, const char* /*_propertyName*/, const char* _text, QLabel** _labelOut)->int
+    auto getLabel = [this, btnMinWidth] (QWidget* _parent, const char* /*_propertyName*/, const char* _text, QLabel** _labelOut)->int
     {
         QLabel* label = new voipTools::BoundBox<QLabel>(_parent);
         label->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
         label->setText(_text);
-        label->setFont(font);
+        label->setFont(Fonts::appFontScaled(12));
         label->setAlignment(Qt::AlignCenter);
-		label->setProperty("VoipPanel_Has_Video", false);
+        label->setProperty("VoipPanel_Has_Video", false);
 
         *_labelOut = label;
 
-        Utils::ApplyStyle(label, "QLabel { font-size: 12dip; }");
         label->resize(label->sizeHint().width(), label->sizeHint().height());
         return (label->width() - btnMinWidth) * 0.5f;
     };
@@ -116,7 +120,7 @@ Ui::IncomingCallControls::IncomingCallControls(QWidget* _parent)
             int&        tail) : parent(parent), propertyName(propertyName), text(text), slot(slot), tail(tail) {}
     }
     buttonsToCreate [] =
-    { 
+    {
         ButtonDesc(
             widget1,
             "IncomingCall_hangup",
@@ -133,7 +137,7 @@ Ui::IncomingCallControls::IncomingCallControls(QWidget* _parent)
         ),
         ButtonDesc(
             widget3,
-            "IncomingCall_video", 
+            "IncomingCall_video",
             QT_TRANSLATE_NOOP("voip_pages", "Video").toUtf8().data(),
             SLOT(_onVideo()),
             tail3
@@ -200,10 +204,9 @@ void Ui::IncomingCallControls::changeEvent(QEvent* _e)
         {
             if (parent_)
             {
-                //parent_->blockSignals(true);
+                //QSignalBlocker sb(parent_);
                 parent_->raise();
                 raise();
-                //parent_->blockSignals(false);
             }
         }
     }
@@ -211,25 +214,35 @@ void Ui::IncomingCallControls::changeEvent(QEvent* _e)
 
 void Ui::IncomingCallControls::setVideoStatus(bool video)
 {
-	QList<QLabel *> underButtonText = rootWidget_->findChildren<QLabel *>();
-	
-	std::for_each(underButtonText.begin(), underButtonText.end(), [=] (QLabel * lable) {
-		lable->setProperty("VoipPanel_Has_Video", video);
-		lable->style()->unpolish(lable);
-		lable->style()->polish(lable);
-		lable->update();
-		});
+    QList<QLabel *> underButtonText = rootWidget_->findChildren<QLabel *>();
+
+    std::for_each(underButtonText.begin(), underButtonText.end(), [=] (QLabel * lable) {
+        lable->setProperty("VoipPanel_Has_Video", video);
+        lable->style()->unpolish(lable);
+        lable->style()->polish(lable);
+        lable->update();
+        });
 }
 
 
 Ui::VoipSysPanelHeader::VoipSysPanelHeader(QWidget* _parent)
     : MoveablePanel(_parent)
-    , nameAndStatusContainer_(NULL)
-    , rootWidget_(NULL)
-    , avatarContainer_(NULL)
+    , avatarContainer_(nullptr)
+    , nameAndStatusContainer_(nullptr)
+    , rootWidget_(nullptr)
 {
-    setStyleSheet(Utils::LoadStyle(":/voip/video_panel.qss"));
+#ifdef __linux__
+    setStyleSheet(Utils::LoadStyle(":/qss/video_panel_linux"));
+#else
+    setStyleSheet(Utils::LoadStyle(":/qss/video_panel"));
+#endif
+
+#ifdef __APPLE__
+    setProperty("VoipPanelHeaderMac", true);
+#else
     setProperty("VoipPanelHeader", true);
+#endif
+
     //setWindowFlags(Qt::SubWindow | Qt::FramelessWindowHint);
     //setAttribute(Qt::WA_NoSystemBackground, true);
     //setAttribute(Qt::WA_TranslucentBackground, true);
@@ -243,7 +256,7 @@ Ui::VoipSysPanelHeader::VoipSysPanelHeader(QWidget* _parent)
     rootWidget_ = new QWidget(this);
     rootWidget_->setContentsMargins(0, 0, 0, 0);
     rootWidget_->setObjectName("VoipPanelHeader");
-	rootWidget_->setProperty("VoipPanelHeaderText_Has_Video", false);
+    rootWidget_->setProperty("VoipPanelHeaderText_Has_Video", false);
     layout()->addWidget(rootWidget_);
 
     QHBoxLayout* layout = Utils::emptyHLayout();
@@ -254,12 +267,12 @@ Ui::VoipSysPanelHeader::VoipSysPanelHeader(QWidget* _parent)
     avatarContainer_->setOverlap(0.2f);
     rootWidget_->layout()->addWidget(avatarContainer_);
 
-    nameAndStatusContainer_ = new NameAndStatusWidget(rootWidget_, Utils::scale_value(23), Utils::scale_value(15));
+    nameAndStatusContainer_ = new NameAndStatusWidget(rootWidget_, Utils::scale_value(18), Utils::scale_value(15));
     nameAndStatusContainer_->setNameProperty("VoipPanelHeaderText_Name", true);
-	nameAndStatusContainer_->setNameProperty("VoipPanelHeaderText_Has_Video", false);
+    nameAndStatusContainer_->setNameProperty("VoipPanelHeaderText_Has_Video", false);
 
     nameAndStatusContainer_->setStatusProperty("VoipPanelHeaderText_Status", true);
-	nameAndStatusContainer_->setStatusProperty("VoipPanelHeaderText_Has_Video", false);	
+    nameAndStatusContainer_->setStatusProperty("VoipPanelHeaderText_Has_Video", false);
     nameAndStatusContainer_->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred));
     rootWidget_->layout()->addWidget(nameAndStatusContainer_);
 
@@ -268,7 +281,7 @@ Ui::VoipSysPanelHeader::VoipSysPanelHeader(QWidget* _parent)
 
 Ui::VoipSysPanelHeader::~VoipSysPanelHeader()
 {
-    
+
 }
 
 void Ui::VoipSysPanelHeader::enterEvent(QEvent* _e)
@@ -283,9 +296,12 @@ void Ui::VoipSysPanelHeader::leaveEvent(QEvent* _e)
     emit onMouseLeave();
 }
 
-void Ui::VoipSysPanelHeader::setAvatars(const std::vector<std::string> avatarList)
+void Ui::VoipSysPanelHeader::setAvatars(const std::vector<std::string> &avatarList)
 {
-    avatarContainer_->dropExcess(avatarList);
+    if (avatarContainer_)
+    {
+        avatarContainer_->dropExcess(avatarList);
+    }
 }
 
 void Ui::VoipSysPanelHeader::setTitle(const char* _s)
@@ -315,10 +331,19 @@ bool Ui::VoipSysPanelHeader::uiWidgetIsActive() const
 
 void Ui::VoipSysPanelHeader::setVideoStatus(bool video)
 {
-	nameAndStatusContainer_->setStatusProperty("VoipPanelHeaderText_Has_Video", video);
-	nameAndStatusContainer_->setNameProperty("VoipPanelHeaderText_Has_Video", video);
-
-	rootWidget_->setProperty("VoipPanelHeaderText_Has_Video", video);
-	rootWidget_->style()->unpolish(rootWidget_);
-	rootWidget_->style()->polish(rootWidget_);
+    if (nameAndStatusContainer_)
+    {
+        nameAndStatusContainer_->setStatusProperty("VoipPanelHeaderText_Has_Video", video);
+        nameAndStatusContainer_->setNameProperty("VoipPanelHeaderText_Has_Video", video);
+    }
+    rootWidget_->setProperty("VoipPanelHeaderText_Has_Video", video);
+    rootWidget_->style()->unpolish(rootWidget_);
+    rootWidget_->style()->polish(rootWidget_);
 }
+
+void Ui::VoipSysPanelHeader::fadeIn(unsigned int duration) {}
+
+void Ui::VoipSysPanelHeader::fadeOut(unsigned int duration) {}
+
+
+

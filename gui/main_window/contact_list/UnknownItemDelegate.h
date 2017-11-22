@@ -21,13 +21,13 @@ namespace Logic
         QSize sizeHint(const QStyleOptionViewItem& _option, const QModelIndex& _index) const override;
         QSize sizeHintForAlert() const;
         void blockState(bool _value);
-        
+
         void setDragIndex(const QModelIndex& _index);
 
         bool isInAddContactFrame(const QPoint& _p) const;
         bool isInRemoveContactFrame(const QPoint& _p) const;
         bool isInDeleteAllFrame(const QPoint& _p) const;
-        
+
         void setPictOnlyView(bool _pictOnlyView);
         bool getPictOnlyView() const;
         void setFixedWidth(int _newWidth);

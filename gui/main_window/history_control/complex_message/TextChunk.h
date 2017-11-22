@@ -24,9 +24,6 @@ namespace Ui
                 FileSharingImage,
                 FileSharingGif,
                 FileSharingVideo,
-                FileSharingImageSnap,
-                FileSharingGifSnap,
-                FileSharingVideoSnap,
                 FileSharingPtt,
                 FileSharingGeneral,
                 Sticker,
@@ -37,9 +34,9 @@ namespace Ui
             static const TextChunk Empty;
 
             TextChunk(
-                const Type type, 
-                const QString& _text, 
-                const QString &imageType, 
+                const Type type,
+                QString _text,
+                QString imageType,
                 const int32_t durationSec);
 
             int32_t length() const;
@@ -65,7 +62,7 @@ namespace Ui
             explicit ChunkIterator(const QString& _text);
 
             bool hasNext() const;
-            TextChunk current() const;
+            TextChunk current(bool _allowSnippet = true) const;
             void next();
 
         private:

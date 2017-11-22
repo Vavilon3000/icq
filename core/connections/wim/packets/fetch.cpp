@@ -17,7 +17,8 @@
 #include "../events/fetch_event_permit.h"
 #include "../events/fetch_event_imstate.h"
 #include "../events/fetch_event_notification.h"
-#include "../events/fetch_event_snaps.h"
+#include "../events/fetch_event_appsdata.h"
+#include "../events/fetch_event_mention_me.h"
 
 #include "../events/webrtc.h"
 
@@ -30,21 +31,23 @@ using namespace wim;
 const auto default_fetch_timeout = std::chrono::milliseconds(500);
 
 fetch::fetch(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _fetch_url,
-    time_t _timeout,
-    timepoint _fetch_time,
-    std::function<bool(int32_t)> _wait_function)
+    const time_t _timeout,
+    const timepoint _fetch_time,
+    std::function<bool(const int32_t)> _wait_function)
     :
-    wim_packet(_params),
+    wim_packet(std::move(_params)),
     fetch_url_(_fetch_url),
     timeout_(_timeout),
+    wait_function_(_wait_function),
     fetch_time_(_fetch_time),
+    relogin_(relogin::none),
     next_fetch_time_(std::chrono::system_clock::now()),
     ts_(0),
-    wait_function_(_wait_function),
     time_offset_(0),
-    session_ended_(false)
+    execute_time_(0),
+    request_time_(0)
 {
 }
 
@@ -64,7 +67,7 @@ int32_t fetch::init_request(std::shared_ptr<core::http_request_simple> _request)
         ss_url << '&';
 
     static int32_t request_id = 0;
-    ss_url << "f=json" << "&r=" << ++request_id << "&timeout=" << timeout_ << "&peek=" << "0";
+    ss_url << "f=json" << "&r=" << ++request_id << "&timeout=" << timeout_ << "&peek=" << '0';
 
     _request->set_url(ss_url.str());
     _request->set_timeout((uint32_t)timeout_ + 5000);
@@ -73,7 +76,11 @@ int32_t fetch::init_request(std::shared_ptr<core::http_request_simple> _request)
 
     if (!params_.full_log_)
     {
-        _request->set_replace_log_function(std::bind(wim_packet::replace_log_messages, std::placeholders::_1));
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        f.add_json_marker("text");
+        f.add_json_marker("message");
+        _request->set_replace_log_function(f);
     }
 
     return 0;
@@ -86,21 +93,50 @@ int32_t fetch::execute_request(std::shared_ptr<core::http_request_simple> _reque
     if (fetch_time_ > current_time)
     {
         auto wait_timeout = (fetch_time_ - current_time)/std::chrono::milliseconds(1);
-        if (!wait_function_(wait_timeout))
+        if (wait_function_(wait_timeout))
             return wpie_error_request_canceled;
     }
 
     next_fetch_time_ = std::chrono::system_clock::now() + default_fetch_timeout;
 
-    if (!_request->get())
+    execute_time_ = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+    if (!_request->get(request_time_))
         return wpie_network_error;
 
     http_code_ = (uint32_t)_request->get_response_code();
 
     if (http_code_ != 200)
+    {
+        if (http_code_ >= 500 && http_code_ < 600)
+            return wpie_error_resend;
+
         return wpie_http_error;
+    }
 
     return 0;
+}
+
+void fetch::on_session_ended(const rapidjson::Value &_data)
+{
+    relogin_ = relogin::relogin_with_error;
+    auto iter_end_code = _data.FindMember("endCode");
+    if (iter_end_code != _data.MemberEnd() && iter_end_code->value.IsInt())
+    {
+        auto end_code = iter_end_code->value.GetInt();
+        switch (end_code)
+        {
+            case 26:            // "endCode":26, "offReason":"User Initiated Bump"
+            case 142:           // "endCode":142, "offReason":"Killed Sessions"
+                relogin_ = relogin::relogin_without_error;
+                break;
+        }
+    }
+}
+
+relogin fetch::need_relogin() const
+{
+    return relogin_;
 }
 
 
@@ -133,11 +169,11 @@ int32_t fetch::parse_response_data(const rapidjson::Value& _data)
     {
         bool have_webrtc_event = false;
 
-        auto iter_events = _data.FindMember("events");
+        const auto iter_events = _data.FindMember("events");
 
         if (iter_events != _data.MemberEnd() && iter_events->value.IsArray())
         {
-            for (auto iter_evt = iter_events->value.Begin(); iter_evt != iter_events->value.End(); iter_evt++)
+            for (auto iter_evt = iter_events->value.Begin(); iter_evt != iter_events->value.End(); ++iter_evt)
             {
                 auto iter_type = iter_evt->FindMember("type");
                 auto iter_event_data = iter_evt->FindMember("eventData");
@@ -145,7 +181,7 @@ int32_t fetch::parse_response_data(const rapidjson::Value& _data)
                 if (iter_type != iter_evt->MemberEnd() && iter_event_data != iter_evt->MemberEnd() &&
                     iter_type->value.IsString())
                 {
-                    std::string event_type = iter_type->value.GetString();
+                    const std::string event_type = rapidjson_get_string(iter_type->value);
 
                     if (event_type == "buddylist")
                         push_event(std::make_shared<fetch_event_buddy_list>())->parse(iter_event_data->value);
@@ -166,26 +202,28 @@ int32_t fetch::parse_response_data(const rapidjson::Value& _data)
                     else if (event_type == "typing")
                         push_event(std::make_shared<fetch_event_typing>())->parse(iter_event_data->value);
                     else if (event_type == "sessionEnded")
-                        session_ended_ = true;
+                        on_session_ended(iter_event_data->value);
                     else if (event_type == "permitDeny")
                         push_event(std::make_shared<fetch_event_permit>())->parse(iter_event_data->value);
                     else if (event_type == "imState")
                         push_event(std::make_shared<fetch_event_imstate>())->parse(iter_event_data->value);
                     else if (event_type == "notification")
                         push_event(std::make_shared<fetch_event_notification>())->parse(iter_event_data->value);
-                    else if (event_type == "snapsEvent")
-                        push_event(std::make_shared<fetch_event_snaps>())->parse(iter_event_data->value);
+                    else if (event_type == "apps")
+                        push_event(std::make_shared<fetch_event_appsdata>())->parse(iter_event_data->value);
+                    else if (event_type == "mentionMeMessage")
+                        push_event(std::make_shared<fetch_event_mention_me>())->parse(iter_event_data->value);
                 }
             }
         }
 
-        if (!session_ended_)
+        if (relogin_ == relogin::none)
         {
             auto iter_next_fetch_url = _data.FindMember("fetchBaseURL");
             if (iter_next_fetch_url == _data.MemberEnd() || !iter_next_fetch_url->value.IsString())
                 return wpie_http_parse_response;
 
-            next_fetch_url_ = iter_next_fetch_url->value.GetString();
+            next_fetch_url_ = rapidjson_get_string(iter_next_fetch_url->value);
             next_fetch_time_ = std::chrono::system_clock::now();
 
             auto iter_time_to_next_fetch = _data.FindMember("timeToNextFetch");
@@ -200,7 +238,9 @@ int32_t fetch::parse_response_data(const rapidjson::Value& _data)
                 return wpie_http_parse_response;
 
             ts_ = iter_ts->value.GetUint();
-            time_offset_ = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) - ts_;
+            auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+            auto diff = now - execute_time_ - std::round(request_time_);
+            time_offset_ = now - ts_ - diff;
         }
 
         if (have_webrtc_event) {
@@ -216,20 +256,20 @@ int32_t fetch::parse_response_data(const rapidjson::Value& _data)
     }
     catch (const std::exception&)
     {
-        return session_ended_ ? wpie_error_need_relogin : 0;
+        return wpie_http_parse_response;
     }
 
-    return session_ended_ ? wpie_error_need_relogin : 0;
-}
-
-bool fetch::is_session_ended() const
-{
-    return session_ended_;
+    return 0;
 }
 
 int32_t fetch::on_response_error_code()
 {
-    switch (get_status_code())
+    auto code = get_status_code();
+
+    if (code >= 500 && code < 600)
+        return wpie_error_resend;
+
+    switch (code)
     {
     case 401:
     case 460:

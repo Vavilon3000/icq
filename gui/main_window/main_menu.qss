@@ -1,6 +1,6 @@
 QWidget#menu
 {
-	background: #ffffff;
+    background-color: #ffffff;
 }
 
 QPushButton
@@ -8,5 +8,5 @@ QPushButton
     border: none;
     text-align: left;
     padding-left: 52dip;
-    font-size: 16dip;
+    font-size: 15dip;
 }

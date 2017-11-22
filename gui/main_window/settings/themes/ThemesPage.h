@@ -5,7 +5,7 @@ namespace Ui
     class FlowLayout;
     class ThemesModel;
     class BackButton;
-    
+
     class ThemesPage : public QWidget
     {
         Q_OBJECT
@@ -15,7 +15,7 @@ namespace Ui
         QMap<int,bool> loadedThemes_;
         BackButton* backButton_;
         QWidget *backButtonAndCaptionSpacer_;
-        
+
         bool firstThemeAdded_;
         void checkFirstTheme_(themes::themePtr _theme);
 

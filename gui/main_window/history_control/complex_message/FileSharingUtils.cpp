@@ -23,31 +23,13 @@ core::file_sharing_content_type extractContentTypeFromFileSharingId(const QStrin
 {
     if (id.isEmpty())
         return core::file_sharing_content_type::undefined;
-    
+
     const auto id0 = id[0].toLatin1();
 
-    const auto is_snap_image = (id0 == '1');
-    if (is_snap_image)
-    {
-        return core::file_sharing_content_type::snap_image;
-    }
-
-    const auto is_snap_gif = (id0 == '5');
-    if (is_snap_gif)
-    {
-        return core::file_sharing_content_type::snap_gif;
-    }
-
-    const auto is_gif = (id0 == '4');
+    const auto is_gif = ((id0 >= '4') && (id0 <= '5'));
     if (is_gif)
     {
         return core::file_sharing_content_type::gif;
-    }
-
-    const auto is_snap_video = (id0 == '9');
-    if (is_snap_video)
-    {
-        return core::file_sharing_content_type::snap_video;
     }
 
     const auto is_ppt = ((id0 == 'I') || (id0 == 'J'));
@@ -117,9 +99,10 @@ QString extractIdFromFileSharingUri(const QString &uri)
         return QString();
     }
 
-    QString normalizedUri = Utils::normalizeLink(uri);
+    const QString normalizedUri = Utils::normalizeLink(uri);
 
     static const QRegularExpression re(
+        qsl(
         "^"
         "http(s?)://"
         "("
@@ -129,6 +112,8 @@ QString extractIdFromFileSharingUri(const QString &uri)
         ")/"
         "(?P<id>\\w{33,})"
         "$"
+        ),
+        QRegularExpression::UseUnicodePropertiesOption | QRegularExpression::OptimizeOnFirstUsageOption
     );
 
     auto match = re.match(normalizedUri);
@@ -137,9 +122,7 @@ QString extractIdFromFileSharingUri(const QString &uri)
         return QString();
     }
 
-    auto id = match.captured("id");
-
-    return id;
+    return match.captured(qsl("id"));
 }
 
 namespace

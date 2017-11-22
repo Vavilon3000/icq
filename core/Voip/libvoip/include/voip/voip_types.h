@@ -138,6 +138,7 @@ typedef void* hbmp_t; // platform dependent image handle
 // Available buttons
 enum ButtonType {
     ButtonType_Close = 0,
+    ButtonType_GoToChat,
     //~~~~~~~
     ButtonType_Total
 };
@@ -151,7 +152,8 @@ enum ButtonState {
     ButtonState_Total
 };
 enum ButtonPosition {
-    ButtonPosition_TopRight = 0
+    ButtonPosition_TopRight = 0,
+    ButtonPosition_BottomRight
 };
 struct ButtonContext {
     hbmp_t normal;
@@ -249,18 +251,19 @@ enum VoipSnapMode {
     SNAP_SMALL_SIZE_FOR_PTS
 };
 
+// Used for platform independent hbmps
+struct BitmapDesc
+{
+    const void *rgba_pixels;
+    unsigned    width;
+    unsigned    height;
+};
 
-
-#if __PLATFORM_WINPHONE || WINDOWS_PHONE
-  // See http://developer.nokia.com/Community/Wiki/How_to_create_a_DirectX_texture_with_a_picture
-  // to find out how to get pixel data from BitmapImage object
-  struct WP8BitmapDesc  // must be passed to CreateBitmap()
-  {
-    unsigned int   *pixels;
-    unsigned       width;
-    unsigned       height;
-  };
-#endif
+enum VideoCaptureType {
+    VC_DeviceCamera,
+    VC_DeviceVirtualCamera,
+    VC_DeviceDesktop
+};
 
 };  //namespace voip
 #endif

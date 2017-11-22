@@ -37,7 +37,7 @@ namespace Ui
     public Q_SLOTS:
         void recvUserProxy();
 
-    private Q_SLOTS: 
+    private Q_SLOTS:
         void value_changed(QString);
     };
 
@@ -50,7 +50,7 @@ namespace Ui
 
         GeneralCreator::addSwitcherWidgets sounds_;
 
-    private Q_SLOTS: 
+    private Q_SLOTS:
        void value_changed(QString);
     };
 
@@ -115,7 +115,8 @@ namespace Ui
 
         void setType(int _type);
 
-        void setActiveDevice(const voip_proxy::device_desc& _description);
+        //@return uid of set device.
+        std::string setActiveDevice(const voip_proxy::device_desc& _description);
 
     private:
         void initialize();
@@ -123,6 +124,9 @@ namespace Ui
         virtual void paintEvent(QPaintEvent* _event) override;
         virtual void hideEvent(QHideEvent* _e) override;
         virtual void showEvent(QShowEvent* _e) override;
+
+        bool getDefaultDeviceFlag(const voip_proxy::EvoipDevTypes& type);
+        voip_proxy::device_desc applyDefaultDeviceLogic(const voip_proxy::device_desc& _description, std::string& runtimeDeviceUid);
 
         private Q_SLOTS:
             void onVoipDeviceListUpdated(voip_proxy::EvoipDevTypes deviceType, const std::vector< voip_proxy::device_desc >& _devices);

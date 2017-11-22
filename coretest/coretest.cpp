@@ -8,7 +8,7 @@
 
 #include <atomic>
 #include <windows.h>
-#include <thread>  
+#include <thread>
 
 void gui_thread_func();
 
@@ -47,7 +47,7 @@ class gui_connector : public core::iconnector
 
 	virtual void receive(const char* _message, int64_t _seq, core::icollection* _collection) override
 	{
-		wprintf(L"receive message = %s\r\n", _message);
+		printf("receive message = %s\r\n", _message);
 
 		std::string message(_message);
 
@@ -82,7 +82,7 @@ void gui_thread_func()
 
 	gui_connector connector;
 	core_connector->link(&connector, common::core_gui_settings());
-		
+
 	MSG msg = {0};
 	while (GetMessage(&msg, 0, 0, 0))
 	{
@@ -95,7 +95,7 @@ void gui_thread_func()
 			helper1.set_value_as_int64("count", 300);
 			core_connector->receive(L"get_history_from", 1002, helper1.get());*/
 
-		/*	
+		/*
 			core::coll_helper helper(factory->create_collection(), true);
 			helper.set_value_as_string("contact", "500110402");
 			helper.set_value_as_string("message", "test test super test");
@@ -119,18 +119,18 @@ void gui_thread_func()
 			helper.set_value_as_string("url", "https://retina.news.mail.ru/prev670x400/pic/92/e9/image23272862_4cd9498398e6eb14c00ce1ec28fc5659.jpg");
 			core_connector->receive(L"preview/download", 1001, helper.get());*/
 
-			
+
 
 		/*	core::coll_helper helper1(factory->create_collection(), true);
 			helper1.set_value_as_string("contact", "koptyakov@corp.mail.ru");
 			helper1.set_value_as_string("file", "c:/projects/magent.exe");
-			core_connector->receive(L"files/upload", 1002, helper1.get());	
+			core_connector->receive(L"files/upload", 1002, helper1.get());
 
 			core::coll_helper helper2(factory->create_collection(), true);
 			helper2.set_value_as_string("contact", "koptyakov@corp.mail.ru");
 			helper2.set_value_as_string("file", "c:/projects/magent_rfrtoken.exe");
 			core_connector->receive(L"files/upload", 1003, helper2.get());	*/
- 
+
 		}
 		else if (WM_HISTORY_RECEIVED == msg.message)
 		{
@@ -155,7 +155,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	getwchar();
 
 	::PostThreadMessage(::GetThreadId(gui_thread.native_handle()), WM_QUIT, 0, 0);
-		
+
 	gui_thread.join();
 
 	return 0;

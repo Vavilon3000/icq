@@ -21,6 +21,7 @@ namespace core
         class dlg_state
         {
             uint32_t unread_count_;
+            int32_t unread_mentions_count_;
             int64_t last_msgid_;
             int64_t yours_last_read_;
             int64_t del_up_to_;
@@ -98,17 +99,20 @@ namespace core
 
             std::string get_history_patch_version(const std::string& _default = std::string()) const;
             bool has_history_patch_version() const;
-            void set_history_patch_version(const std::string& _patch_version);
+            void set_history_patch_version(std::string _patch_version);
             void reset_history_patch_version();
 
             const std::string& get_dlg_state_patch_version() const;
-            void set_dlg_state_patch_version(const std::string& _patch_version);
+            void set_dlg_state_patch_version(std::string _patch_version);
 
             int64_t get_del_up_to() const;
             void set_del_up_to(const int64_t _msg_id);
             bool has_del_up_to() const;
 
             bool is_empty() const;
+
+            void set_unread_mentions_count(const int32_t _count);
+            int32_t get_unread_mentions_count() const;
 
             void serialize(icollection* _collection, const time_t _offset, const time_t _last_successful_fetch, const bool _serialize_message = true) const;
             void serialize(core::tools::binary_stream& _data) const;

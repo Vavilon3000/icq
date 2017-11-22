@@ -2,6 +2,7 @@
 #define __VIDEO_PANEL_H__
 
 #include "CommonUI.h"
+#include "VoipProxy.h"
 
 extern const QString vertSoundBg;
 extern const QString horSoundBg;
@@ -17,7 +18,7 @@ namespace Ui
 
     class ToolTipEx;
     struct UIEffects;
-    
+
     bool onUnderMouse(QWidget& _widg);
 
     class VideoPanel : public BaseBottomVideoPanel
@@ -53,13 +54,16 @@ namespace Ui
         void onMinimalBandwithMode();
 
         void onVoipMediaLocalAudio(bool _enabled);
-        void onVoipMediaLocalVideo(bool _enabled);        
+        void onVoipMediaLocalVideo(bool _enabled);
         void onVoipMinimalBandwidthChanged (bool _bEnable);
         void hideBandwidthTooltip();
         void activateVideoWindow();
 
         void onChangeConferenceMode();
         void onAddUserClicked();
+        void onShareScreen();
+
+        void onVoipVideoDeviceSelected(const voip_proxy::device_desc&);
 
     public:
         VideoPanel(QWidget* _parent, QWidget* _container);
@@ -75,20 +79,23 @@ namespace Ui
         // Calls when your companion accept the call.
         void talkStarted();
         void talkFinished();
-        
+
         void startToolTipHideTimer();
-        
+
         bool isActiveWindow();
         void setContacts(const std::vector<voip_manager::Contact>&);
         void changeConferenceMode(voip_manager::ConferenceLayout layout);
+
+        int heightOfCommonPanel();
 
     private:
         void resetHangupText();
         void updateToolTipsPosition();
         bool isNormalPanelMode();
-		bool isFitSpacersPanelMode();
+        bool isFitSpacersPanelMode();
         void updateConferenceModeButton();
         void updateBandwidthButtonState();
+        void updateVideoDeviceButtonsState();
 
     protected:
         void changeEvent(QEvent* _e) override;
@@ -117,6 +124,10 @@ namespace Ui
         QPushButton* videoButton_;
         QPushButton* conferenceModeButton_;
         QPushButton* addUsers_;
+        QPushButton* goToChat_;
+        QPushButton* shareScreenButton_;
+        QSpacerItem* gotoChatSpacer_;
+        QSpacerItem* lastSpacer_;
 
         QTimer*    hideBandwidthTooltipTimer;
         QVector<QWidget* > hideButtonList;
@@ -125,15 +136,16 @@ namespace Ui
 
         VolumeGroup* volumeGroup;
 
-        UIEffects* videoPanelEffect_;
-        UIEffects* minimalBandwidthTooltipEffect_;
+        std::unique_ptr<UIEffects> videoPanelEffect_;
+        std::unique_ptr<UIEffects> minimalBandwidthTooltipEffect_;
 
-		QSpacerItem* leftSpacer_;
-		QSpacerItem* rightSpacer_;
-        //Are we talking in this moment?
+        QSpacerItem* leftSpacer_;
+        QSpacerItem* rightSpacer_;
         bool isTakling;
-
         bool isFadedVisible;
+        bool localVideoEnabled_;
+        bool isScreenSharingEnabled_;
+        bool isCameraEnabled_;
     };
 }
 

@@ -18,8 +18,8 @@ namespace Ui
         void _onAudio();
         void _onVideo();
 
-	public Q_SLOTS:
-		void setVideoStatus(bool video);
+    public Q_SLOTS:
+        void setVideoStatus(bool video);
 
 
     Q_SIGNALS:
@@ -32,7 +32,7 @@ namespace Ui
         QWidget* rootWidget_;
         void changeEvent(QEvent*) override;
     };
-    
+
     class VoipSysPanelHeader : public MoveablePanel
     {
         Q_OBJECT
@@ -40,17 +40,20 @@ namespace Ui
         VoipSysPanelHeader(QWidget* _parent);
         virtual ~VoipSysPanelHeader();
 
-        void setAvatars(const std::vector<std::string> _avatarList);
+        void setAvatars(const std::vector<std::string> &_avatarList);
         void setTitle  (const char*);
         void setStatus (const char*);
 
-	public Q_SLOTS:
-		void setVideoStatus(bool video);
+        virtual void fadeIn(unsigned int duration) override;
+        virtual void fadeOut(unsigned int duration) override;
+
+    public Q_SLOTS:
+        void setVideoStatus(bool video);
 
     private Q_SLOTS:
     Q_SIGNALS:
         void onMouseEnter();
-        void onMouseLeave();		
+        void onMouseLeave();
 
     private:
         AvatarContainerWidget* avatarContainer_;

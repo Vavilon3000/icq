@@ -16,7 +16,7 @@ namespace core
 namespace core
 {
     enum class typing_status;
-    
+
     namespace wim
     {
         class send_message_typing: public wim_packet
@@ -28,9 +28,10 @@ namespace core
 
             const std::string contact_;
             const core::typing_status status_;
-            
+
         public:
-            send_message_typing(const wim_packet_params& _params, const std::string& _contact, const core::typing_status& _status);
+
+            send_message_typing(wim_packet_params _params, const std::string& _contact, const core::typing_status& _status);
             virtual ~send_message_typing();
         };
 

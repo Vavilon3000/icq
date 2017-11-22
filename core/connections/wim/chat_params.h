@@ -17,7 +17,7 @@ namespace core
             boost::optional<bool> joiningByLink_;
             boost::optional<bool> readOnly_;
             boost::optional<bool> ageGate_;
-            
+
         public:
             chat_params();
             ~chat_params();
@@ -39,8 +39,8 @@ namespace core
             inline const boost::optional<bool> &get_joiningByLink() const { return joiningByLink_; }
             inline const boost::optional<bool> &get_readOnly() const { return readOnly_; }
             inline const boost::optional<bool> &get_ageGate() const { return ageGate_; }
-            
-            static chat_params *create(core::coll_helper _params);
+
+            static chat_params *create(const core::coll_helper& _params);
         };
 
     }

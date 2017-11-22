@@ -1069,7 +1069,7 @@ void MacSupport::registerAppDelegate()
      andEventID:kAEGetURL];
 }
 
-void MacSupport::saveFileName(const QString &caption, const QString &qdir, const QString &filter, std::function<void (QString& _filename, QString& _directory)> _callback, const QString& _ext, QString& lastDirectory, std::function<void ()> _cancel_callback)
+void MacSupport::saveFileName(const QString &caption, const QString &qdir, const QString &filter, std::function<void (QString& _filename, QString& _directory)> _callback, const QStringRef& _ext, QString& lastDirectory, std::function<void ()> _cancel_callback)
 {
  
     auto dir = qdir.toNSString().stringByDeletingLastPathComponent;

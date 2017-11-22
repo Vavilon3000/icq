@@ -26,6 +26,7 @@ namespace core
         typedef std::unique_ptr<history_patch> history_patch_uptr;
 
         typedef std::map<std::string, person> persons_map;
+        typedef std::map<std::string, std::string> mentions_map;
 
         typedef std::vector<class message_header> message_header_vec;
 
@@ -95,6 +96,7 @@ namespace core
             bool is_deleted() const;
             bool is_modified() const;
             bool is_patch() const;
+            bool is_outgoing() const;
 
             const message_header_vec& get_modifications() const;
             bool has_modifications() const;
@@ -120,11 +122,11 @@ namespace core
         public:
             sticker_data();
 
-            sticker_data(const std::string& _id);
+            sticker_data(std::string _id);
 
             const std::string& get_id() const { return id_; }
 
-            std::pair<int32_t, int32_t> get_ids();
+            static std::pair<int32_t, int32_t> get_ids(const std::string& _id);
 
             void serialize(icollection* _collection);
             void serialize(core::tools::tlvpack& _pack);
@@ -244,7 +246,7 @@ namespace core
 
             static chat_event_data_uptr make_generic_event(const rapidjson::Value& _text_node);
 
-            static chat_event_data_uptr make_generic_event(const std::string& _text);
+            static chat_event_data_uptr make_generic_event(std::string _text);
 
             void apply_persons(const archive::persons_map &_persons);
 
@@ -329,6 +331,7 @@ namespace core
             file_sharing_data_uptr				file_sharing_;
             chat_event_data_uptr				chat_event_;
             quotes_vec                          quotes_;
+            mentions_map                        mentions_;
 
             void copy(const history_message& _message);
 
@@ -364,7 +367,7 @@ namespace core
             static bool is_sticker(core::tools::binary_stream& _stream);
 
             void set_msgid(const int64_t _msgid) {msgid_ = _msgid; }
-            const int64_t get_msgid() const { return msgid_; }
+            int64_t get_msgid() const { return msgid_; }
             bool has_msgid() const { return (msgid_ > 0); }
 
             message_flags get_flags() const;
@@ -380,12 +383,12 @@ namespace core
             void set_prev_msgid(int64_t _value);
             bool has_prev_msgid() const { return (prev_msg_id_ > 0); }
 
-            std::string get_text() const;
+            const std::string& get_text() const;
             void set_text(const std::string& _text);
             bool has_text() const;
 
             void set_wimid(const std::string& _wimid) { wimid_ = _wimid; }
-            std::string get_wimid() const { return wimid_; }
+            const std::string& get_wimid() const { return wimid_; }
 
             archive::chat_data* get_chat_data();
             const archive::chat_data* get_chat_data() const;
@@ -412,8 +415,11 @@ namespace core
             void apply_header_flags(const message_header &_header);
             void apply_modifications(const history_block &_modifications);
 
-            quotes_vec get_quotes() const;
-            void attach_quotes(quotes_vec _quotes);
+            const quotes_vec& get_quotes() const;
+            void attach_quotes(const quotes_vec& _quotes);
+
+            const mentions_map& get_mentions() const;
+            void set_mentions(const mentions_map& _mentions);
 
             bool is_sms() const { return false; }
             bool is_sticker() const { return (bool)sticker_; }
@@ -432,8 +438,9 @@ namespace core
             message_type get_type() const;
 
             bool contents_equal(const history_message& _msg) const;
-            
+
             void apply_persons_to_quotes(const archive::persons_map & _persons);
+            void apply_persons_to_mentions(const archive::persons_map & _persons);
         };
 
         class quote
@@ -441,6 +448,8 @@ namespace core
             std::string text_;
             std::string sender_;
             std::string chat_;
+            std::string chat_stamp_;
+            std::string chat_name_;
             std::string senderFriendly_;
             int32_t time_;
             int32_t setId_;
@@ -457,10 +466,10 @@ namespace core
             void unserialize(const rapidjson::Value& _node, bool _is_forward);
             void unserialize(const core::tools::tlvpack &_pack);
 
-            std::string get_text() const { return text_; }
-            std::string get_sender() const { return sender_; }
-            std::string get_chat() const { return chat_; }
-            std::string get_sender_friendly() const { return senderFriendly_; }
+            const std::string& get_text() const { return text_; }
+            const std::string& get_sender() const { return sender_; }
+            const std::string& get_chat() const { return chat_; }
+            const std::string& get_sender_friendly() const { return senderFriendly_; }
             bool is_forward() const { return is_forward_; }
             void set_sender_friendly(const std::string& _friendly) { senderFriendly_ = _friendly; }
             int32_t get_time() const { return time_; }
@@ -468,6 +477,8 @@ namespace core
             int64_t get_msg_id() const { return msg_id_; }
             std::string get_type() const { return is_forward_ ? "forward" : "quote"; }
             std::string get_sticker() const;
+            const std::string& get_stamp() const { return chat_stamp_; }
+            const std::string& get_chat_name() const { return chat_name_; }
         };
     }
 }

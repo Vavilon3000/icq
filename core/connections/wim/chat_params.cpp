@@ -54,7 +54,7 @@ void chat_params::set_ageGate(bool _ageGate)
     ageGate_.reset(_ageGate);
 }
 
-chat_params *chat_params::create(core::coll_helper _params)
+chat_params *chat_params::create(const core::coll_helper& _params)
 {
     auto result = new (std::nothrow) chat_params();
     if (_params.is_value_exist("name"))

@@ -23,14 +23,12 @@ namespace Data
 
     private:
         bool valid_;
-        
+
     public:
         PhoneInfo();
         ~PhoneInfo();
         void deserialize(core::coll_helper *c);
-        
+
         inline bool isValid() const { return valid_; }
     };
-
-    
 }

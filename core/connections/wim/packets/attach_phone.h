@@ -29,8 +29,8 @@ namespace core
 
             phone_info      phone_info_;
         public:
-            
-            attach_phone(const wim_packet_params& _params, const phone_info& _info);
+
+            attach_phone(wim_packet_params _params, const phone_info& _info);
 
             virtual ~attach_phone();
         };

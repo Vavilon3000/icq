@@ -25,12 +25,12 @@ Utils::UrlParser::UrlParser()
 
 void Utils::UrlParser::process(const QStringRef& _text)
 {
-    auto utf8text = _text.toUtf8();
+    const auto utf8text = _text.toUtf8();
     int size = 0;
 
     int utf8counter = 0;
 
-    for (auto& c : utf8text)
+    for (auto c : utf8text)
     {
         ++size;
 

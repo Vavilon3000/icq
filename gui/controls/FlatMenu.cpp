@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+#include "CommonStyle.h"
 #include "../fonts.h"
 #include "../utils/InterConnector.h"
 #include "../utils/utils.h"
@@ -12,12 +13,15 @@
 
 namespace
 {
-    const QString MENU_STYLE =
-        "QMenu { background-color: #ffffff; border: 1px solid #d7d7d7; }"
+    const QString MENU_STYLE = qsl(
+        "QMenu { background-color: %1; border: 1px solid %2; }"
         "QMenu::item { background-color: transparent;"
         "height: 36dip; padding-right: 12dip; }"
-        "QMenu::item:selected { background-color: #ebebeb;"
-        "height: 36dip; padding-right: 12dip; }";
+        "QMenu::item:selected { background-color: %3;"
+        "height: 36dip; padding-right: 12dip; }")
+        .arg(CommonStyle::getFrameColor().name(),
+            CommonStyle::getColor(CommonStyle::Color::GRAY_BORDER).name(),
+            CommonStyle::getColor(CommonStyle::Color::GRAY_FILL_LIGHT).name());
 }
 
 namespace Ui
@@ -42,11 +46,11 @@ namespace Ui
         setStyle(new FlatMenuStyle());
         Utils::ApplyStyle(this, MENU_STYLE);
 
-        QFont font = Fonts::appFontScaled(16);
+        QFont font = Fonts::appFontScaled(15);
         setFont(font);
         if (platform::is_apple())
         {
-            QWidget::connect(&Utils::InterConnector::instance(), SIGNAL(closeAnyPopupMenu()), this, SLOT(close()));
+            QObject::connect(&Utils::InterConnector::instance(), &Utils::InterConnector::closeAnyPopupMenu, this, &FlatMenu::close);
         }
     }
 

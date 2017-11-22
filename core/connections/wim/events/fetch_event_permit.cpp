@@ -8,7 +8,7 @@ using namespace core;
 using namespace wim;
 
 fetch_event_permit::fetch_event_permit()
-    : permit_info_(new permit_info())
+    : permit_info_(std::make_unique<permit_info>())
 {
 }
 
@@ -16,9 +16,9 @@ fetch_event_permit::~fetch_event_permit()
 {
 }
 
-const ignorelist_cache& fetch_event_permit::ignore_list() const 
+const ignorelist_cache& fetch_event_permit::ignore_list() const
 {
-    return permit_info_->get_ignore_list(); 
+    return permit_info_->get_ignore_list();
 }
 
 int32_t fetch_event_permit::parse(const rapidjson::Value& _node_event_data)

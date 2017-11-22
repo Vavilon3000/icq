@@ -12,10 +12,9 @@ namespace core
 
             int64_t now_ms()
             {
-                const auto &now = time_point_cast<milliseconds>(high_resolution_clock::now());
+                const auto now = time_point_cast<milliseconds>(high_resolution_clock::now());
                 return now.time_since_epoch().count();
             }
-
         }
     }
 }

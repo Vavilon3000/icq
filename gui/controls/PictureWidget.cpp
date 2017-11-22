@@ -48,7 +48,7 @@ namespace Ui
     void PictureWidget::setImage(const QPixmap& _pixmap, int radius)
     {
         pixmapToDraw_ = _pixmap;
-        
+
         if (radius != -1)
         {
             auto borderPixmap = QPixmap(pixmapToDraw_.size());
@@ -60,9 +60,9 @@ namespace Ui
             pixPainter.drawRoundedRect(0, 0, pixmapToDraw_.width(), pixmapToDraw_.height(), radius, radius);
             Utils::check_pixel_ratio(pixmapToDraw_);
             borderPixmap.setDevicePixelRatio(pixmapToDraw_.devicePixelRatio());
-            pixmapToDraw_ = borderPixmap;
+            pixmapToDraw_ = std::move(borderPixmap);
         }
-        
+
         update();
     }
 }

@@ -28,6 +28,12 @@
 		188871431CA9413E004059BF /* attach_uin.h in Headers */ = {isa = PBXBuildFile; fileRef = 1888713F1CA9413E004059BF /* attach_uin.h */; };
 		188871461CA941DC004059BF /* get_flags.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 188871441CA941DC004059BF /* get_flags.cpp */; };
 		188871471CA941DC004059BF /* get_flags.h in Headers */ = {isa = PBXBuildFile; fileRef = 188871451CA941DC004059BF /* get_flags.h */; };
+		18A5A7411F6AD9FE00B40726 /* add_stickers_pack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18A5A73B1F6AD9FE00B40726 /* add_stickers_pack.cpp */; };
+		18A5A7421F6AD9FE00B40726 /* add_stickers_pack.h in Headers */ = {isa = PBXBuildFile; fileRef = 18A5A73C1F6AD9FE00B40726 /* add_stickers_pack.h */; };
+		18A5A7431F6AD9FE00B40726 /* get_stickers_pack_info.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18A5A73D1F6AD9FE00B40726 /* get_stickers_pack_info.cpp */; };
+		18A5A7441F6AD9FE00B40726 /* get_stickers_pack_info.h in Headers */ = {isa = PBXBuildFile; fileRef = 18A5A73E1F6AD9FE00B40726 /* get_stickers_pack_info.h */; };
+		18A5A7451F6AD9FE00B40726 /* remove_stickers_pack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18A5A73F1F6AD9FE00B40726 /* remove_stickers_pack.cpp */; };
+		18A5A7461F6AD9FE00B40726 /* remove_stickers_pack.h in Headers */ = {isa = PBXBuildFile; fileRef = 18A5A7401F6AD9FE00B40726 /* remove_stickers_pack.h */; };
 		18AA232D1C0F58C300A4A5CC /* imstat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18AA232B1C0F58C300A4A5CC /* imstat.cpp */; };
 		18AA232E1C0F58C300A4A5CC /* imstat.h in Headers */ = {isa = PBXBuildFile; fileRef = 18AA232C1C0F58C300A4A5CC /* imstat.h */; };
 		18AA23411C107AC100A4A5CC /* send_imstat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18AA233F1C107AC100A4A5CC /* send_imstat.cpp */; };
@@ -38,20 +44,6 @@
 		18D6D5351C688CFE004C9B49 /* http_request.h in Headers */ = {isa = PBXBuildFile; fileRef = 18D6D52F1C688CFE004C9B49 /* http_request.h */; };
 		18D6D5361C688CFE004C9B49 /* statistics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18D6D5301C688CFE004C9B49 /* statistics.cpp */; };
 		18D6D5371C688CFE004C9B49 /* statistics.h in Headers */ = {isa = PBXBuildFile; fileRef = 18D6D5311C688CFE004C9B49 /* statistics.h */; };
-		18DC46AB1E5B475900A874AB /* snap_info.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18DC46A71E5B475900A874AB /* snap_info.cpp */; };
-		18DC46AC1E5B475900A874AB /* snap_info.h in Headers */ = {isa = PBXBuildFile; fileRef = 18DC46A81E5B475900A874AB /* snap_info.h */; };
-		18DC46AD1E5B475900A874AB /* snaps_storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18DC46A91E5B475900A874AB /* snaps_storage.cpp */; };
-		18DC46AE1E5B475900A874AB /* snaps_storage.h in Headers */ = {isa = PBXBuildFile; fileRef = 18DC46AA1E5B475900A874AB /* snaps_storage.h */; };
-		18DC46B11E5B47BA00A874AB /* del_snap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18DC46AF1E5B47BA00A874AB /* del_snap.cpp */; };
-		18DC46B21E5B47BA00A874AB /* del_snap.h in Headers */ = {isa = PBXBuildFile; fileRef = 18DC46B01E5B47BA00A874AB /* del_snap.h */; };
-		18DC46B91E5B47CD00A874AB /* get_snaps_home.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18DC46B31E5B47CD00A874AB /* get_snaps_home.cpp */; };
-		18DC46BA1E5B47CD00A874AB /* get_snaps_home.h in Headers */ = {isa = PBXBuildFile; fileRef = 18DC46B41E5B47CD00A874AB /* get_snaps_home.h */; };
-		18DC46BB1E5B47CD00A874AB /* get_user_snaps_patch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18DC46B51E5B47CD00A874AB /* get_user_snaps_patch.cpp */; };
-		18DC46BC1E5B47CD00A874AB /* get_user_snaps_patch.h in Headers */ = {isa = PBXBuildFile; fileRef = 18DC46B61E5B47CD00A874AB /* get_user_snaps_patch.h */; };
-		18DC46BD1E5B47CD00A874AB /* get_user_snaps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18DC46B71E5B47CD00A874AB /* get_user_snaps.cpp */; };
-		18DC46BE1E5B47CD00A874AB /* get_user_snaps.h in Headers */ = {isa = PBXBuildFile; fileRef = 18DC46B81E5B47CD00A874AB /* get_user_snaps.h */; };
-		18DC46C11E5B481100A874AB /* fetch_event_snaps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18DC46BF1E5B481100A874AB /* fetch_event_snaps.cpp */; };
-		18DC46C21E5B481100A874AB /* fetch_event_snaps.h in Headers */ = {isa = PBXBuildFile; fileRef = 18DC46C01E5B481100A874AB /* fetch_event_snaps.h */; };
 		3204A9011CEB5FD400B7BB9E /* get_chat_blocked.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3204A8FF1CEB5FD400B7BB9E /* get_chat_blocked.cpp */; };
 		3204A9021CEB5FD400B7BB9E /* get_chat_blocked.h in Headers */ = {isa = PBXBuildFile; fileRef = 3204A9001CEB5FD400B7BB9E /* get_chat_blocked.h */; };
 		320BAD9B1E72B4ED00EB7C1A /* curl_context.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 320BAD971E72B4ED00EB7C1A /* curl_context.cpp */; };
@@ -212,6 +204,8 @@
 		B20967241D82B181005C0908 /* unzip.h in Headers */ = {isa = PBXBuildFile; fileRef = B20967211D82B181005C0908 /* unzip.h */; };
 		B2D2D5611D36243E005F3EF0 /* image_cache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2D2D55F1D36243E005F3EF0 /* image_cache.cpp */; };
 		B2D2D5621D36243E005F3EF0 /* image_cache.h in Headers */ = {isa = PBXBuildFile; fileRef = B2D2D5601D36243E005F3EF0 /* image_cache.h */; };
+		B576283C1F5570EE0003F579 /* fetch_event_appsdata.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B576283A1F5570EE0003F579 /* fetch_event_appsdata.cpp */; };
+		B576283D1F5570EE0003F579 /* fetch_event_appsdata.h in Headers */ = {isa = PBXBuildFile; fileRef = B576283B1F5570EE0003F579 /* fetch_event_appsdata.h */; };
 		D018A2EF1D3FCA7B0030F2AB /* dir_cache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D018A2E71D3FCA7B0030F2AB /* dir_cache.cpp */; };
 		D018A2F01D3FCA7B0030F2AB /* dir_cache.h in Headers */ = {isa = PBXBuildFile; fileRef = D018A2E81D3FCA7B0030F2AB /* dir_cache.h */; };
 		D018A2FE1D40FCF50030F2AB /* cache_entity_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D018A2F51D40FCF50030F2AB /* cache_entity_type.cpp */; };
@@ -223,10 +217,6 @@
 		D018A3041D40FCF50030F2AB /* cache_garbage_collector.h in Headers */ = {isa = PBXBuildFile; fileRef = D018A2FB1D40FCF50030F2AB /* cache_garbage_collector.h */; };
 		D018A3051D40FCF50030F2AB /* disk_cache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D018A2FC1D40FCF50030F2AB /* disk_cache.cpp */; };
 		D018A3061D40FCF50030F2AB /* disk_cache.h in Headers */ = {isa = PBXBuildFile; fileRef = D018A2FD1D40FCF50030F2AB /* disk_cache.h */; };
-		D020AB971D34FB3B0009AF78 /* snap_viewed.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D020AB951D34FB3B0009AF78 /* snap_viewed.cpp */; };
-		D020AB981D34FB3B0009AF78 /* snap_viewed.h in Headers */ = {isa = PBXBuildFile; fileRef = D020AB961D34FB3B0009AF78 /* snap_viewed.h */; };
-		D020AB9F1D3527EA0009AF78 /* snap_metainfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D020AB9B1D3527EA0009AF78 /* snap_metainfo.cpp */; };
-		D020ABA01D3527EA0009AF78 /* snap_metainfo.h in Headers */ = {isa = PBXBuildFile; fileRef = D020AB9C1D3527EA0009AF78 /* snap_metainfo.h */; };
 		D0EE9E471CF4614600BD65AE /* fs_loader_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D0EE9E391CF4614600BD65AE /* fs_loader_task.cpp */; };
 		D0EE9E481CF4614600BD65AE /* fs_loader_task.h in Headers */ = {isa = PBXBuildFile; fileRef = D0EE9E3A1CF4614600BD65AE /* fs_loader_task.h */; };
 		D0EE9E511CF4614600BD65AE /* loader_helpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D0EE9E431CF4614600BD65AE /* loader_helpers.cpp */; };
@@ -407,6 +397,12 @@
 		1888713F1CA9413E004059BF /* attach_uin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = attach_uin.h; sourceTree = "<group>"; };
 		188871441CA941DC004059BF /* get_flags.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = get_flags.cpp; sourceTree = "<group>"; };
 		188871451CA941DC004059BF /* get_flags.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = get_flags.h; sourceTree = "<group>"; };
+		18A5A73B1F6AD9FE00B40726 /* add_stickers_pack.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = add_stickers_pack.cpp; sourceTree = "<group>"; };
+		18A5A73C1F6AD9FE00B40726 /* add_stickers_pack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = add_stickers_pack.h; sourceTree = "<group>"; };
+		18A5A73D1F6AD9FE00B40726 /* get_stickers_pack_info.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = get_stickers_pack_info.cpp; sourceTree = "<group>"; };
+		18A5A73E1F6AD9FE00B40726 /* get_stickers_pack_info.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = get_stickers_pack_info.h; sourceTree = "<group>"; };
+		18A5A73F1F6AD9FE00B40726 /* remove_stickers_pack.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = remove_stickers_pack.cpp; sourceTree = "<group>"; };
+		18A5A7401F6AD9FE00B40726 /* remove_stickers_pack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = remove_stickers_pack.h; sourceTree = "<group>"; };
 		18AA232B1C0F58C300A4A5CC /* imstat.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imstat.cpp; sourceTree = "<group>"; };
 		18AA232C1C0F58C300A4A5CC /* imstat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstat.h; sourceTree = "<group>"; };
 		18AA233F1C107AC100A4A5CC /* send_imstat.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = send_imstat.cpp; sourceTree = "<group>"; };
@@ -417,20 +413,6 @@
 		18D6D52F1C688CFE004C9B49 /* http_request.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = http_request.h; sourceTree = "<group>"; };
 		18D6D5301C688CFE004C9B49 /* statistics.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = statistics.cpp; sourceTree = "<group>"; };
 		18D6D5311C688CFE004C9B49 /* statistics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = statistics.h; sourceTree = "<group>"; };
-		18DC46A71E5B475900A874AB /* snap_info.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = snap_info.cpp; sourceTree = "<group>"; };
-		18DC46A81E5B475900A874AB /* snap_info.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = snap_info.h; sourceTree = "<group>"; };
-		18DC46A91E5B475900A874AB /* snaps_storage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = snaps_storage.cpp; sourceTree = "<group>"; };
-		18DC46AA1E5B475900A874AB /* snaps_storage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = snaps_storage.h; sourceTree = "<group>"; };
-		18DC46AF1E5B47BA00A874AB /* del_snap.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = del_snap.cpp; sourceTree = "<group>"; };
-		18DC46B01E5B47BA00A874AB /* del_snap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = del_snap.h; sourceTree = "<group>"; };
-		18DC46B31E5B47CD00A874AB /* get_snaps_home.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = get_snaps_home.cpp; sourceTree = "<group>"; };
-		18DC46B41E5B47CD00A874AB /* get_snaps_home.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = get_snaps_home.h; sourceTree = "<group>"; };
-		18DC46B51E5B47CD00A874AB /* get_user_snaps_patch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = get_user_snaps_patch.cpp; sourceTree = "<group>"; };
-		18DC46B61E5B47CD00A874AB /* get_user_snaps_patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = get_user_snaps_patch.h; sourceTree = "<group>"; };
-		18DC46B71E5B47CD00A874AB /* get_user_snaps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = get_user_snaps.cpp; sourceTree = "<group>"; };
-		18DC46B81E5B47CD00A874AB /* get_user_snaps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = get_user_snaps.h; sourceTree = "<group>"; };
-		18DC46BF1E5B481100A874AB /* fetch_event_snaps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fetch_event_snaps.cpp; sourceTree = "<group>"; };
-		18DC46C01E5B481100A874AB /* fetch_event_snaps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fetch_event_snaps.h; sourceTree = "<group>"; };
 		3204A8FF1CEB5FD400B7BB9E /* get_chat_blocked.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = get_chat_blocked.cpp; path = connections/wim/packets/get_chat_blocked.cpp; sourceTree = "<group>"; };
 		3204A9001CEB5FD400B7BB9E /* get_chat_blocked.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = get_chat_blocked.h; path = connections/wim/packets/get_chat_blocked.h; sourceTree = "<group>"; };
 		320BAD971E72B4ED00EB7C1A /* curl_context.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = curl_context.cpp; sourceTree = "<group>"; };
@@ -593,6 +575,8 @@
 		B20967211D82B181005C0908 /* unzip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = unzip.h; path = ../../external/minizip/unzip.h; sourceTree = "<group>"; };
 		B2D2D55F1D36243E005F3EF0 /* image_cache.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = image_cache.cpp; sourceTree = "<group>"; };
 		B2D2D5601D36243E005F3EF0 /* image_cache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = image_cache.h; sourceTree = "<group>"; };
+		B576283A1F5570EE0003F579 /* fetch_event_appsdata.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fetch_event_appsdata.cpp; sourceTree = "<group>"; };
+		B576283B1F5570EE0003F579 /* fetch_event_appsdata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fetch_event_appsdata.h; sourceTree = "<group>"; };
 		D018A2E71D3FCA7B0030F2AB /* dir_cache.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dir_cache.cpp; path = disk_cache/dir_cache.cpp; sourceTree = "<group>"; };
 		D018A2E81D3FCA7B0030F2AB /* dir_cache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dir_cache.h; path = disk_cache/dir_cache.h; sourceTree = "<group>"; };
 		D018A2F51D40FCF50030F2AB /* cache_entity_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = cache_entity_type.cpp; path = disk_cache/cache_entity_type.cpp; sourceTree = "<group>"; };
@@ -604,10 +588,6 @@
 		D018A2FB1D40FCF50030F2AB /* cache_garbage_collector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cache_garbage_collector.h; path = disk_cache/cache_garbage_collector.h; sourceTree = "<group>"; };
 		D018A2FC1D40FCF50030F2AB /* disk_cache.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = disk_cache.cpp; path = disk_cache/disk_cache.cpp; sourceTree = "<group>"; };
 		D018A2FD1D40FCF50030F2AB /* disk_cache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = disk_cache.h; path = disk_cache/disk_cache.h; sourceTree = "<group>"; };
-		D020AB951D34FB3B0009AF78 /* snap_viewed.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = snap_viewed.cpp; sourceTree = "<group>"; };
-		D020AB961D34FB3B0009AF78 /* snap_viewed.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = snap_viewed.h; sourceTree = "<group>"; };
-		D020AB9B1D3527EA0009AF78 /* snap_metainfo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = snap_metainfo.cpp; sourceTree = "<group>"; };
-		D020AB9C1D3527EA0009AF78 /* snap_metainfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = snap_metainfo.h; sourceTree = "<group>"; };
 		D0EE9E391CF4614600BD65AE /* fs_loader_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fs_loader_task.cpp; sourceTree = "<group>"; };
 		D0EE9E3A1CF4614600BD65AE /* fs_loader_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fs_loader_task.h; sourceTree = "<group>"; };
 		D0EE9E431CF4614600BD65AE /* loader_helpers.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = loader_helpers.cpp; sourceTree = "<group>"; };
@@ -1022,10 +1002,6 @@
 			children = (
 				320BADA91E72BB0100EB7C1A /* async_loader.cpp */,
 				320BADAA1E72BB0100EB7C1A /* async_loader.h */,
-				18DC46A71E5B475900A874AB /* snap_info.cpp */,
-				18DC46A81E5B475900A874AB /* snap_info.h */,
-				18DC46A91E5B475900A874AB /* snaps_storage.cpp */,
-				18DC46AA1E5B475900A874AB /* snaps_storage.h */,
 				18793D481D6DF5B3002A1473 /* imstate.cpp */,
 				18793D491D6DF5B3002A1473 /* imstate.h */,
 				32D9F44A1C8EE567004DEC70 /* favorites.cpp */,
@@ -1067,8 +1043,8 @@
 		D5DFA2821BC40D2800A656D2 /* events */ = {
 			isa = PBXGroup;
 			children = (
-				18DC46BF1E5B481100A874AB /* fetch_event_snaps.cpp */,
-				18DC46C01E5B481100A874AB /* fetch_event_snaps.h */,
+				B576283A1F5570EE0003F579 /* fetch_event_appsdata.cpp */,
+				B576283B1F5570EE0003F579 /* fetch_event_appsdata.h */,
 				18793D441D6DF5A2002A1473 /* fetch_event_imstate.cpp */,
 				18793D451D6DF5A2002A1473 /* fetch_event_imstate.h */,
 				1844017E1C7E044400A6C3E8 /* fetch_event_permit.cpp */,
@@ -1100,8 +1076,6 @@
 		D5DFA28E1BC40D2800A656D2 /* loader */ = {
 			isa = PBXGroup;
 			children = (
-				D020AB9B1D3527EA0009AF78 /* snap_metainfo.cpp */,
-				D020AB9C1D3527EA0009AF78 /* snap_metainfo.h */,
 				D0EE9E391CF4614600BD65AE /* fs_loader_task.cpp */,
 				D0EE9E3A1CF4614600BD65AE /* fs_loader_task.h */,
 				D0EE9E431CF4614600BD65AE /* loader_helpers.cpp */,
@@ -1125,14 +1099,12 @@
 		D5DFA29C1BC40D2800A656D2 /* packets */ = {
 			isa = PBXGroup;
 			children = (
-				18DC46B31E5B47CD00A874AB /* get_snaps_home.cpp */,
-				18DC46B41E5B47CD00A874AB /* get_snaps_home.h */,
-				18DC46B51E5B47CD00A874AB /* get_user_snaps_patch.cpp */,
-				18DC46B61E5B47CD00A874AB /* get_user_snaps_patch.h */,
-				18DC46B71E5B47CD00A874AB /* get_user_snaps.cpp */,
-				18DC46B81E5B47CD00A874AB /* get_user_snaps.h */,
-				18DC46AF1E5B47BA00A874AB /* del_snap.cpp */,
-				18DC46B01E5B47BA00A874AB /* del_snap.h */,
+				18A5A73B1F6AD9FE00B40726 /* add_stickers_pack.cpp */,
+				18A5A73C1F6AD9FE00B40726 /* add_stickers_pack.h */,
+				18A5A73D1F6AD9FE00B40726 /* get_stickers_pack_info.cpp */,
+				18A5A73E1F6AD9FE00B40726 /* get_stickers_pack_info.h */,
+				18A5A73F1F6AD9FE00B40726 /* remove_stickers_pack.cpp */,
+				18A5A7401F6AD9FE00B40726 /* remove_stickers_pack.h */,
 				95367E9D1E162DBB00D7D2E1 /* get_profile.cpp */,
 				95367E9E1E162DBB00D7D2E1 /* get_profile.h */,
 				95A6DBBB1E139E71000838BF /* merge_account.cpp */,
@@ -1145,8 +1117,6 @@
 				320E87091CF450F800BE1BD3 /* mod_chat_alpha.h */,
 				320E870E1CF47E7300BE1BD3 /* mod_chat_member_alpha.cpp */,
 				320E870F1CF47E7300BE1BD3 /* mod_chat_member_alpha.h */,
-				D020AB951D34FB3B0009AF78 /* snap_viewed.cpp */,
-				D020AB961D34FB3B0009AF78 /* snap_viewed.h */,
 				95237E191D05C56500FAC6C9 /* phoneinfo.cpp */,
 				95237E1A1D05C56500FAC6C9 /* phoneinfo.h */,
 				46445FF81CDB99B9004996D2 /* set_avatar.cpp */,
@@ -1316,7 +1286,6 @@
 				9575F21A1CCA46250060454E /* crypt.h in Headers */,
 				D018A2FF1D40FCF50030F2AB /* cache_entity_type.h in Headers */,
 				18793D4B1D6DF5B3002A1473 /* imstate.h in Headers */,
-				18DC46BA1E5B47CD00A874AB /* get_snaps_home.h in Headers */,
 				D5DFA32E1BC40D2800A656D2 /* avatar_loader.h in Headers */,
 				D5DFA38B1BC40D2800A656D2 /* fast_binary_stream.h in Headers */,
 				460848DD1CC6429300424AB0 /* file_sharing.h in Headers */,
@@ -1337,12 +1306,10 @@
 				D5DFA37E1BC40D2800A656D2 /* main_thread.h in Headers */,
 				D5DFA3391BC40D2800A656D2 /* webrtc.h in Headers */,
 				D5DFA3681BC40D2800A656D2 /* start_session.h in Headers */,
-				D020AB981D34FB3B0009AF78 /* snap_viewed.h in Headers */,
 				32D5F6B91ECDEFC300C30232 /* file_sharing_meta.h in Headers */,
 				9566A2391BF5CC6800A5CBA4 /* remove_buddy.h in Headers */,
 				D5DFA3961BC40D2800A656D2 /* settings.h in Headers */,
 				D5DFA38D1BC40D2800A656D2 /* hmac_sha_base64.h in Headers */,
-				18DC46AC1E5B475900A874AB /* snap_info.h in Headers */,
 				86E44F831C0DA37800BA970A /* modify_chat.h in Headers */,
 				86B059DF1C05E64900396B65 /* app_config.h in Headers */,
 				865AE8BC1BE272CE0071193F /* search_contacts.h in Headers */,
@@ -1374,10 +1341,10 @@
 				D55389CD1BC813090088FBA6 /* stickers.h in Headers */,
 				322E2E0F1CB7E81200E94B11 /* get_chat_home.h in Headers */,
 				D5DFA3761BC40D2800A656D2 /* core_settings.h in Headers */,
-				18DC46AE1E5B475900A874AB /* snaps_storage.h in Headers */,
 				957821EB1C44FFC700177667 /* im_login.h in Headers */,
 				95D2FBE71DB0D29D004C8676 /* create_chat.h in Headers */,
 				869E4A631C11EC4300A9CE17 /* my_info.h in Headers */,
+				18A5A7461F6AD9FE00B40726 /* remove_stickers_pack.h in Headers */,
 				D5DFA32F1BC40D2800A656D2 /* fetch_event.h in Headers */,
 				D5DFA33D1BC40D2800A656D2 /* loader.h in Headers */,
 				D5DFA3871BC40D2800A656D2 /* binary_stream.h in Headers */,
@@ -1392,12 +1359,10 @@
 				466090691CAED14D00FB4A39 /* history_patch.h in Headers */,
 				3204A9021CEB5FD400B7BB9E /* get_chat_blocked.h in Headers */,
 				86E44F7F1C0DA37800BA970A /* add_chat.h in Headers */,
-				18DC46B21E5B47BA00A874AB /* del_snap.h in Headers */,
 				D5DFA3821BC40D2800A656D2 /* scheduler.h in Headers */,
 				D018A3041D40FCF50030F2AB /* cache_garbage_collector.h in Headers */,
-				18DC46BE1E5B47CD00A874AB /* get_user_snaps.h in Headers */,
+				18A5A7441F6AD9FE00B40726 /* get_stickers_pack_info.h in Headers */,
 				959ACA9B1BE75A89005361D5 /* contact_profile.h in Headers */,
-				18DC46C21E5B481100A874AB /* fetch_event_snaps.h in Headers */,
 				D5DFA3911BC40D2800A656D2 /* md5.h in Headers */,
 				4660906F1CAED6F100FB4A39 /* set_buddy_attribute.h in Headers */,
 				86740DEC1BDA792900907500 /* VoipManager.h in Headers */,
@@ -1412,6 +1377,7 @@
 				320E870B1CF450F800BE1BD3 /* mod_chat_alpha.h in Headers */,
 				32D5F6BA1ECDEFC300C30232 /* transferred_data.h in Headers */,
 				869E4A671C11EC5300A9CE17 /* fetch_event_my_info.h in Headers */,
+				18A5A7421F6AD9FE00B40726 /* add_stickers_pack.h in Headers */,
 				D5DFA3801BC40D2800A656D2 /* profiler.h in Headers */,
 				D55389D11BC813520088FBA6 /* opened_dialog.h in Headers */,
 				95237E1C1D05C56500FAC6C9 /* phoneinfo.h in Headers */,
@@ -1432,6 +1398,7 @@
 				D5DFA35C1BC40D2800A656D2 /* normalize_phone.h in Headers */,
 				9575F2241CCA46250060454E /* zip.h in Headers */,
 				D5DFA36C1BC40D2800A656D2 /* robusto_packet.h in Headers */,
+				B576283D1F5570EE0003F579 /* fetch_event_appsdata.h in Headers */,
 				46445FFB1CDB99B9004996D2 /* set_avatar.h in Headers */,
 				D018A2F01D3FCA7B0030F2AB /* dir_cache.h in Headers */,
 				9566A2C71C11789000A5CBA4 /* updater.h in Headers */,
@@ -1448,7 +1415,6 @@
 				95E221001C60F48100B5840E /* VoipProtocol.h in Headers */,
 				466090651CAED11E00FB4A39 /* join_chat_alpha.h in Headers */,
 				D0EE9E481CF4614600BD65AE /* fs_loader_task.h in Headers */,
-				D020ABA01D3527EA0009AF78 /* snap_metainfo.h in Headers */,
 				86740DB91BD9297800907500 /* get_chat_info.h in Headers */,
 				95E220CF1C4CD2E600B5840E /* dialog_holes.h in Headers */,
 				D5DFA3A21BC40D2800A656D2 /* utils.h in Headers */,
@@ -1487,7 +1453,6 @@
 				95EFDF7E1E8D4A06002BDD6E /* url.h in Headers */,
 				32D9F44D1C8EE567004DEC70 /* favorites.h in Headers */,
 				D5DFA36E1BC40D2800A656D2 /* wim_contactlist_cache.h in Headers */,
-				18DC46BC1E5B47CD00A874AB /* get_user_snaps_patch.h in Headers */,
 				867C0B901C492DE5006D1161 /* get_themes_index.h in Headers */,
 				D5DFA3721BC40D2800A656D2 /* wim_im.h in Headers */,
 				86740DED1BDA792900907500 /* VoipSerialization.h in Headers */,
@@ -1577,8 +1542,6 @@
 				D55389C71BC812AF0088FBA6 /* get_stickers_index.cpp in Sources */,
 				86E44F801C0DA37800BA970A /* add_members.cpp in Sources */,
 				D018A3031D40FCF50030F2AB /* cache_garbage_collector.cpp in Sources */,
-				D020AB971D34FB3B0009AF78 /* snap_viewed.cpp in Sources */,
-				18DC46BD1E5B47CD00A874AB /* get_user_snaps.cpp in Sources */,
 				D55389CC1BC813090088FBA6 /* stickers.cpp in Sources */,
 				D5DFA3451BC40D2800A656D2 /* web_file_info.cpp in Sources */,
 				D5DFA33C1BC40D2800A656D2 /* loader.cpp in Sources */,
@@ -1587,7 +1550,6 @@
 				18AA232D1C0F58C300A4A5CC /* imstat.cpp in Sources */,
 				867C0B8A1C490E2E006D1161 /* themes.cpp in Sources */,
 				32D5F6B61ECDEFC300C30232 /* downloaded_file_info.cpp in Sources */,
-				D020AB9F1D3527EA0009AF78 /* snap_metainfo.cpp in Sources */,
 				9575F2231CCA46250060454E /* zip.c in Sources */,
 				D5DFA37F1BC40D2800A656D2 /* profiler.cpp in Sources */,
 				95D2FBE61DB0D29D004C8676 /* create_chat.cpp in Sources */,
@@ -1610,12 +1572,10 @@
 				869E4A621C11EC4300A9CE17 /* my_info.cpp in Sources */,
 				D5DFA3361BC40D2800A656D2 /* fetch_event_presence.cpp in Sources */,
 				D5DFA30E1BC40D2800A656D2 /* archive_index.cpp in Sources */,
-				18DC46C11E5B481100A874AB /* fetch_event_snaps.cpp in Sources */,
 				95E220BD1C47BF7500B5840E /* end_session.cpp in Sources */,
 				322D9BDA1D21962B0083BD17 /* resolve_pending.cpp in Sources */,
 				95D944671C859AF90044CA53 /* network_log.cpp in Sources */,
 				184401801C7E044400A6C3E8 /* fetch_event_permit.cpp in Sources */,
-				18DC46AD1E5B475900A874AB /* snaps_storage.cpp in Sources */,
 				323108571DF08C010044BF13 /* fetch_event_notification.cpp in Sources */,
 				D5DFA3901BC40D2800A656D2 /* md5.cpp in Sources */,
 				32E66AE61C789A1400E002BB /* speech_to_text.cpp in Sources */,
@@ -1675,19 +1635,17 @@
 				D55389D01BC813520088FBA6 /* opened_dialog.cpp in Sources */,
 				D5DFA39D1BC40D2800A656D2 /* coretime.cpp in Sources */,
 				9575F21E1CCA46250060454E /* minizip.c in Sources */,
-				18DC46B91E5B47CD00A874AB /* get_snaps_home.cpp in Sources */,
 				46129EEA1CC8DB2400FEE15E /* set_timezone.cpp in Sources */,
 				95D9445B1C8060620044CA53 /* network_log.cpp in Sources */,
 				B20967231D82B181005C0908 /* unzip.c in Sources */,
 				953CDDEE1DAB8AE700FEB21C /* chat_params.cpp in Sources */,
-				18DC46AB1E5B475900A874AB /* snap_info.cpp in Sources */,
 				D5DFA32B1BC40D2800A656D2 /* auth_parameters.cpp in Sources */,
 				D5DFA3611BC40D2800A656D2 /* send_file.cpp in Sources */,
-				18DC46B11E5B47BA00A874AB /* del_snap.cpp in Sources */,
 				32960F651C849EFC00E5CB9E /* system_common.cpp in Sources */,
 				D5DFA36F1BC40D2800A656D2 /* wim_history.cpp in Sources */,
 				9566A26A1C05D24A00A5CBA4 /* binary_stream_reader.cpp in Sources */,
 				466090581CAED04400FB4A39 /* update_profile.cpp in Sources */,
+				18A5A7431F6AD9FE00B40726 /* get_stickers_pack_info.cpp in Sources */,
 				3231084F1DF08BD10044BF13 /* mrim_get_key.cpp in Sources */,
 				D5DFA3A11BC40D2800A656D2 /* utils.cpp in Sources */,
 				D018A3051D40FCF50030F2AB /* disk_cache.cpp in Sources */,
@@ -1713,9 +1671,11 @@
 				320BADAB1E72BB0100EB7C1A /* async_loader.cpp in Sources */,
 				D5DFA36B1BC40D2800A656D2 /* robusto_packet.cpp in Sources */,
 				18793D461D6DF5A2002A1473 /* fetch_event_imstate.cpp in Sources */,
+				18A5A7451F6AD9FE00B40726 /* remove_stickers_pack.cpp in Sources */,
 				95A6DBBD1E139E71000838BF /* merge_account.cpp in Sources */,
 				4660906E1CAED6F100FB4A39 /* set_buddy_attribute.cpp in Sources */,
 				D5DFA3491BC40D2800A656D2 /* fetch.cpp in Sources */,
+				B576283C1F5570EE0003F579 /* fetch_event_appsdata.cpp in Sources */,
 				46445FFA1CDB99B9004996D2 /* set_avatar.cpp in Sources */,
 				D5DFA3531BC40D2800A656D2 /* get_sms_code.cpp in Sources */,
 				D5DFA35F1BC40D2800A656D2 /* robusto_add_client.cpp in Sources */,
@@ -1724,7 +1684,6 @@
 				D5DFA3121BC40D2800A656D2 /* dlg_state.cpp in Sources */,
 				183933FC1DC798E0003586C4 /* hosts_config.cpp in Sources */,
 				32D9C31E1CD8DAA600E100E2 /* preview_proxy.cpp in Sources */,
-				18DC46BB1E5B47CD00A874AB /* get_user_snaps_patch.cpp in Sources */,
 				951CE8811C1B121D00A3B250 /* spam_report.cpp in Sources */,
 				D5DFA35B1BC40D2800A656D2 /* normalize_phone.cpp in Sources */,
 				D5DFA3321BC40D2800A656D2 /* fetch_event_dlg_state.cpp in Sources */,
@@ -1736,6 +1695,7 @@
 				32EE0B4C1C1F01EB004F85AC /* mute_buddy.cpp in Sources */,
 				D5DFA35D1BC40D2800A656D2 /* request_avatar.cpp in Sources */,
 				D5DFA33A1BC40D2800A656D2 /* download_task.cpp in Sources */,
+				18A5A7411F6AD9FE00B40726 /* add_stickers_pack.cpp in Sources */,
 				D5DFA38C1BC40D2800A656D2 /* hmac_sha_base64.cpp in Sources */,
 				D5DFA3381BC40D2800A656D2 /* webrtc.cpp in Sources */,
 				322E2E0E1CB7E81200E94B11 /* get_chat_home.cpp in Sources */,
@@ -1828,7 +1788,7 @@
 		D5DFA1091BC4097400A656D2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				EXECUTABLE_PREFIX = lib;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1866,7 +1826,7 @@
 		D5DFA10A1BC4097400A656D2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				EXECUTABLE_PREFIX = lib;
 				FRAMEWORK_SEARCH_PATHS = (

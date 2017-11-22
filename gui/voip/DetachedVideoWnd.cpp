@@ -21,23 +21,25 @@
 
 Ui::DetachedVideoWindow::DetachedVideoWindow(QWidget* parent)
     : AspectRatioResizebleWnd()
+    , videoPanelHeaderEffect_(nullptr)
+    , showPanelTimer_(this)
     , parent_(parent)
     , closedManualy_(false)
-    , showPanelTimer_(this)
-    , videoPanelHeaderEffect_(NULL)
-	, shadow_ (new Ui::ShadowWindowParent(this))
+    , shadow_ (new Ui::ShadowWindowParent(this))
 {
         this->resize(400, 300);
         horizontalLayout_ = Utils::emptyHLayout(this);
         horizontalLayout_->setAlignment(Qt::AlignVCenter);
         QMetaObject::connectSlotsByName(this);
-        
+
 #ifdef _WIN32
         setWindowFlags(Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint | Qt::SubWindow);
 #else
         // We have problem on Mac with WA_ShowWithoutActivating and WindowDoesNotAcceptFocus.
-        // If video window is showing with this flags,, we cannot activate main ICQ window.
-        setWindowFlags(Qt::WindowStaysOnTopHint | Qt::Window /*| Qt::WindowDoesNotAcceptFocus*/);
+        // If video window is showing with this flags, we cannot activate main ICQ window.
+        // UPDATED: Looks like for mini video window it works ok with  Qt::WindowDoesNotAcceptFocus
+        // and Qt::WA_ShowWithoutActivating.
+        setWindowFlags(Qt::WindowStaysOnTopHint | Qt::Window | Qt::WindowDoesNotAcceptFocus);
         //setAttribute(Qt::WA_ShowWithoutActivating);
         setAttribute(Qt::WA_X11DoNotAcceptFocus);
 #endif
@@ -51,7 +53,7 @@ Ui::DetachedVideoWindow::DetachedVideoWindow(QWidget* parent)
         {
             videoPanelHeaderEffect_ = new UIEffects(*videoPanelHeader_.get());
         }
-#ifndef __linux__
+#ifndef STRIP_VOIP
         std::vector<Ui::BaseVideoPanel*> panels;
         if (!!videoPanelHeader_)
         {
@@ -64,11 +66,11 @@ Ui::DetachedVideoWindow::DetachedVideoWindow(QWidget* parent)
         layout()->addWidget(rootWidget_);
 #endif //__linux__
 
-		std::vector<BaseVideoPanel*> videoPanels;
+        std::vector<BaseVideoPanel*> videoPanels;
 
         if (!!videoPanelHeader_)
         {
-			videoPanels.push_back(videoPanelHeader_.get());
+            videoPanels.push_back(videoPanelHeader_.get());
         }
 
         eventFilter_ = new ResizeEventFilter(videoPanels, shadow_->getShadowWidget(), this);
@@ -99,7 +101,7 @@ Ui::DetachedVideoWindow::DetachedVideoWindow(QWidget* parent)
         connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipCallDestroyed(const voip_manager::ContactEx&)), this, SLOT(onVoipCallDestroyed(const voip_manager::ContactEx&)), Qt::DirectConnection);
 
         setMinimumSize(Utils::scale_value(320), Utils::scale_value(80));
-        
+
         QDesktopWidget dw;
         const auto screenRect = dw.screenGeometry(dw.primaryScreen());
         const auto detachedWndRect = rect();
@@ -225,25 +227,25 @@ void Ui::DetachedVideoWindow::onVoipWindowAddComplete(quintptr _winId)
 
 void Ui::DetachedVideoWindow::showFrame()
 {
-#ifdef _WIN32
+#ifndef __linux__
     assert(rootWidget_->frameId());
     if (rootWidget_->frameId())
     {
-        Ui::GetDispatcher()->getVoipController().setWindowAdd((quintptr)rootWidget_->frameId(), false, false, 0);		
+        Ui::GetDispatcher()->getVoipController().setWindowAdd((quintptr)rootWidget_->frameId(), false, false, 0);
     }
-	shadow_->showShadow();
+    shadow_->showShadow();
 #endif
 }
 
 void Ui::DetachedVideoWindow::hideFrame()
 {
-#ifdef _WIN32
+#ifndef __linux__
     assert(rootWidget_->frameId());
     if (rootWidget_->frameId())
     {
-        Ui::GetDispatcher()->getVoipController().setWindowRemove((quintptr)rootWidget_->frameId());		
+        Ui::GetDispatcher()->getVoipController().setWindowRemove((quintptr)rootWidget_->frameId());
     }
-	shadow_->hideShadow();
+    shadow_->hideShadow();
 #endif
 }
 

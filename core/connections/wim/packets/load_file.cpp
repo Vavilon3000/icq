@@ -12,8 +12,8 @@ using namespace wim;
 const int32_t max_block_size		= 1024*1024;
 
 load_file::load_file(const wim_packet_params& _params, const web_file_info& _info)
-    :	wim_packet(_params), 
-    info_(new web_file_info(_info))
+    :	wim_packet(_params),
+    info_(std::make_unique<web_file_info>(_info))
 {
 }
 

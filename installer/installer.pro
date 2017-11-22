@@ -11,7 +11,7 @@ TEMPLATE = app
 
 SOURCES += main.cpp
 
-CONFIG += 64
+CONFIG += 32
 
 QMAKE_LIBS_THREAD = -lxcb-util -lffi -lpcre -lexpat -lXext -lXau -lXdmcp -lz -Wl,-Bdynamic -ldl -lpthread -lX11
 

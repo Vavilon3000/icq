@@ -27,7 +27,7 @@ namespace core
 
         public:
 
-            set_timezone(const wim_packet_params& _params);
+            explicit set_timezone(wim_packet_params _params);
             virtual ~set_timezone();
         };
 

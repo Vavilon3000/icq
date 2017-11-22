@@ -20,6 +20,8 @@
 #include "MessagesScrollArea.h"
 #include "../../gui_settings.h"
 
+#include "MentionCompleter.h"
+
 namespace
 {
     double getMaximumScrollDistance();
@@ -56,6 +58,10 @@ namespace
     const auto IDLE_USER_ACTIVITY_TIMEOUT_MS = (build::is_debug() ? 1000 : 10000);
 
     const auto scrollEasing = expoOut;
+
+    const auto timestampHideTimeout = 2000;
+    const auto scrollAnimationInterval = 10;
+    const auto wheelEventsBufferInterval = 300;
 }
 
 namespace Ui
@@ -73,19 +79,22 @@ namespace Ui
 
     MessagesScrollArea::MessagesScrollArea(QWidget *parent, QWidget *typingWidget)
         : QWidget(parent)
-        , Scrollbar_(new MessagesScrollbar(this))
-        , ScrollAnimationTimer_(this)
-        , LastAnimationMoment_(MOMENT_UNINITIALIZED)
         , IsSelecting_(false)
-        , ScrollDistance_(0)
-        , Mode_(ScrollingMode::Plain)
-        , Resizing_(false)
         , TouchScrollInProgress_(false)
+        , LastAnimationMoment_(MOMENT_UNINITIALIZED)
+        , Mode_(ScrollingMode::Plain)
+        , Scrollbar_(new MessagesScrollbar(this))
+        , Layout_(new MessagesScrollAreaLayout(this, Scrollbar_, typingWidget))
+        , ScrollAnimationTimer_(this)
+        , timestampTimer_(this)
+        , ScrollDistance_(0)
+        , Resizing_(false)
         , IsUserActive_(false)
         , UserActivityTimer_(this)
-        , Layout_(new MessagesScrollAreaLayout(this, Scrollbar_, typingWidget))
         , IsSearching_(false)
         , scrollValue_(-1)
+        , messageId_(-1)
+        , recvLastMessage_(false)
     {
         assert(parent);
         assert(Layout_);
@@ -93,30 +102,33 @@ namespace Ui
 
         setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
         setContentsMargins(0, 0, 0, 0);
-        setProperty("MessagesWidget", true);
         setLayout(Layout_);
 
         // initially invisible, will became visible when there will be enough content
         Scrollbar_->setVisible(false);
 
-        ScrollAnimationTimer_.setInterval(10);
+        ScrollAnimationTimer_.setInterval(scrollAnimationInterval);
         ScrollAnimationTimer_.setTimerType(Qt::CoarseTimer);
 
         auto success = QObject::connect(
             &ScrollAnimationTimer_, &QTimer::timeout,
-            this, &MessagesScrollArea::onAnimationTimer,
-            Qt::QueuedConnection
+            this, &MessagesScrollArea::onAnimationTimer
         );
         assert(success);
 
-        WheelEventsBufferResetTimer_.setInterval(300);
+        WheelEventsBufferResetTimer_.setInterval(wheelEventsBufferInterval);
         WheelEventsBufferResetTimer_.setTimerType(Qt::CoarseTimer);
 
         success = QObject::connect(
             &WheelEventsBufferResetTimer_, &QTimer::timeout,
-            this, &MessagesScrollArea::onWheelEventResetTimer,
-            Qt::QueuedConnection
+            this, &MessagesScrollArea::onWheelEventResetTimer);
+        assert(success);
+
+        success = QObject::connect(
+            this, &MessagesScrollArea::buttonDownClicked,
+            this, [this]() { enableViewportShifting(true); }
         );
+        assert(success);
 
         success = QObject::connect(
             Scrollbar_, &QScrollBar::sliderPressed,
@@ -142,8 +154,14 @@ namespace Ui
                 this, &MessagesScrollArea::onIdleUserActivityTimeout,
                 Qt::QueuedConnection);
 
+        timestampTimer_.setInterval(timestampHideTimeout);
+        timestampTimer_.setTimerType(Qt::CoarseTimer);
+        timestampTimer_.setSingleShot(true);
+        connect(&timestampTimer_, &QTimer::timeout, this, &MessagesScrollArea::onTimestampTimer);
+
 		connect(Layout_, &MessagesScrollAreaLayout::updateHistoryPosition, this, &MessagesScrollArea::onUpdateHistoryPosition);
         connect(Layout_, &MessagesScrollAreaLayout::recreateAvatarRect, this, &MessagesScrollArea::recreateAvatarRect);
+        connect(Layout_, &MessagesScrollAreaLayout::itemRead, this, [this](const qint64 _id, const bool _visible) { emit itemRead(_id, _visible); });
         Utils::grabTouchWidget(this);
     }
 
@@ -152,6 +170,12 @@ namespace Ui
 		emit updateHistoryPosition(position, offset);
 	}
 
+    void MessagesScrollArea::onTimestampTimer()
+    {
+        emit Utils::InterConnector::instance().setTimestampHoverActionsEnabled(true);
+        emit Utils::InterConnector::instance().hideMessageHiddenControls();
+    }
+
     void MessagesScrollArea::onWheelEvent(QWheelEvent* e)
     {
         QCoreApplication::sendEvent(this, e);
@@ -159,19 +183,15 @@ namespace Ui
 
     void MessagesScrollArea::insertWidget(const Logic::MessageKey &key, QWidget *widget)
     {
-        WidgetsList widgets;
-        widgets.emplace_back(
-            std::make_pair(key, widget)
-        );
-        insertWidgets(widgets, true /* _isMoveToButtonIfNeed */, -1 /* _mess_id */);
+        insertWidgets({ std::make_pair(key, widget) }, true /* _isMoveToButtonIfNeed */, -1 /* _mess_id */, -1, Logic::scroll_mode_type::none);
     }
 
-    void MessagesScrollArea::insertWidgets(const WidgetsList& _widgets, bool _isMoveToButtonIfNeed, int64_t _mess_id)
+    void MessagesScrollArea::insertWidgets(const WidgetsList& _widgets, bool _isMoveToButtonIfNeed, int64_t _mess_id, int64_t _countAfter, Logic::scroll_mode_type _scrollMode)
     {
         assert(!_widgets.empty());
-        Layout_->insertWidgets(_widgets, _isMoveToButtonIfNeed, _mess_id);
+        Layout_->insertWidgets(_widgets, _isMoveToButtonIfNeed, _mess_id, _countAfter, _scrollMode);
 
-        for (auto iter : _widgets)
+        for (const auto& iter : _widgets)
         {
             if (auto messageItem = qobject_cast<Ui::MessageItem*>(iter.second))
             {
@@ -235,6 +255,7 @@ namespace Ui
         eraseContact(widget);
 
         Layout_->removeWidget(widget);
+        widget->deleteLater();
 
         updateScrollbar();
     }
@@ -264,6 +285,7 @@ namespace Ui
     void MessagesScrollArea::scrollToBottom()
     {
         setIsSearch(false);
+        setMessageId(-1);
         stopScrollAnimation();
 
         if (!Layout_->isViewportAtBottom())
@@ -273,6 +295,7 @@ namespace Ui
 
         resetUserActivityTimer();
         updateScrollbar();
+        assert(!getIsSearch());
     }
 
     void MessagesScrollArea::updateItemKey(const Logic::MessageKey &key)
@@ -280,8 +303,14 @@ namespace Ui
         Layout_->updateItemKey(key);
     }
 
+    void MessagesScrollArea::scrollTo(const Logic::MessageKey& key, Logic::scroll_mode_type _scrollMode)
+    {
+        Layout_->scrollTo(key, _scrollMode);
+    }
+
     void MessagesScrollArea::updateScrollbar()
     {
+        //updateMode();
         const auto viewportScrollBounds = Layout_->getViewportScrollBounds();
 
         auto scrollbarMaximum = (viewportScrollBounds.second - viewportScrollBounds.first);
@@ -299,7 +328,6 @@ namespace Ui
 
         const auto viewportAbsY = Layout_->getViewportAbsY();
         const auto scrollPos = (viewportAbsY - viewportScrollBounds.first);
-        //assert(scrollPos >= 0);
 
         Scrollbar_->setValue(scrollPos);
     }
@@ -314,13 +342,13 @@ namespace Ui
         WheelEventsBufferResetTimer_.stop();
     }
 
-    void MessagesScrollArea::enumerateMessagesItems(const MessageItemVisitor visitor, const bool reversed) const
+    void MessagesScrollArea::enumerateMessagesItems(const MessageItemVisitor& visitor, const bool reversed) const
     {
         assert(visitor);
         Layout_->enumerateMessagesItems(visitor, reversed);
     }
 
-    void MessagesScrollArea::enumerateWidgets(const WidgetVisitor visitor, const bool reversed) const
+    void MessagesScrollArea::enumerateWidgets(const WidgetVisitor& visitor, const bool reversed) const
     {
         assert(visitor);
         Layout_->enumerateWidgets(visitor, reversed);
@@ -365,7 +393,7 @@ namespace Ui
                     if (first_message_text_only.isEmpty())
                     {
                         first_message_text_only = messageItem->selection(true);
-                        first_message_full = selected_full;
+                        first_message_full = std::move(selected_full);
 
                         return true;
                     }
@@ -377,10 +405,9 @@ namespace Ui
 
                     if (first_message_text_only.isEmpty())
                     {
-                        const auto selected_text = complexItem->getSelectedText(false);
-                        first_message_text_only = selected_text;
+                        first_message_text_only = complexItem->getSelectedText(false);
 
-                        first_message_full = selected_full;
+                        first_message_full = std::move(selected_full);
 
                         return true;
                     }
@@ -403,27 +430,23 @@ namespace Ui
             }, true
         );
 
-        auto result = (
+        QString result = (
             selection_text.isEmpty() ?
                 first_message_text_only :
-                (first_message_full + QChar::LineFeed + QChar::LineFeed + selection_text));
+                (first_message_full % QChar::LineFeed % QChar::LineFeed % selection_text));
 
-        if (!result.isEmpty() && result.endsWith("\n\n"))
-        {
-            result = result.left(result.length() - 1);
-        }
+        if (!result.isEmpty() && result.endsWith(ql1s("\n\n")))
+            result.chop(1);
 
         return result;
     }
 
-    QList<Data::Quote> MessagesScrollArea::getQuotes() const
+    QVector<Data::Quote> MessagesScrollArea::getQuotes() const
     {
-        QList<Data::Quote> result;
+        QVector<Data::Quote> result;
         enumerateWidgets(
         [&result] (QWidget* _item, const bool)
         {
-            //QString selected_full;
-
             if (auto messageItem = qobject_cast<Ui::MessageItem*>(_item))
             {
                 QString selectedText = messageItem->selection(true);
@@ -440,7 +463,7 @@ namespace Ui
                 if (selectedText.isEmpty())
                     return true;
 
-                result.append(complexItem->getQuotes());
+                result += complexItem->getQuotes();
                 return true;
             }
 
@@ -451,11 +474,11 @@ namespace Ui
         return result;
     }
 
-    QList<Logic::MessageKey> MessagesScrollArea::getKeysToUnload() const
+    QVector<Logic::MessageKey> MessagesScrollArea::getKeysToUnload() const
     {
         if (!Layout_->isViewportAtBottom())
         {
-            return QList<Logic::MessageKey>();
+            return QVector<Logic::MessageKey>();
         }
 
         const auto itemsHeight = Layout_->getItemsHeight();
@@ -467,7 +490,7 @@ namespace Ui
         const auto triggerThreasholdNotReached = (itemsHeight < triggerThreshold);
         if (triggerThreasholdNotReached)
         {
-            return QList<Logic::MessageKey>();
+            return QVector<Logic::MessageKey>();
         }
 
         const auto unloadThresholdK = 2.8;
@@ -493,16 +516,19 @@ namespace Ui
 
         LastMouseGlobalPos_ = e->globalPos();
 
-        const auto mouseAbsPos = Layout_->viewport2Absolute(e->pos());
-
-        if (SelectionBeginAbsPos_.isNull())
+        if (IsSelecting_)
         {
-            SelectionBeginAbsPos_ = mouseAbsPos;
+            const auto mouseAbsPos = Layout_->viewport2Absolute(e->pos());
+
+            if (SelectionBeginAbsPos_.isNull())
+            {
+                SelectionBeginAbsPos_ = mouseAbsPos;
+            }
+
+            SelectionEndAbsPos_ = mouseAbsPos;
+
+            applySelection();
         }
-
-        SelectionEndAbsPos_ = mouseAbsPos;
-
-        applySelection();
 
         auto mouseY = e->pos().y();
 
@@ -544,8 +570,22 @@ namespace Ui
 
         const auto isLeftButton = ((e->buttons() & Qt::LeftButton) != 0);
         const auto isGenuine = (e->source() == Qt::MouseEventNotSynthesized);
-
         const auto isSelectionStart = (isLeftButton && isGenuine && smilesMenu->IsHidden());
+
+        if (isLeftButton)
+        {
+            if (timestampTimer_.isActive())
+            {
+                timestampTimer_.stop();
+                onTimestampTimer();
+            }
+            else
+            {
+                resetTimestampTimer();
+            }
+
+            emit Utils::InterConnector::instance().hideMentionCompleter();
+        }
 
         if (!isSelectionStart)
         {
@@ -633,6 +673,7 @@ namespace Ui
         e->accept();
 
         resetUserActivityTimer();
+        resetTimestampTimer();
 
         if (!Scrollbar_->isVisible())
         {
@@ -644,6 +685,21 @@ namespace Ui
 
         startScrollAnimation(ScrollingMode::Plain);
 
+        int delta = 0;
+#ifdef __APPLE__
+        QPoint numPixels = e->pixelDelta();
+        QPoint numDegrees = e->angleDelta() / 8;
+
+        if (!numPixels.isNull())
+        {
+            delta = numPixels.y();
+        }
+        else if (!numDegrees.isNull())
+        {
+            QPoint numSteps = numDegrees / 15;
+            delta = numSteps.y();
+        }
+#else
         const auto pxDelta = e->pixelDelta();
         const auto isHorMove = (
             !pxDelta.isNull() &&
@@ -654,7 +710,9 @@ namespace Ui
             return;
         }
 
-        auto delta = e->delta();
+        delta = e->delta();
+#endif //__APPLE__
+
         delta /= Utils::scale_value(1);
         delta = -delta;
 
@@ -681,6 +739,11 @@ namespace Ui
         ScrollDistance_ = std::min(ScrollDistance_, getMaximumScrollDistance());
     }
 
+    void MessagesScrollArea::hideEvent(QHideEvent *)
+    {
+        timestampTimer_.stop();
+    }
+
     void MessagesScrollArea::scroll(ScrollDerection direction, int delta)
     {
         if (delta == 0)
@@ -689,6 +752,7 @@ namespace Ui
         }
 
         resetUserActivityTimer();
+        resetTimestampTimer();
 
         if (!Scrollbar_->isVisible())
         {
@@ -852,6 +916,7 @@ namespace Ui
         );
 
         resetUserActivityTimer();
+        resetTimestampTimer();
     }
 
     void MessagesScrollArea::onSliderPressed()
@@ -866,27 +931,42 @@ namespace Ui
         const auto scrollBounds = Layout_->getViewportScrollBounds();
         const auto absY = Layout_->getViewportAbsY();
 
+        const bool isAtBottom = isScrollAtBottom();
+
         if ((scrollValue_ == -1 || scrollValue_ < value) && IsSearching_ && MessagesScrollbar::getPreloadingDistance() + absY > scrollBounds.second)
         {
-            emit fetchRequestedEvent(false /* don't move to bottom */);
+           emit fetchRequestedEvent(false /* don't move to bottom */);
         }
         else if ((scrollValue_ == -1 || scrollValue_ > value) && Scrollbar_->isInFetchRange(value))
         {
             emit fetchRequestedEvent(true);
-        } 
+        }
 
         if (Mode_ == ScrollingMode::Selection)
         {
             applySelection();
         }
 
-        if (isScrollAtBottom())
+        if (isAtBottom)
         {
             emit scrollMovedToBottom();
         }
 
         scrollValue_ = value;
         Layout_->updateDistanceForViewportItems();
+    }
+
+    void MessagesScrollArea::updateMode()
+    {
+        if (recvLastMessage_)
+        {
+            if (getIsSearch())
+                setIsSearch(false);
+        }
+        else if (getMessageId() > 0)
+        {
+            setIsSearch(true);
+        }
     }
 
     void MessagesScrollArea::applySelection(const bool forShift)
@@ -1057,6 +1137,14 @@ namespace Ui
         UserActivityTimer_.start();
     }
 
+    void MessagesScrollArea::resetTimestampTimer()
+    {
+        emit Utils::InterConnector::instance().showMessageHiddenControls();
+        emit Utils::InterConnector::instance().setTimestampHoverActionsEnabled(false);
+
+        timestampTimer_.start();
+    }
+
     void MessagesScrollArea::onIdleUserActivityTimeout()
     {
         UserActivityTimer_.stop();
@@ -1092,9 +1180,29 @@ namespace Ui
         return IsSearching_;
     }
 
+    void MessagesScrollArea::setMessageId(qint64 _id)
+    {
+        messageId_ = _id;
+    }
+
+    qint64 MessagesScrollArea::getMessageId() const
+    {
+        return messageId_;
+    }
+
+    void MessagesScrollArea::setRecvLastMessage(bool _value)
+    {
+        recvLastMessage_ = _value;
+    }
+
     void MessagesScrollArea::updateItems()
     {
         Layout_->updateItemsWidth();
+    }
+
+    void MessagesScrollArea::enableViewportShifting(bool enable)
+    {
+        Layout_->enableViewportShifting(enable);
     }
 }
 

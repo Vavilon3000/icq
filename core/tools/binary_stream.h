@@ -224,7 +224,7 @@ namespace core
             {
                 return buffer_.data();
             }
-            
+
             void set_output(uint32_t _value)
             {
                 output_cursor_ = _value;

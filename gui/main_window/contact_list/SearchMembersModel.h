@@ -18,9 +18,9 @@ namespace Logic
     public Q_SLOTS:
         void searchPatternChanged(QString) override;
         void searchResult(QStringList);
-        
+
     private Q_SLOTS:
-        void avatarLoaded(QString _aimId);
+        void avatarLoaded(const QString& _aimId);
 
     public:
         SearchMembersModel(QObject* _parent);
@@ -35,8 +35,8 @@ namespace Logic
         void setChatMembersModel(ChatMembersModel* _membersModel);
         virtual bool isServiceItem(int i) const override;
 
-        virtual QString getCurrentPattern() const;
-        
+        QString getCurrentPattern() const override;
+
     private:
         mutable std::vector<Data::ChatMemberInfo> match_;
         QStringList searchPatterns_;
@@ -45,6 +45,6 @@ namespace Logic
         bool selectEnabled_;
         ChatMembersModel* chatMembersModel_;
     };
-    
-    SearchMembersModel* getSearchMemberModel();
+
+    SearchMembersModel* getSearchMemberModel(QObject* _parent);
 }

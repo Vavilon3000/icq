@@ -8,9 +8,9 @@
 using namespace core;
 using namespace wim;
 
-phone_login::phone_login(const wim_packet_params& params, const phone_info& _info)
-    : wim_packet(params)
-    , info_(new phone_info(_info))
+phone_login::phone_login(wim_packet_params params, phone_info _info)
+    : wim_packet(std::move(params))
+    , info_(std::make_shared<phone_info>(std::move(_info)))
     , expired_in_(0)
     , host_time_(0)
     , time_offset_(0)
@@ -28,11 +28,11 @@ phone_login::~phone_login()
 int32_t phone_login::init_request(std::shared_ptr<core::http_request_simple> _request)
 {
     std::stringstream ss_url;
-    ss_url << "https://www.icq.com/smsreg/loginWithPhoneNumber.php?" << 
+    ss_url << "https://www.icq.com/smsreg/loginWithPhoneNumber.php?" <<
         "&msisdn=" << info_->get_phone() <<
         "&trans_id=" << info_->get_trans_id() <<
         "&k=" << params_.dev_id_ <<
-        "&r=" << core::tools::system::generate_guid() << 
+        "&r=" << core::tools::system::generate_guid() <<
         "&f=json" <<
         "&sms_code=" << info_->get_sms_code() <<
         "&create_account=1";
@@ -63,7 +63,7 @@ int32_t core::wim::phone_login::parse_response_data(const rapidjson::Value& _dat
         if (iter_session_key == _data.MemberEnd() || !iter_session_key->value.IsString())
             return wpie_http_parse_response;
 
-        session_key_ = iter_session_key->value.GetString();
+        session_key_ = rapidjson_get_string(iter_session_key->value);
 
         auto iter_host_time = _data.FindMember("hostTime");
         if (iter_host_time == _data.MemberEnd() || !iter_host_time->value.IsUint())
@@ -82,7 +82,7 @@ int32_t core::wim::phone_login::parse_response_data(const rapidjson::Value& _dat
             return wpie_http_parse_response;
 
         expired_in_ = iter_expired_in->value.GetUint();
-        a_token_ = iter_a->value.GetString();
+        a_token_ = rapidjson_get_string(iter_a->value);
 
         time_offset_ = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) - host_time_;
 
@@ -100,7 +100,7 @@ int32_t core::wim::phone_login::on_http_client_error()
     {
     case 401:
     case 463:
-    case 466: 
+    case 466:
     case 468:
     case 469:
         return wpie_wrong_login;

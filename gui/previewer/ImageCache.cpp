@@ -26,7 +26,7 @@ void Previewer::ImageCache::repair()
 
     Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
     collection.set_value_as_qstring("contact", aimId_);
-    Ui::GetDispatcher()->post_message_to_core("archive/images/repair", collection.get());
+    Ui::GetDispatcher()->post_message_to_core(qsl("archive/images/repair"), collection.get());
 
     loadImages(-1);
 }
@@ -64,5 +64,5 @@ void Previewer::ImageCache::loadImages(int64_t _from)
     collection.set_value_as_qstring("contact", aimId_);
     collection.set_value_as_int64("from", _from);
     collection.set_value_as_int64("count", fetchSize);
-    Ui::GetDispatcher()->post_message_to_core("archive/images/get", collection.get());
+    Ui::GetDispatcher()->post_message_to_core(qsl("archive/images/get"), collection.get());
 }

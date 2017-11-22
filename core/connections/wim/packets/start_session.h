@@ -49,12 +49,19 @@ namespace core
             bool need_relogin() const { return need_relogin_; }
             bool need_correct_ts() const { return correct_ts_; }
 
-            const std::string get_fetch_url() const { return fetch_url_; }
-            const std::string get_aimsid() const { return aimsid_; }
-            const time_t get_ts() const { return ts_; }
-            const std::string get_aimid() const { return aimid_; }
+            const std::string& get_fetch_url() const { return fetch_url_; }
+            const std::string& get_aimsid() const { return aimsid_; }
+            time_t get_ts() const { return ts_; }
+            const std::string& get_aimid() const { return aimid_; }
 
-            start_session(const wim_packet_params& params, bool _is_ping, const std::string& _uniq_device_id, const std::string& _locale, time_t _timeout, std::function<bool(int32_t)> _wait_function);
+            start_session(
+                wim_packet_params params, 
+                const bool _is_ping,
+                const std::string& _uniq_device_id,
+                const std::string& _locale, 
+                const time_t _timeout, 
+                std::function<bool(const int32_t)> _wait_function);
+
             virtual ~start_session();
         };
     }

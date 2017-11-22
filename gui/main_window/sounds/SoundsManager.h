@@ -28,20 +28,20 @@ namespace Ui
         int Id_;
     };
 
-	class SoundsManager : public QObject
-	{
-		Q_OBJECT
+    class SoundsManager : public QObject
+    {
+        Q_OBJECT
 Q_SIGNALS:
         void pttPaused(int);
         void pttFinished(int, bool);
         void needUpdateDeviceTimer();
 
-	public:
-		SoundsManager();
-		~SoundsManager();
+    public:
+        SoundsManager();
+        ~SoundsManager();
 
-		void playIncomingMessage();
-		void playOutgoingMessage();
+        void playIncomingMessage();
+        void playOutgoingMessage();
         void playIncomingMail();
 
         int playPtt(const QString& file, int id, int& duration);
@@ -50,12 +50,12 @@ Q_SIGNALS:
         void delayDeviceTimer();
         void sourcePlay(unsigned source);
 
-		void callInProgress(bool value);
+        void callInProgress(bool value);
 
         void reinit();
 
-	private Q_SLOTS:
-		void timedOut();
+    private Q_SLOTS:
+        void timedOut();
         void checkPttState();
         void contactChanged(QString);
         void deviceTimeOut();
@@ -67,9 +67,9 @@ Q_SIGNALS:
         void initOutgoing();
         void updateDeviceTimer();
 
-	private:
-		bool CallInProgress_;
-		bool CanPlayIncoming_;
+    private:
+        bool CallInProgress_;
+        bool CanPlayIncoming_;
 
         PlayingData Incoming_;
         PlayingData Outgoing_;
@@ -85,8 +85,8 @@ Q_SIGNALS:
         QTimer* Timer_;
         QTimer* PttTimer_;
         QTimer* DeviceTimer_;
-	};
+    };
 
-	SoundsManager* GetSoundsManager();
+    SoundsManager* GetSoundsManager();
     void ResetSoundsManager();
 }

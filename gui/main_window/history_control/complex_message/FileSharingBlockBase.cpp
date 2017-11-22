@@ -28,22 +28,20 @@ FileSharingBlockBase::FileSharingBlockBase(
             (MenuFlags::MenuFlagFileCopyable | MenuFlags::MenuFlagLinkCopyable )
             : (MenuFlags::MenuFlagFileCopyable | MenuFlags::MenuFlagLinkCopyable | MenuFlags::MenuFlagOpenInBrowser)),
         true)
-    , Link_(_link)
-    , Type_(_type)
-    , Layout_(nullptr)
-    , IsSelected_(false)
+    , BytesTransferred_(-1)
     , CopyFile_(false)
     , DownloadRequestId_(-1)
-    , BytesTransferred_(-1)
-    , FileSizeBytes_(-1)
     , FileMetaRequestId_(-1)
+    , FileSizeBytes_(-1)
+    , IsSelected_(false)
+    , Layout_(nullptr)
+    , Link_(Utils::normalizeLink(_link))
     , PreviewMetaRequestId_(-1)
+    , Type_(_type)
     , MaxPreviewWidth_(0)
-    , ref_(new bool(false))
+    , ref_(std::make_shared<bool>(false))
 {
-    assert(!Link_.isEmpty());
-
-    Link_ = Utils::normalizeLink(Link_);
+    assert(!_link.isEmpty());
 
     assert(Type_ > core::file_sharing_content_type::min);
     assert(Type_ < core::file_sharing_content_type::max);
@@ -73,12 +71,11 @@ QString FileSharingBlockBase::formatRecentsText() const
     switch (getType())
     {
         case file_sharing_content_type::gif:
+            return QT_TRANSLATE_NOOP("contact_list", "GIF");
+
         case file_sharing_content_type::image:
-        case file_sharing_content_type::snap_gif:
-        case file_sharing_content_type::snap_image:
             return QT_TRANSLATE_NOOP("contact_list", "Photo");
 
-        case file_sharing_content_type::snap_video:
         case file_sharing_content_type::video:
             return QT_TRANSLATE_NOOP("contact_list", "Video");
 
@@ -229,25 +226,17 @@ bool FileSharingBlockBase::isFileDownloading() const
 
 bool FileSharingBlockBase::isGifImage() const
 {
-    return ((getType() == core::file_sharing_content_type::gif) ||
-        (getType() == core::file_sharing_content_type::snap_gif));
+    return (getType() == core::file_sharing_content_type::gif);
 }
 
 bool FileSharingBlockBase::isImage() const
 {
-    return ((getType() == core::file_sharing_content_type::image) ||
-            (getType() == core::file_sharing_content_type::snap_image));
+    return (getType() == core::file_sharing_content_type::image);
 }
 
 bool FileSharingBlockBase::isVideo() const
 {
-    return ((getType() == core::file_sharing_content_type::video) ||
-        (getType() == core::file_sharing_content_type::snap_video));
-}
-
-bool FileSharingBlockBase::isSnap() const
-{
-    return is_snap_file_sharing_content_type(getType());
+    return (getType() == core::file_sharing_content_type::video);
 }
 
 bool FileSharingBlockBase::isPlainFile() const
@@ -284,7 +273,10 @@ void FileSharingBlockBase::onMenuCopyFile()
     auto filename = urlParser.fileName();
     if (filename.isEmpty())
     {
-        static const QRegularExpression re("[{}-]");
+        static const QRegularExpression re(
+            qsl("[{}-]"),
+            QRegularExpression::UseUnicodePropertiesOption | QRegularExpression::OptimizeOnFirstUsageOption
+        );
 
         filename = QUuid::createUuid().toString();
         filename.remove(re);
@@ -310,14 +302,9 @@ void FileSharingBlockBase::onMenuSaveFileAs()
         if (!ref)
             return;
 
-        QString dir = dir_result;
-
-        const auto addTrailingSlash = (!dir.endsWith('\\') && !dir.endsWith('/'));
-        if (addTrailingSlash)
-        {
-            dir += "/";
-        }
-        dir += file;
+        const auto addTrailingSlash = (!dir_result.endsWith(ql1c('\\')) && !dir_result.endsWith(ql1c('/')));
+        const auto slash = ql1s(addTrailingSlash ? "/" : "");
+        const QString dir = dir_result % slash % file;
         QFile::remove(dir);
 
         SaveAs_ = dir;
@@ -569,6 +556,8 @@ void FileSharingBlockBase::onFileMetainfoDownloaded(qint64 seq, QString filename
     directUri_ = downloadUri;
 
     onMetainfoDownloaded();
+
+    notifyBlockContentsChanged();
 }
 
 void FileSharingBlockBase::onFileSharingError(qint64 seq, QString /*rawUri*/, qint32 errorCode)
@@ -590,16 +579,8 @@ void FileSharingBlockBase::onFileSharingError(qint64 seq, QString /*rawUri*/, qi
 
     onDownloadingFailed(seq);
 
-    if (isSnap() && (loader_errors) errorCode == loader_errors::metainfo_not_found && (isFileMetainfoRequestFailed || isPreviewMetainfoRequestFailed))
-        markSnapExpired();
-
     if ((loader_errors) errorCode == loader_errors::move_file)
         onDownloaded();//stop animation
-}
-
-void FileSharingBlockBase::markSnapExpired()
-{
-
 }
 
 void FileSharingBlockBase::onPreviewMetainfoDownloadedSlot(qint64 seq, QString miniPreviewUri, QString fullPreviewUri)

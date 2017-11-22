@@ -7,9 +7,9 @@
 using namespace core;
 using namespace wim;
 
-hide_chat::hide_chat(const wim_packet_params& _params, const std::string& _aimid, int64_t _last_msg_id)
-    :	
-    wim_packet(_params),
+hide_chat::hide_chat(wim_packet_params _params, const std::string& _aimid, int64_t _last_msg_id)
+    :
+    wim_packet(std::move(_params)),
     aimid_(_aimid),
     last_msg_id_(_last_msg_id)
 {
@@ -26,13 +26,20 @@ int32_t hide_chat::init_request(std::shared_ptr<core::http_request_simple> _requ
     std::string method;
 
     std::stringstream ss_url;
-    ss_url << c_wim_host << "buddylist/hideChat" << method << "?f=json" << "&aimsid=" << escape_symbols(get_params().aimsid_) << 
+    ss_url << c_wim_host << "buddylist/hideChat" << method << "?f=json" << "&aimsid=" << escape_symbols(get_params().aimsid_) <<
         "&buddy=" << escape_symbols(aimid_) <<
         "&r=" << core::tools::system::generate_guid() <<
         "&lastMsgId=" << last_msg_id_;
 
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

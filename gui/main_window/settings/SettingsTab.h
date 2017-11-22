@@ -7,7 +7,7 @@ namespace Utils
 
 namespace Ui
 {
-    
+
     class SettingsTab : public QWidget
     {
         class UI;
@@ -32,10 +32,10 @@ namespace Ui
     public:
         SettingsTab(QWidget* _parent);
         ~SettingsTab() throw();
-        
+
         void cleanSelection();
         void setCompactMode(bool isCompact, bool force = false);
-        
+
     private:
         void updateSettingsState();
     };

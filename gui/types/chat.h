@@ -12,11 +12,11 @@ namespace Data
 	class ChatMemberInfo
 	{
 	public:
-		ChatMemberInfo()
-			: Friend_(false)
-			, NoAvatar_(false)
-		{
-		}
+
+        bool operator==(const ChatMemberInfo& other) const
+        {
+            return AimId_ == other.AimId_;
+        }
 
 		QString AimId_;
 		QString Role_;
@@ -24,52 +24,60 @@ namespace Data
 		QString LastName_;
 		QString NickName_;
 
-        const QString getFriendly() const;
+        QString getFriendly() const;
 
-		bool Friend_;
-		bool NoAvatar_;
+		bool Friend_ = false;
+		bool NoAvatar_ = false;
 	};
 
 	class ChatInfo
 	{
-	public:
-		ChatInfo();
-
-		QString AimId_;
-		QString Name_;
+    public:
+        QString AimId_;
+        QString Name_;
         QString Location_;
-		QString About_;
-		QString YourRole_;
-		QString Owner_;
-		QString MembersVersion_;
-		QString InfoVersion_;
+        QString About_;
+        QString YourRole_;
+        QString Owner_;
+        QString MembersVersion_;
+        QString InfoVersion_;
         QString Stamp_;
         QString Creator_;
         QString DefaultRole_;
 
-		int32_t CreateTime_;
-		int32_t MembersCount_;
-		int32_t FriendsCount;
-		int32_t BlockedCount_;
-        int32_t PendingCount_;
+        int32_t CreateTime_ = -1;
+        int32_t MembersCount_ = - 1;
+        int32_t FriendsCount = -1;
+        int32_t BlockedCount_ = -1;
+        int32_t PendingCount_ = -1;
 
-		bool YouBlocked_;
-        bool YouPending_;
-		bool Public_;
-        bool ApprovedJoin_;
-        bool AgeRestriction_;
-		bool Live_;
-		bool Controlled_;
-        bool YouMember_;
+        bool YouBlocked_ = false;
+        bool YouPending_ = false;
+        bool Public_ = false;
+        bool ApprovedJoin_ = false;
+        bool AgeRestriction_ = false;
+        bool Live_ = false;
+        bool Controlled_ = false;
+        bool YouMember_ = false;
 
-		QList<ChatMemberInfo> Members_;
+        QVector<ChatMemberInfo> Members_;
 	};
 
-    void UnserializeChatMembers(core::coll_helper* helper, QList<ChatMemberInfo>& members);
-    void UnserializeChatInfo(core::coll_helper* helper, ChatInfo& info);
-    void UnserializeChatHome(core::coll_helper* helper, QList<ChatInfo>& chats, QString& newTag, bool& restart, bool& finished);
+    QVector<ChatMemberInfo> UnserializeChatMembers(core::coll_helper* helper);
+    ChatInfo UnserializeChatInfo(core::coll_helper* helper);
+
+    struct ChatResult
+    {
+        QVector<ChatInfo> chats;
+        QString newTag;
+        bool restart = false;
+        bool finished = false;
+    };
+
+    ChatResult UnserializeChatHome(core::coll_helper* helper);
 }
 
 Q_DECLARE_METATYPE(Data::ChatMemberInfo*);
 Q_DECLARE_METATYPE(Data::ChatInfo);
-Q_DECLARE_METATYPE(QList<Data::ChatMemberInfo>);
+Q_DECLARE_METATYPE(QVector<Data::ChatInfo>);
+Q_DECLARE_METATYPE(QVector<Data::ChatMemberInfo>);

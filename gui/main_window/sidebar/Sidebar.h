@@ -2,6 +2,8 @@
 
 namespace Ui
 {
+    class SemitransparentWindowAnimated;
+
     enum SidebarPages
     {
         menu_page = 0,
@@ -41,22 +43,38 @@ namespace Ui
     class Sidebar : public QStackedWidget, public SidebarWidth
     {
         Q_OBJECT
+
+    public Q_SLOTS:
+        void showAnimated();
+        void hideAnimated();
+
     public:
-        Sidebar(QWidget* parent);
+        Sidebar(QWidget* _parent, bool _isEmbedded = false);
         void preparePage(const QString& aimId, SidebarPages page);
-        virtual void setSidebarWidth(int width);
+        void setSidebarWidth(int width) override;
         void showAllMembers();
         int currentPage() const;
         QString currentAimId() const;
+        void updateSize();
 
     protected:
-        virtual void updateWidth() {}
+        void updateWidth() override;
 
     private Q_SLOTS:
         void contactRemoved(QString);
+        void onAnimationFinished();
 
     private:
         QMap<int, SidebarPage*> pages_;
         QString currentAimId_;
+        SemitransparentWindowAnimated* semiWindow_;
+        QPropertyAnimation* animSidebar_;
+        int anim_;
+        bool embedded_;
+
+    private:
+        Q_PROPERTY(int anim READ getAnim WRITE setAnim)
+        void setAnim(int _val);
+        int getAnim() const;
     };
 }

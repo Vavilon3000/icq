@@ -2,7 +2,6 @@
 
 #include "../loader/loader_helpers.h"
 #include "../loader/preview_proxy.h"
-#include "../loader/snap_metainfo.h"
 #include "../loader/web_file_info.h"
 
 #include "async_handler.h"
@@ -26,13 +25,11 @@ namespace core
         typedef transferred_data<void> default_data_t;
         typedef transferred_data<downloaded_file_info> file_info_data_t;
         typedef transferred_data<preview_proxy::link_meta> link_meta_data_t;
-        typedef transferred_data<snaps::snap_metainfo> snap_meta_data_t;
         typedef transferred_data<file_sharing_meta> file_sharing_meta_data_t;
 
         typedef async_handler<void> default_handler_t;
         typedef async_handler<downloaded_file_info> file_info_handler_t;
         typedef async_handler<preview_proxy::link_meta> link_meta_handler_t;
-        typedef async_handler<snaps::snap_metainfo> snap_meta_handler_t;
         typedef async_handler<file_sharing_meta> file_sharing_meta_handler_t;
 
         struct wim_packet_params;
@@ -45,21 +42,20 @@ namespace core
 
             void set_download_dir(const std::wstring& _download_dir);
 
-            void download(priority_t _priority, const std::string& _url, const wim_packet_params& _wim_params, default_handler_t _handler);
+            void download(priority_t _priority, const std::string& _url, const wim_packet_params& _wim_params, default_handler_t _handler, time_t _last_modified_time = 0);
 
-            void download_file(priority_t _priority, const std::string& _url, const std::wstring& _file_name, const wim_packet_params& _wim_params, file_info_handler_t _handler = file_info_handler_t());
-            void download_file(priority_t _priority, const std::string& _url, const std::string& _file_name, const wim_packet_params& _wim_params, file_info_handler_t _handler = file_info_handler_t());
+            void download_file(priority_t _priority, const std::string& _url, const std::wstring& _file_name, const wim_packet_params& _wim_params, file_info_handler_t _handler = file_info_handler_t(), time_t _last_modified_time = 0);
+            void download_file(priority_t _priority, const std::string& _url, const std::string& _file_name, const wim_packet_params& _wim_params, file_info_handler_t _handler = file_info_handler_t(), time_t _last_modified_time = 0);
 
             void cancel(const std::string& _url);
 
             void download_image_metainfo(const std::string& _url, const wim_packet_params& _wim_params, link_meta_handler_t _handler = link_meta_handler_t());
-            void download_snap_metainfo(const std::string& _ttl_id, const wim_packet_params& _wim_params, snap_meta_handler_t _handler = snap_meta_handler_t());
             void download_file_sharing_metainfo(const std::string& _url, const wim_packet_params& _wim_params, file_sharing_meta_handler_t _handler = file_sharing_meta_handler_t());
 
             void download_image_preview(priority_t _priority, const std::string& _url, const wim_packet_params& _wim_params, link_meta_handler_t _metainfo_handler = link_meta_handler_t(), file_info_handler_t _preview_handler = file_info_handler_t());
 
-            void download_image(priority_t _priority, const std::string& _url, const wim_packet_params& _wim_params, file_info_handler_t _preview_handler = file_info_handler_t());
-            void download_image(priority_t _priority, const std::string& _url, const std::string& _file_name, const wim_packet_params& _wim_params, file_info_handler_t _preview_handler = file_info_handler_t());
+            void download_image(priority_t _priority, const std::string& _url, const wim_packet_params& _wim_params, const bool& _use_proxy, file_info_handler_t _preview_handler = file_info_handler_t());
+            void download_image(priority_t _priority, const std::string& _url, const std::string& _file_name, const wim_packet_params& _wim_params, const bool& _use_proxy, file_info_handler_t _preview_handler = file_info_handler_t());
 
             void download_file_sharing(priority_t _priority, const std::string& _contact, const std::string& _url, const std::string& _file_name, const wim_packet_params& _wim_params, file_info_handler_t _handler = file_info_handler_t());
             void cancel_file_sharing(const std::string& _url);
@@ -172,10 +168,10 @@ namespace core
             std::wstring download_dir_;
 
             std::unordered_map<std::string, downloadable_file_chunks_ptr> in_progress_;
-            std::mutex in_progress_mutex_;
+            boost::mutex in_progress_mutex_;
 
             std::unordered_set<hash_t> to_cancel_;
-            std::mutex to_cancel_mutex_;
+            boost::mutex to_cancel_mutex_;
 
             typedef std::function<void(const wim_packet_params& _wim_params)> suspended_task_t;
             std::queue<suspended_task_t> suspended_tasks_;

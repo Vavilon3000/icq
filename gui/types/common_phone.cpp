@@ -8,7 +8,7 @@ namespace Data
     {
         //
     }
-    
+
     PhoneInfo::~PhoneInfo()
     {
         //

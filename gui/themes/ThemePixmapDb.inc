@@ -12,8 +12,6 @@ std::make_tuple(PixmapResourceId::FileSharingShareContentHover,				"file_sharing
 std::make_tuple(PixmapResourceId::FileSharingBlankButtonIcon48,				"file_sharing",		"blank_icon_48"),
 std::make_tuple(PixmapResourceId::FileSharingBlankButtonIcon24,				"file_sharing",		"blank_icon_24"),
 
-std::make_tuple(PixmapResourceId::FileSharingSnapExpired,					"file_sharing",		"snap_expired"),
-
 std::make_tuple(PixmapResourceId::FileSharingPttPause,						"file_sharing",		"pause_ptt"),
 std::make_tuple(PixmapResourceId::FileSharingPttPauseActive,				"file_sharing",		"pause_ptt_active"),
 std::make_tuple(PixmapResourceId::FileSharingPttPauseHover,					"file_sharing",		"pause_ptt_hover"),
@@ -52,7 +50,8 @@ std::make_tuple(PixmapResourceId::VoipEventOutgoingCallIcon,				"voip_events",		
 std::make_tuple(PixmapResourceId::VoipEventCallEndedIcon,					"voip_events",		"call_ended_icon"),
 
 std::make_tuple(PixmapResourceId::StickerHistoryPlaceholder,				"stickers",			"placeholder_history"),
+std::make_tuple(PixmapResourceId::StickerHistoryFailed,						"stickers",			"deleted_stiker"),
 std::make_tuple(PixmapResourceId::StickerPickerPlaceholder,					"stickers",			"placeholder_picker"),
 
-std::make_tuple(PixmapResourceId::PreviewerReload,							"previewer",		"content_reloadmedia"),
-std::make_tuple(PixmapResourceId::PreviewerReloadHover,						"previewer",		"content_reloadmedia_hover"),
+std::make_tuple(PixmapResourceId::PreviewerReload,							"previewer",		"reloadmedia"),
+std::make_tuple(PixmapResourceId::PreviewerReloadHover,						"previewer",		"reloadmedia_hover"),

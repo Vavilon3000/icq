@@ -28,7 +28,7 @@ namespace core
 
         public:
 
-            robusto_add_client(const wim_packet_params& _params);
+            robusto_add_client(wim_packet_params _params);
             virtual ~robusto_add_client();
 
             uint32_t get_client_id() const { return client_id_; }

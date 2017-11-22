@@ -8,19 +8,20 @@ class ComplexMessageItem;
 
 namespace ComplexMessageItemBuilder
 {
-    ComplexMessageItem* makeComplexItem(
-        QWidget *parent,
-        const int64_t id,
-        const QDate date,
-        const int64_t prev,
-        const QString &text,
-        const QString &chatAimid,
-        const QString &senderAimid,
-        const QString &senderFriendly,
-        const QList<Data::Quote>& quotes,
-        HistoryControl::StickerInfoSptr sticker,
-        const bool isOutgoing,
-        const bool isNotAuth);
+    std::unique_ptr<ComplexMessageItem> makeComplexItem(
+        QWidget *_parent,
+        const int64_t _id,
+        const QDate _date,
+        const int64_t _prev,
+        const QString& _text,
+        const QString& _chatAimid,
+        const QString& _senderAimid,
+        const QString& _senderFriendly,
+        const QVector<Data::Quote>& _quotes,
+        const Data::MentionMap& _mentions,
+        HistoryControl::StickerInfoSptr _sticker,
+        const bool _isOutgoing,
+        const bool _isNotAuth);
 
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../namespaces.h"
+#include "../../../animation/animation.h"
 
 #include "PreviewContentWidget.h"
 #include "../../../utils/LoadMovieFromFileTask.h"
@@ -25,50 +26,52 @@ namespace Ui
 namespace HistoryControl
 {
 
-	typedef std::shared_ptr<class FileSharingInfo> FileSharingInfoSptr;
+    typedef std::shared_ptr<class FileSharingInfo> FileSharingInfoSptr;
 
-	class FileSharingWidget : public PreviewContentWidget
-	{
-		Q_OBJECT
+    class FileSharingWidget : public PreviewContentWidget
+    {
+        Q_OBJECT
 
-	// --------------------------------------------------------------------------------------------------------------------------------
-	// Qt Properties
+            // --------------------------------------------------------------------------------------------------------------------------------
+            // Qt Properties
 
-	public:
-		Q_PROPERTY(int DownloadingBarBaseAngle READ getDownloadingBarBaseAngle WRITE setDownloadingBarBaseAngle)
+    public:
+        Q_PROPERTY(int DownloadingBarBaseAngle READ getDownloadingBarBaseAngle WRITE setDownloadingBarBaseAngle)
 
-		void setDownloadingBarBaseAngle(int _val);
+            void setDownloadingBarBaseAngle(int _val);
 
-		int getDownloadingBarBaseAngle() const;
+        int getDownloadingBarBaseAngle() const;
 
-	// --------------------------------------------------------------------------------------------------------------------------------
-	// Public
+        // --------------------------------------------------------------------------------------------------------------------------------
+        // Public
 
-	public:
+    public:
         FileSharingWidget(const FileSharingInfoSptr& fsInfo, const QString& contactUin);
 
-		FileSharingWidget(
+        FileSharingWidget(
             Ui::MessageItem* parent,
             const bool isOutgoing,
             const QString &contactUin,
             const FileSharingInfoSptr& fsInfo,
             const bool previewsEnabled);
-        
+
         void shareRoutine();
 
-		virtual ~FileSharingWidget() override;
+        virtual ~FileSharingWidget() override;
 
-		virtual bool isBlockElement() const override;
+        QRect getLastPreviewGeometry() override;
+
+        virtual bool isBlockElement() const override;
 
         virtual bool canReplace() const override;
 
-		virtual bool canUnload() const override;
+        virtual bool canUnload() const override;
 
-		virtual QString toLogString() const override;
+        virtual QString toLogString() const override;
 
         virtual QString toRecentsString() const override;
 
-		virtual QString toString() const override;
+        virtual QString toString() const override;
 
         virtual void copyFile() override;
 
@@ -86,10 +89,10 @@ namespace HistoryControl
 
         virtual void onDistanceToViewportChanged(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect) override;
 
-	// --------------------------------------------------------------------------------------------------------------------------------
-	// Protected
+        // --------------------------------------------------------------------------------------------------------------------------------
+        // Protected
 
-	protected:
+    protected:
         virtual void enterEvent(QEvent *event) override;
 
         virtual void initialize() override;
@@ -98,9 +101,9 @@ namespace HistoryControl
 
         virtual void leaveEvent(QEvent *event) override;
 
-		virtual void mouseMoveEvent(QMouseEvent *event) override;
+        virtual void mouseMoveEvent(QMouseEvent *event) override;
 
-		virtual void mouseReleaseEvent(QMouseEvent *event) override;
+        virtual void mouseReleaseEvent(QMouseEvent *event) override;
 
         virtual void renderPreview(QPainter &p, const bool isAnimating, QPainterPath& _path, const QColor& quote_color) override;
 
@@ -108,23 +111,23 @@ namespace HistoryControl
 
         virtual bool drag() override;
 
-	// --------------------------------------------------------------------------------------------------------------------------------
-	// Slots
+        // --------------------------------------------------------------------------------------------------------------------------------
+        // Slots
 
-	private Q_SLOTS:
-		void onFileMetainfo(qint64 seq, QString filename, QString downloadUri, qint64 size);
+        private Q_SLOTS:
+        void onFileMetainfo(qint64 seq, QString filename, QString downloadUri, qint64 size);
 
         void onPreviewMetainfo(qint64 seq, QString miniPreviewUri, QString fullPreviewUri);
 
-		void imageDownloaded(qint64, QString, QPixmap, QString);
+        void imageDownloaded(qint64, QString, QPixmap, QString);
 
-		void fileDownloaded(qint64, QString, QString);
+        void fileDownloaded(qint64, QString, QString);
 
-		void fileDownloading(qint64, QString, qint64);
+        void fileDownloading(qint64, QString, qint64);
 
-		void fileSharingError(qint64 seq, QString rawUri, qint32 errorCode);
+        void fileSharingError(qint64 seq, QString rawUri, qint32 errorCode);
 
-		void fileSharingUploadingProgress(QString, qint64);
+        void fileSharingUploadingProgress(QString, qint64);
 
         void fileSharingUploadingResult(QString seq, bool success, QString localPath, QString uri, int contentType, bool isFileTooBig);
 
@@ -136,60 +139,60 @@ namespace HistoryControl
 
         void onPaused();
 
-	// --------------------------------------------------------------------------------------------------------------------------------
-	// Private Member Variables
+        // --------------------------------------------------------------------------------------------------------------------------------
+        // Private Member Variables
 
-	private:
+    private:
         Ui::MessageItem* ParentItem_;
 
         enum class State;
 
         enum class PreviewState;
 
-		struct
-		{
-			mutable QRect ControlButtonPreviewRect_;
+        struct
+        {
+            mutable QRect ControlButtonPreviewRect_;
 
-			mutable QRect ControlButtonPlainRect_;
+            mutable QRect ControlButtonPlainRect_;
 
-			State State_;
-		} Private_; // can't touch this
+            State State_;
+        } Private_; // can't touch this
 
-		struct
-		{
-			QString MiniPreviewUri_;
+        struct
+        {
+            QString MiniPreviewUri_;
 
-			QString FullPreviewUri_;
+            QString FullPreviewUri_;
 
-			QString Filename_;
+            QString Filename_;
 
-			qint64 FileSize_;
+            qint64 FileSize_;
 
-			QString FileSizeStr_;
+            QString FileSizeStr_;
 
-			QString DownloadUri_;
-		} Metainfo_;
+            QString DownloadUri_;
+        } Metainfo_;
 
-		const FileSharingInfoSptr FsInfo_;
+        const FileSharingInfoSptr FsInfo_;
 
-		struct
-		{
-			QPixmap FullImg_;
-		} Preview_;
+        struct
+        {
+            QPixmap FullImg_;
+        } Preview_;
 
-		qint64 BytesTransferred_;
+        qint64 BytesTransferred_;
 
-		Themes::IThemePixmapSptr FileTypeIcon_;
+        Themes::IThemePixmapSptr FileTypeIcon_;
 
-		QString FileSizeAndProgressStr_;
+        QString FileSizeAndProgressStr_;
 
-		QRect OpenDownloadsDirButtonRect_;
+        QRect OpenDownloadsDirButtonRect_;
 
-		QString DownloadedFileLocalPath_;
+        QString DownloadedFileLocalPath_;
 
-		qint32 DownloadingBarBaseAngle_;
+        qint32 DownloadingBarBaseAngle_;
 
-		QPropertyAnimation *BaseAngleAnimation_;
+        QPropertyAnimation *BaseAngleAnimation_;
 
         bool SaveAs_;
 
@@ -252,47 +255,49 @@ namespace HistoryControl
 
         std::shared_ptr<bool> ref_;
 
-	// --------------------------------------------------------------------------------------------------------------------------------
-	// Private Methods
+        anim::Animation animation_;
 
-	private:
-		bool canStartImageDownloading(const QPoint &mousePos) const;
+        // --------------------------------------------------------------------------------------------------------------------------------
+        // Private Methods
+
+    private:
+        bool canStartImageDownloading(const QPoint &mousePos) const;
 
         void connectErrorSignal();
 
-		void connectFileDownloadSignals();
+        void connectFileDownloadSignals();
 
         void connectFileUploadingSignals();
 
-		void connectMetainfoSignal();
+        void connectMetainfoSignal();
 
         void connectPreviewSignals();
 
         void connectSignals();
 
-		void convertToPlainFileView();
+        void convertToPlainFileView();
 
-		void convertToUploadErrorView();
+        void convertToUploadErrorView();
 
         QString elideFilename(const QString &text, const QFont &font, const int32_t maxTextWidth);
 
         void formatFileSizeStr();
 
-		const QRect& getControlButtonRect(const QSize &iconSize) const;
+        const QRect& getControlButtonRect(const QSize &iconSize) const;
 
-		const QRect& getControlButtonPlainRect(const QSize &iconSize) const;
+        const QRect& getControlButtonPlainRect(const QSize &iconSize) const;
 
-		const QRect& getControlButtonPreviewRect(const QSize &iconSize) const;
+        const QRect& getControlButtonPreviewRect(const QSize &iconSize) const;
 
-		bool getLocalFileMetainfo();
+        bool getLocalFileMetainfo();
 
-		State getState() const;
+        State getState() const;
 
         void initializeShareButton();
 
         bool isControlButtonVisible() const;
 
-		bool isDataTransferProgressVisible() const;
+        bool isDataTransferProgressVisible() const;
 
         bool isFullImageDownloading() const;
 
@@ -304,49 +309,49 @@ namespace HistoryControl
 
         bool isImagePreview() const;
 
-		bool isFilenameAndSizeVisible() const;
+        bool isFilenameAndSizeVisible() const;
 
-		bool isOpenDownloadsDirButtonVisible() const;
+        bool isOpenDownloadsDirButtonVisible() const;
 
-		bool isOverControlButton(const QPoint &p) const;
+        bool isOverControlButton(const QPoint &p) const;
 
-		bool isOverOpenDownloadsDirButton(const QPoint &p) const;
+        bool isOverOpenDownloadsDirButton(const QPoint &p) const;
 
         bool isOverPreview(const QPoint &p) const;
 
-		bool isPreviewVisible() const;
+        bool isPreviewVisible() const;
 
-		bool isState(const State state) const;
+        bool isState(const State state) const;
 
         void loadGifOrVideo(const QString &path);
 
-		bool loadPreviewFromLocalFile();
+        bool loadPreviewFromLocalFile();
 
         void onGifOrVideoClicked();
 
         void onShareButtonClicked();
 
-		void openDownloadsDir() const;
+        void openDownloadsDir() const;
 
-		void renderControlButton(QPainter &p);
+        void renderControlButton(QPainter &p);
 
-		void renderDataTransferProgress(QPainter &p);
+        void renderDataTransferProgress(QPainter &p);
 
         void renderDataTransferProgressText(QPainter &p);
 
-		void renderFilename(QPainter &p);
+        void renderFilename(QPainter &p);
 
-		void renderFileSizeAndProgress(QPainter &p);
+        void renderFileSizeAndProgress(QPainter &p);
 
-		void renderOpenDownloadsDirButton(QPainter &p);
+        void renderOpenDownloadsDirButton(QPainter &p);
 
-		void requestFileMetainfo();
+        void requestFileMetainfo();
 
-		void requestPreview();
+        void requestPreview();
 
         void requestPreviewMetainfo();
 
-		void resumeUploading();
+        void resumeUploading();
 
         void retryRequest();
 
@@ -354,23 +359,23 @@ namespace HistoryControl
 
         void setBlockSizePolicy();
 
-		void setInitialWidgetSizeAndState();
+        void setInitialWidgetSizeAndState();
 
         void setState(const State state);
 
         void showPreviewer(const QPoint &globalPos);
 
-		void startDataTransferAnimation();
+        void startDataTransferAnimation();
 
-		void stopDataTransferAnimation();
+        void stopDataTransferAnimation();
 
-		void startDownloadingPlainFile();
+        void startDownloadingPlainFile();
 
-		void startDownloadingFullImage();
+        void startDownloadingFullImage();
 
-		void stopDownloading();
+        void stopDownloading();
 
-		void stopUploading();
+        void stopUploading();
 
         void updateShareButtonGeometry();
 
@@ -378,6 +383,6 @@ namespace HistoryControl
 
         bool isInPreloadRange(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect);
 
-	};
+    };
 
 }

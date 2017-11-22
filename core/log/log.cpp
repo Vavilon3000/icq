@@ -52,13 +52,13 @@ namespace
 
     std::list<log_record_uptr> log_records_;
 
-    std::mutex logging_thread_mutex_;
+    boost::mutex logging_thread_mutex_;
 
     std::atomic<bool> stop_signal_;
 
     std::unique_ptr<std::thread> logging_thread_;
 
-    std::condition_variable logging_thread_cond_;
+    boost::condition_variable logging_thread_cond_;
 
     format_record_fn record_formatter_;
 
@@ -176,7 +176,7 @@ namespace core
 
             determine_log_index();
 
-            logging_thread_.reset(new std::thread(logging_thread_proc));
+            logging_thread_ = std::make_unique<std::thread>(logging_thread_proc);
         }
 
         void shutdown()
@@ -239,9 +239,9 @@ namespace
         }
 
         const auto now = time_point_cast<milliseconds>(system_clock::now());
-        log_record_uptr new_record(new log_record(_type, _area, _text, now));
+        auto new_record = std::make_unique<log_record>(_type, _area, _text, now);
 
-        std::unique_lock<std::mutex> lock(logging_thread_mutex_);
+        boost::unique_lock<boost::mutex> lock(logging_thread_mutex_);
         log_records_.push_back(std::move(new_record));
         lock.unlock();
 
@@ -289,9 +289,9 @@ namespace
 
         const auto fraction = (_record.ts_.time_since_epoch().count() % 1000);
 
-        _wss << "[";
+        _wss << '[';
         _wss << std::put_time<char>(&now_tm, "%c");
-        _wss << ".";
+        _wss << '.';
         _wss << fraction;
         _wss << "] --- ";
     }
@@ -341,7 +341,7 @@ namespace
 
     void format_header_plain(const log_record &_record, std::stringstream &_wss)
     {
-        _wss << "[";
+        _wss << '[';
 
         switch (_record.type_)
         {
@@ -383,7 +383,7 @@ namespace
         const auto fraction = (_record.ts_.time_since_epoch().count() % 1000);
 
         _wss << std::put_time<char>(&now_tm, "%c")
-            << "."
+            << '.'
             << fraction
             << std::endl;
     }
@@ -481,7 +481,7 @@ namespace
         }
     }
 
-    bool process_records(std::unique_lock<std::mutex> &_lock)
+    bool process_records(boost::unique_lock<boost::mutex> &_lock)
     {
         std::list<log_record_uptr> records;
         records.swap(log_records_);
@@ -497,7 +497,7 @@ namespace
     {
         for (;;)
         {
-            std::unique_lock<std::mutex> lock(logging_thread_mutex_);
+            boost::unique_lock<boost::mutex> lock(logging_thread_mutex_);
 
             const auto stop_or_record = []
             {

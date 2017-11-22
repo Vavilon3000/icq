@@ -16,8 +16,8 @@ namespace voip_manager
 
 namespace Ui
 {
-	class DetachedVideoWindow;
-	class ShadowWindow;
+    class DetachedVideoWindow;
+    class ShadowWindow;
     class VoipSysPanelHeader;
     class VideoPanel;
     class MaskPanel;
@@ -26,7 +26,7 @@ namespace Ui
     class VideoWindow : public AspectRatioResizebleWnd
     {
         Q_OBJECT
-        
+
     private:
         typedef platform_specific::GraphicsPanel FrameControl_t;
 
@@ -41,7 +41,7 @@ namespace Ui
 
         void executeCommandList();
 
-        
+
 #ifndef _WIN32
 #ifndef __APPLE__
         void mouseDoubleClickEvent(QMouseEvent* _e) override;
@@ -53,7 +53,7 @@ namespace Ui
         void mousePressEvent(QMouseEvent * event) override;
         void wheelEvent(QWheelEvent * event) override;
         void moveEvent(QMoveEvent * event) override;
-        
+
         // @return true if we resend message to any transparent panel
         template <typename E> bool resendMouseEventToPanel(E* event_);
 #endif
@@ -68,20 +68,20 @@ namespace Ui
 
         // @return true, if we were able to load size from settings
         bool getWindowSizeFromSettings(int& _nWidth, int& _nHeight);
-        
+
         void offsetWindow(int _bottom, int _top);
         void updateUserName();
 
-		// We use this proxy to catch call methods during fullscreen animation
-		// we will save commands and call it later, after fullscreen animation
-		void callMethodProxy(const QString& _method);
+        // We use this proxy to catch call methods during fullscreen animation
+        // we will save commands and call it later, after fullscreen animation
+        void callMethodProxy(const QString& _method);
 
-		void showPanel(QWidget* widget);
-		void hidePanel(QWidget* widget);
+        void showPanel(QWidget* widget);
+        void hidePanel(QWidget* widget);
 
         void fadeInPanels(int kAnimationDefDuration);
-		void fadeOutPanels(int kAnimationDefDuration);
-		void hidePanels();
+        void fadeOutPanels(int kAnimationDefDuration);
+        void hidePanels();
 
         // call this method in all cases, when you need to hide panels
         void tryRunPanelsHideTimer();
@@ -93,7 +93,8 @@ namespace Ui
         void removeUnneededRemoteVideo(); // Remove unneeded elements from hasRemoteVideo_
         void checkCurrentAspectState();
 
-		void updateOutgoingState(const voip_manager::ContactEx& _contactEx);
+        void updateOutgoingState(const voip_manager::ContactEx& _contactEx);
+        void updateTopPanelSecureCall();
 
     private Q_SLOTS:
         void checkOverlap();
@@ -109,7 +110,7 @@ namespace Ui
         void onVoipCallOutAccepted(const voip_manager::ContactEx& _contactEx);
         void onVoipCallCreated(const voip_manager::ContactEx& _contactEx);
         void onVoipChangeWindowLayout(intptr_t hwnd, bool bTray, const std::string& layout);
-		void onVoipMainVideoLayoutChanged(const voip_manager::MainVideoLayout& mainLayout);
+        void onVoipMainVideoLayoutChanged(const voip_manager::MainVideoLayout& mainLayout);
 
         void onEscPressed();
 
@@ -125,19 +126,19 @@ namespace Ui
         void onSecureCallClicked(const QRect&);
         void onSecureCallWndOpened();
         void onSecureCallWndClosed();
-        
+
         // These methods are used under macos to close video window correctly from the fullscreen mode
         void fullscreenAnimationStart();
         void fullscreenAnimationFinish();
         void activeSpaceDidChange();
-        
+
         void showVideoPanel();
         void autoHideToolTip(bool& autoHide);
         void companionName(QString& name);
         void showToolTip(bool &show);
 
-		void onSetPreviewPrimary();
-		void onSetContactPrimary();
+        void onSetPreviewPrimary();
+        void onSetContactPrimary();
 
         void onShowMaskList();
         void onHideMaskList();
@@ -161,18 +162,18 @@ namespace Ui
         FrameControl_t* rootWidget_;
 
         // Video window panels list
-		std::vector<BaseVideoPanel*> panels_;
-        
+        std::vector<BaseVideoPanel*> panels_;
+
 #ifndef _WIN32
         // Transparent widgets. We resend mouse events to these widgets under macos,
         // because we did not find any better way to catch mouse events for tranparent panels
-		std::vector<BaseVideoPanel*> transparentPanels_;
+        std::vector<BaseVideoPanel*> transparentPanels_;
 #endif
-        
-		std::unique_ptr<VideoPanelHeader>   topPanelSimple_;
-		std::unique_ptr<VoipSysPanelHeader> topPanelOutgoing_;
+
+        std::unique_ptr<VideoPanelHeader>   topPanelSimple_;
+        std::unique_ptr<VoipSysPanelHeader> topPanelOutgoing_;
         std::unique_ptr<VideoPanel>          videoPanel_;
-		std::unique_ptr<MaskPanel>           maskPanel_;
+        std::unique_ptr<MaskPanel>           maskPanel_;
         std::unique_ptr<TransparentPanel>   transparentPanelOutgoingWidget_;
 
         std::unique_ptr<DetachedVideoWindow> detachedWnd_;
@@ -200,8 +201,8 @@ namespace Ui
             std::string name;
             unsigned time;
         } callDescription;
-        
-		ShadowWindowParent shadow_;
+
+        ShadowWindowParent shadow_;
 
         // Last applied offsets.
         int lastBottomOffset_;
@@ -209,9 +210,12 @@ namespace Ui
 
         // All is connected and talking now.
         bool startTalking;
-        
+
         // Load size from settings only one time per call. Actual for Mac.
         bool isLoadSizeFromSettings_;
+
+        // true for security calls.
+        bool enableSecureCall_;
 
 #ifdef __APPLE__
         // We use fullscreen notification to fix a problem on macos
@@ -220,7 +224,7 @@ namespace Ui
         QList<QString> commandList_;
         bool isFullscreenAnimation_;
         bool changeSpaceAnimation_;
-        
+
         // We have own double click processing,
         // Because Qt has bug with double click and fullscreen
         QTime doubleClickTime_;

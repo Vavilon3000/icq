@@ -38,7 +38,7 @@ NSButton* getTitleButton(unsigned index)
 + (NSImage *)resizedImage:(NSImage *)sourceImage toPixelDimensions:(NSSize)newSize
 {
     if (! sourceImage.isValid) return nil;
- 
+
     NSImage *smallImage = [[NSImage alloc] initWithSize: newSize];
     [smallImage lockFocus];
     [sourceImage setSize: newSize];
@@ -80,14 +80,14 @@ NSButton* getTitleButton(unsigned index)
     BOOL allowedItem = [[self toolbarAllowedItemIdentifiers:toolbar] containsObject:itemIdentifier];
     if (!allowedItem)
         return nil;
-    
+
     NSToolbarItem *toolbarItem = [[[NSToolbarItem alloc] initWithItemIdentifier:itemIdentifier] autorelease];
-    
+
     if ([itemIdentifier isEqual:TOOLBAR_ITEM_SPACER])
     {
         NSView* view = [NSView new];
         [toolbarItem setView:view];
-        
+
         const CGFloat w = 2;
         const CGFloat h = Ui::TitleBar::icon_height;
         [toolbarItem setMinSize:NSMakeSize(w, h)];
@@ -103,16 +103,16 @@ NSButton* getTitleButton(unsigned index)
             [btn setTag: TOOLBAR_ITEM_UNREAD_MSG_TAG];
         else
             [btn setTag: TOOLBAR_ITEM_UNREAD_MAIL_TAG];
-        
+
         ClickHandler *handler = [ClickHandler new];
         handler->macToolbar_ = macToolbar_;
-        
+
         [btn setTarget: handler];
         [btn setAction: @selector(itemClicked:)];
-        
+
         NSView *view = [NSView new];
         [view addSubview:btn];
-        
+
         [toolbarItem setView:btn];
         [toolbarItem setMinSize:NSMakeSize(NSWidth([btn frame]), NSHeight([btn frame]))];
         [toolbarItem setMaxSize:NSMakeSize(NSWidth([btn frame]), NSHeight([btn frame]))];
@@ -178,9 +178,9 @@ void MacToolbar::setup()
 {
     if (!mainWindow_ || !nativeWindow_)
         return;
-    
+
     bool yosemiteOrLater = (floor(NSAppKitVersionNumber) >= 1343); //osx 10.10+
-    
+
     NSToolbar* toolbar = [[NSToolbar alloc] initWithIdentifier:@"icq_toolbar"];
     [toolbar setAutosavesConfiguration:NO];
     [toolbar setAllowsUserCustomization:NO];
@@ -188,39 +188,33 @@ void MacToolbar::setup()
     ToolBarDelegate* tbDelegate = [ToolBarDelegate new];
     tbDelegate->macToolbar_ = this;
     [toolbar setDelegate: tbDelegate];
-    
+
     auto gp = mainWindow_->geometry();
     if (yosemiteOrLater)
         [nativeWindow_ setTitleVisibility: NSWindowTitleHidden];
     [nativeWindow_ setToolbar: toolbar];
-    
+
     auto g = mainWindow_->geometry();
     auto shift = (g.bottom() - gp.bottom()) - (g.top() - gp.top());
     g.setHeight(g.height() - shift);
     mainWindow_->setGeometry(g);
-    
-//    WindowDelegate* wDelegate = [WindowDelegate new];
-//    [nativeWindow_ setDelegate: wDelegate];
-    
+
     [nativeWindow_.toolbar insertItemWithItemIdentifier: TOOLBAR_ITEM_SPACER atIndex: TOOLBAR_ITEM_SPACER_TAG];
     [nativeWindow_.toolbar insertItemWithItemIdentifier: TOOLBAR_ITEM_UNREAD_MSG atIndex: TOOLBAR_ITEM_UNREAD_MSG_TAG];
     [nativeWindow_.toolbar insertItemWithItemIdentifier: TOOLBAR_ITEM_UNREAD_MAIL atIndex: TOOLBAR_ITEM_UNREAD_MAIL_TAG];
-    
+
     if (yosemiteOrLater)
         initWindowTitle();
 
-    connect(Ui::GetDispatcher(), &Ui::core_dispatcher::im_created, this, &MacToolbar::loggedIn, Qt::QueuedConnection);
+    connect(Ui::GetDispatcher(), &Ui::core_dispatcher::im_created, this, &MacToolbar::updateConnections, Qt::QueuedConnection);
     connect(Ui::GetDispatcher(), &Ui::core_dispatcher::mailStatus, this, &MacToolbar::updateUnreadMailIcon, Qt::QueuedConnection);
-	
-    connect(this, &MacToolbar::onUnreadMsgClicked, [](){ emit Utils::InterConnector::instance().activateNextUnread(); });
-    connect(this, &MacToolbar::onUnreadMailClicked, this, &MacToolbar::openMailBox, Qt::QueuedConnection);
 }
 
 void MacToolbar::initWindowTitle()
 {
     if (windowTitle_ || !nativeWindow_)
         return;
-    
+
     windowTitle_ = [[NSTextView alloc] initWithFrame:CGRectMake(0, 0, 64, 36)];
     [windowTitle_ setSelectable: NO];
     [windowTitle_ setEditable: NO];
@@ -231,7 +225,7 @@ void MacToolbar::initWindowTitle()
     windowTitle_.string = @"???";
     [windowTitle_ setAutoresizingMask:NSViewWidthSizable|NSViewMinYMargin];
     [windowTitle_ setTextContainerInset:NSMakeSize(0,10)];//magic number
-    
+
     NSView *themeFrame = [[nativeWindow_ contentView] superview];
     NSRect c = [themeFrame frame];	// c for "container"
     NSRect aV = [windowTitle_ frame];     // aV for "accessory view"
@@ -249,15 +243,15 @@ void MacToolbar::forceUpdateIcon(Ui::UnreadWidget *_widget, unsigned int _iconTa
     if (_widget && nativeWindow_)
     {
         NSButton* btn = getTitleButton(_iconTag);
-        if (![btn isHidden])
+        if (btn)
         {
             auto px = _widget->renderToPixmap(_count, false, false);
             NSImage* img = QtMac::toNSImage(px);
             NSSize size = NSMakeSize(NSWidth([btn frame]), NSHeight([btn frame]));
-            
+
             btn.image = nil;
             [btn setImage: [NSImage resizedImage:img toPixelDimensions:size]];
-            
+
             btn.alternateImage = nil;
             px = _widget->renderToPixmap(_count, false, true);
             img = QtMac::toNSImage(px);
@@ -277,20 +271,24 @@ void MacToolbar::onToolbarItemClicked(void *_itemPtr)
     NSButton *item = reinterpret_cast<NSButton*>(_itemPtr);
     if (item.tag == TOOLBAR_ITEM_UNREAD_MSG_TAG)
         emit onUnreadMsgClicked();
-    else
+    else if (item.tag == TOOLBAR_ITEM_UNREAD_MAIL_TAG)
         emit onUnreadMailClicked();
 }
 
 void MacToolbar::setUnreadMsgWidget(Ui::UnreadWidget *_widget)
 {
     unreadMsgWdg_ = _widget;
+    connect(this, &MacToolbar::onUnreadMsgClicked, unreadMsgWdg_, &Ui::UnreadWidget::clicked);
+
     forceUpdateIcon(unreadMsgWdg_, TOOLBAR_ITEM_UNREAD_MAIL_TAG, 0);
 }
 
 void MacToolbar::setUnreadMailWidget(Ui::UnreadWidget *_widget)
 {
     unreadMailWdg_ = _widget;
-    forceUpdateIcon(unreadMailWdg_, TOOLBAR_ITEM_UNREAD_MAIL_TAG, 0);
+    connect(this, &MacToolbar::onUnreadMailClicked, unreadMailWdg_, &Ui::UnreadWidget::clicked);
+
+    forceUpdateIcon(unreadMailWdg_, TOOLBAR_ITEM_UNREAD_MAIL_TAG, unreadMailCounter_);
 }
 
 void MacToolbar::setTitleIconsVisible(bool _unreadMsgVisible, bool _unreadMailVisible)
@@ -298,20 +296,10 @@ void MacToolbar::setTitleIconsVisible(bool _unreadMsgVisible, bool _unreadMailVi
     if (!_unreadMsgVisible)
         forceUpdateIcon(unreadMsgWdg_, TOOLBAR_ITEM_UNREAD_MSG_TAG, 0);
     if (!_unreadMailVisible)
-        forceUpdateIcon(unreadMailWdg_, TOOLBAR_ITEM_UNREAD_MAIL_TAG, 0);
+        forceUpdateIcon(unreadMailWdg_, TOOLBAR_ITEM_UNREAD_MAIL_TAG, unreadMailCounter_);
 
     [getTitleButton(TOOLBAR_ITEM_UNREAD_MSG_TAG) setHidden: !_unreadMsgVisible];
     [getTitleButton(TOOLBAR_ITEM_UNREAD_MAIL_TAG) setHidden: !_unreadMailVisible];
-}
-
-void MacToolbar::openMailBox()
-{
-    Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
-    collection.set_value_as_qstring("email", email_.isEmpty() ? Ui::MyInfo()->aimId() : email_);
-    Ui::GetDispatcher()->post_message_to_core("mrim/get_key", collection.get(), this, [this](core::icollection* _collection)
-    {
-        Utils::openMailBox(email_, Ui::gui_coll_helper(_collection, false).get_value_as_string("key"), QString());
-    });
 }
 
 void MacToolbar::updateUnreadMailIcon(QString _email, unsigned _unreads, bool)
@@ -326,7 +314,7 @@ void MacToolbar::updateUnreadMailIcon(QString _email, unsigned _unreads, bool)
 
 void MacToolbar::updateUnreadMsgIcon()
 {
-    auto count = Logic::getRecentsModel()->totalUnreads() + Logic::getUnknownsModel()->totalUnreads();
+    const auto count = Logic::getRecentsModel()->totalUnreads() + Logic::getUnknownsModel()->totalUnreads();
     if (unreadMsgCounter_ != count)
     {
         forceUpdateIcon(unreadMsgWdg_, TOOLBAR_ITEM_UNREAD_MSG_TAG, count);
@@ -334,11 +322,12 @@ void MacToolbar::updateUnreadMsgIcon()
     }
 }
 
-void MacToolbar::loggedIn()
+void MacToolbar::updateConnections()
 {
-    connect(Logic::getRecentsModel(), &Logic::RecentsModel::dlgStatesHandled, this, &MacToolbar::updateUnreadMsgIcon, Qt::QueuedConnection);
-    connect(Logic::getRecentsModel(), &Logic::RecentsModel::updated, this, &MacToolbar::updateUnreadMsgIcon, Qt::QueuedConnection);
-    connect(Logic::getUnknownsModel(), &Logic::UnknownsModel::dlgStatesHandled, this, &MacToolbar::updateUnreadMsgIcon, Qt::QueuedConnection);
-    connect(Logic::getUnknownsModel(), &Logic::UnknownsModel::updated, this, &MacToolbar::updateUnreadMsgIcon, Qt::QueuedConnection);
-    connect(Logic::getContactListModel(), &Logic::ContactListModel::contactChanged, this, &MacToolbar::updateUnreadMsgIcon, Qt::QueuedConnection);
+    const auto connType = static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection);
+    connect(Logic::getRecentsModel(), &Logic::RecentsModel::dlgStatesHandled, this, &MacToolbar::updateUnreadMsgIcon, connType);
+    connect(Logic::getRecentsModel(), &Logic::RecentsModel::updated, this, &MacToolbar::updateUnreadMsgIcon, connType);
+    connect(Logic::getUnknownsModel(), &Logic::UnknownsModel::dlgStatesHandled, this, &MacToolbar::updateUnreadMsgIcon, connType);
+    connect(Logic::getUnknownsModel(), &Logic::UnknownsModel::updated, this, &MacToolbar::updateUnreadMsgIcon, connType);
+    connect(Logic::getContactListModel(), &Logic::ContactListModel::contactChanged, this, &MacToolbar::updateUnreadMsgIcon, connType);
 }

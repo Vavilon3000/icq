@@ -167,7 +167,7 @@ bool upload_task::is_end()
     return (bytes_sent_ == file_size_);
 }
 
-std::string upload_task::get_file_url() const
+const std::string& upload_task::get_file_url() const
 {
     return file_url_;
 }
@@ -177,7 +177,7 @@ void upload_task::set_handler(std::shared_ptr<upload_progress_handler> _handler)
     handler_ = _handler;
 }
 
-std::shared_ptr<upload_progress_handler> upload_task::get_handler()
+std::shared_ptr<upload_progress_handler> upload_task::get_handler() const
 {
     return handler_;
 }
@@ -190,7 +190,7 @@ void upload_task::on_result(int32_t _error)
     get_handler()->on_result(_error, *make_info());
 }
 
-std::shared_ptr<web_file_info> upload_task::make_info()
+std::shared_ptr<web_file_info> upload_task::make_info() const
 {
     auto info = std::make_shared<web_file_info>();
 

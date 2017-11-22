@@ -30,27 +30,6 @@ QLayout* YoutubeLinkPreviewBlockLayout::asQLayout()
     return this;
 }
 
-void YoutubeLinkPreviewBlockLayout::cutTextByPreferredSize(
-    const QString &title,
-    const QString &annotation,
-    const QRect& /*widgetLtr*/,
-    Out QString &cutTitle,
-    Out QString &cutAnnotation) const
-{
-    Out cutTitle = title;
-    Out cutAnnotation = annotation;
-}
-
-QFont YoutubeLinkPreviewBlockLayout::getAnnotationFont() const
-{
-    return QFont();
-}
-
-QRect YoutubeLinkPreviewBlockLayout::getAnnotationRect() const
-{
-    return QRect();
-}
-
 const IItemBlockLayout::IBoxModel& YoutubeLinkPreviewBlockLayout::getBlockBoxModel() const
 {
     static const BoxModel boxModel(
@@ -95,11 +74,6 @@ QFont YoutubeLinkPreviewBlockLayout::getTitleFont() const
 QRect YoutubeLinkPreviewBlockLayout::getTitleRect() const
 {
     return TitleGeometry_;
-}
-
-bool YoutubeLinkPreviewBlockLayout::isAnnotationVisible() const
-{
-    return false;
 }
 
 void YoutubeLinkPreviewBlockLayout::setActionButtonGeometry(const QRect &previewRect, LinkPreviewBlock &block)

@@ -25,35 +25,35 @@ int32_t chat_info::unserialize(const rapidjson::Value& _node)
 {
     auto iter_aimid = _node.FindMember("sn");
     if (iter_aimid != _node.MemberEnd() && iter_aimid->value.IsString())
-        aimid_ =  iter_aimid->value.GetString();
+        aimid_ = rapidjson_get_string(iter_aimid->value);
 
     auto iter_name = _node.FindMember("name");
     if (iter_name != _node.MemberEnd() && iter_name->value.IsString())
-        name_ =  iter_name->value.GetString();
+        name_ = rapidjson_get_string(iter_name->value);
 
     auto iter_location = _node.FindMember("location");
     if (iter_location != _node.MemberEnd() && iter_location->value.IsString())
-        location_ =  iter_location->value.GetString();
+        location_ = rapidjson_get_string(iter_location->value);
 
     auto iter_stamp = _node.FindMember("stamp");
     if (iter_stamp != _node.MemberEnd() && iter_stamp->value.IsString())
-        stamp_ =  iter_stamp->value.GetString();
+        stamp_ = rapidjson_get_string(iter_stamp->value);
 
     auto iter_about = _node.FindMember("about");
     if (iter_about != _node.MemberEnd() && iter_about->value.IsString())
-        about_ =  iter_about->value.GetString();
+        about_ = rapidjson_get_string(iter_about->value);
 
     auto iter_create_time = _node.FindMember("createTime");
     if (iter_create_time != _node.MemberEnd() && iter_create_time->value.IsInt())
-        create_time_ =  iter_create_time->value.GetInt();
+        create_time_ = iter_create_time->value.GetInt();
 
     auto iter_members_count = _node.FindMember("membersCount");
     if (iter_members_count != _node.MemberEnd() && iter_members_count->value.IsInt())
-        members_count_ =  iter_members_count->value.GetInt();
+        members_count_ = iter_members_count->value.GetInt();
 
     auto iter_friends_count = _node.FindMember("friendsCount");
     if (iter_friends_count != _node.MemberEnd() && iter_friends_count->value.IsInt())
-        friend_count_ =  iter_friends_count->value.GetInt();
+        friend_count_ = iter_friends_count->value.GetInt();
 
     auto iter_join_moderation = _node.FindMember("joinModeration");
     if (iter_join_moderation != _node.MemberEnd() && iter_join_moderation->value.IsBool())
@@ -69,7 +69,7 @@ int32_t chat_info::unserialize(const rapidjson::Value& _node)
         auto iter_your_role = iter_yours->value.FindMember("role");
         if (iter_your_role != iter_yours->value.MemberEnd() && iter_your_role->value.IsString())
         {
-            your_role_ = iter_your_role->value.GetString();
+            your_role_ = rapidjson_get_string(iter_your_role->value);
             you_member_ = true;
         }
         else
@@ -88,53 +88,53 @@ int32_t chat_info::unserialize(const rapidjson::Value& _node)
 
     auto iter_public = _node.FindMember("public");
     if (iter_public != _node.MemberEnd() && iter_public->value.IsBool())
-        public_ =  iter_public->value.GetBool();
+        public_ = iter_public->value.GetBool();
 
     auto iter_live = _node.FindMember("live");
     if (iter_live != _node.MemberEnd() && iter_live->value.IsBool())
-        live_ =  iter_live->value.GetBool();
+        live_ = iter_live->value.GetBool();
 
     auto iter_controlled = _node.FindMember("controlled");
     if (iter_controlled != _node.MemberEnd() && iter_controlled->value.IsBool())
-        controlled_ =  iter_controlled->value.GetBool();
+        controlled_ = iter_controlled->value.GetBool();
 
     auto iter_blocked_count = _node.FindMember("blockedCount");
     if (iter_blocked_count != _node.MemberEnd() && iter_blocked_count->value.IsInt())
-        blocked_count_ =  iter_blocked_count->value.GetInt();
+        blocked_count_ = iter_blocked_count->value.GetInt();
 
     auto iter_pending_count = _node.FindMember("pendingCount");
     if (iter_pending_count != _node.MemberEnd() && iter_pending_count->value.IsInt())
-        pending_count_ =  iter_pending_count->value.GetInt();
+        pending_count_ = iter_pending_count->value.GetInt();
 
     auto iter_members_version = _node.FindMember("membersVersion");
     if (iter_members_version != _node.MemberEnd() && iter_members_version->value.IsString())
-        members_version_ =  iter_members_version->value.GetString();
+        members_version_ = rapidjson_get_string(iter_members_version->value);
 
     auto iter_info_version = _node.FindMember("infoVersion");
     if (iter_info_version != _node.MemberEnd() && iter_info_version->value.IsString())
-        info_version_ =  iter_info_version->value.GetString();
+        info_version_ = rapidjson_get_string(iter_info_version->value);
 
     auto iter_info_creator = _node.FindMember("creator");
     if (iter_info_creator != _node.MemberEnd() && iter_info_creator->value.IsString())
-        creator_ =  iter_info_creator->value.GetString();
+        creator_ = rapidjson_get_string(iter_info_creator->value);
 
     auto iter_info_default_role = _node.FindMember("defaultRole");
     if (iter_info_default_role != _node.MemberEnd() && iter_info_default_role->value.IsString())
-        default_role_ =  iter_info_default_role->value.GetString();
+        default_role_ = rapidjson_get_string(iter_info_default_role->value);
 
     auto iter_members = _node.FindMember("members");
     if (iter_members != _node.MemberEnd() && iter_members->value.IsArray())
     {
-        for (auto iter = iter_members->value.Begin(); iter != iter_members->value.End(); iter++)
+        for (auto iter = iter_members->value.Begin(), end = iter_members->value.End(); iter != end; ++iter)
         {
             chat_member_info member_info;
             auto iter_aimid = iter->FindMember("sn");
             if (iter_aimid != iter->MemberEnd() && iter_aimid->value.IsString())
-                member_info.aimid_ =  iter_aimid->value.GetString();
+                member_info.aimid_ = rapidjson_get_string(iter_aimid->value);
 
             auto iter_role = iter->FindMember("role");
             if (iter_role != iter->MemberEnd() && iter_role->value.IsString())
-                member_info.role_ = iter_role->value.GetString();
+                member_info.role_ = rapidjson_get_string(iter_role->value);
 
             auto iter_friend = iter->FindMember("friend");
             if (iter_friend != iter->MemberEnd() && iter_friend->value.IsBool())
@@ -149,18 +149,18 @@ int32_t chat_info::unserialize(const rapidjson::Value& _node)
             {
                 auto iter_first_name = iter_anketa->value.FindMember("firstName");
                 if (iter_first_name != iter_anketa->value.MemberEnd() && iter_first_name->value.IsString())
-                    member_info.first_name_ = iter_first_name->value.GetString();
+                    member_info.first_name_ = rapidjson_get_string(iter_first_name->value);
 
                 auto iter_last_name = iter_anketa->value.FindMember("lastName");
                 if (iter_last_name != iter_anketa->value.MemberEnd() && iter_last_name->value.IsString())
-                    member_info.last_name_ = iter_last_name->value.GetString();
+                    member_info.last_name_ = rapidjson_get_string(iter_last_name->value);
 
                 auto iter_nickname = iter_anketa->value.FindMember("nickname");
                 if (iter_nickname != iter_anketa->value.MemberEnd() && iter_nickname->value.IsString())
-                    member_info.nick_name_ = iter_nickname->value.GetString();
+                    member_info.nick_name_ = rapidjson_get_string(iter_nickname->value);
             }
 
-            members_.push_back(member_info);
+            members_.push_back(std::move(member_info));
         }
     }
 
@@ -169,7 +169,7 @@ int32_t chat_info::unserialize(const rapidjson::Value& _node)
     {
         auto iter_owner_aimid = iter_yours->value.FindMember("sn");
         if (iter_owner_aimid != iter_owner->value.MemberEnd() && iter_owner_aimid->value.IsString())
-            owner_ = iter_owner_aimid->value.GetString();
+            owner_ = rapidjson_get_string(iter_owner_aimid->value);
     }
 
     return 0;
@@ -208,7 +208,7 @@ void chat_info::serialize(core::coll_helper _coll) const
     if (!members_.empty())
     {
         members_array->reserve((int32_t)members_.size());
-        for (const auto member : members_)
+        for (const auto& member : members_)
         {
             coll_helper _coll_message(_coll->create_collection(), true);
             _coll_message.set_value_as_string("aimid", member.aimid_);

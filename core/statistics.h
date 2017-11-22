@@ -15,26 +15,26 @@ namespace core
     const static std::string flurry_url = "https://data.flurry.com/aah.do";
 
 #ifdef DEBUG
-    const static uint32_t send_interval_ms = 1000 * 60 * 1; // 1 minute for debug
-#else 
-    const static uint32_t send_interval_ms = 1000 * 60 * 60; // 1 hour for release
+    const static auto send_interval = std::chrono::minutes(1);
+#else
+    const static auto send_interval = std::chrono::hours(1);
 #endif // DEBUG
 
-    const static uint32_t save_to_file_interval_ms = 1000 * 10; // 10 seconds
-    const static uint32_t delay_send_on_start_ms = 1000 * 10; // 10 seconds
+    const static auto save_to_file_interval = std::chrono::seconds(10);
+    const static auto delay_send_on_start = std::chrono::seconds(10);
 
     namespace stats
     {
         enum class stats_event_names;
-        
+
         class statistics : public std::enable_shared_from_this<statistics>
         {
         private:
-            
+
             class stats_event
             {
             public:
-                const std::string to_string(time_t _start_time) const;
+                std::string to_string(time_t _start_time) const;
                 stats_event(stats_event_names _name, std::chrono::system_clock::time_point _event_time, int32_t _event_id, const event_props_type& props);
                 stats_event_names get_name() const;
                 event_props_type get_props() const;
@@ -52,7 +52,7 @@ namespace core
             struct stop_objects
             {
                 std::atomic_bool is_stop_;
-                stop_objects() 
+                stop_objects()
                 {
                     is_stop_ = false;
                 }
@@ -82,7 +82,7 @@ namespace core
             bool load();
             void start_save();
             void start_send();
-            void insert_event(stats_event_names _event_name, const event_props_type& _props, 
+            void insert_event(stats_event_names _event_name, const event_props_type& _props,
                 std::chrono::system_clock::time_point _event_time, int32_t _event_id);
             void clear();
             void delayed_start_send();

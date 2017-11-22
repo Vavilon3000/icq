@@ -10,7 +10,7 @@ namespace Ui
         Q_OBJECT
 
     Q_SIGNALS:
-        void search(QString);
+        void search(const QString&);
         void searchBegin();
         void searchEnd();
         void inputEmpty();
@@ -27,7 +27,7 @@ namespace Ui
 
     private Q_SLOTS:
         void searchStarted();
-        void searchChanged(QString);
+        void searchChanged(const QString&);
         void editEnterPressed();
         void editUpPressed();
         void editDownPressed();
@@ -35,7 +35,7 @@ namespace Ui
         void onEscapePress();
 
     public:
-        SearchWidget(QWidget* _parent = 0, int _add_hor_space = 0, int _add_ver_space = 0);
+        SearchWidget(QWidget* _parent = nullptr, int _add_hor_space = 0, int _add_ver_space = 0);
         ~SearchWidget();
 
         QString getText() const;
@@ -44,7 +44,10 @@ namespace Ui
         void setFocus();
         void clearFocus();
 
-        bool isActive() const { return active_; }
+        bool isActive() const;
+
+        void setDefaultPlaceholder();
+        void setPlaceholderText(const QString& _text);
 
     private:
         void setActive(bool _active);

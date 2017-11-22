@@ -38,7 +38,7 @@ std::shared_ptr<contact_archive> local_history::get_contact_archive(const std::s
 
     std::wstring contact_folder = core::tools::from_utf8(_contact);
     std::replace(contact_folder.begin(), contact_folder.end(), L'|', L'_');
-    auto contact_arch = std::make_shared<contact_archive>(archive_path_ + L"/" + contact_folder, _contact);
+    auto contact_arch = std::make_shared<contact_archive>(archive_path_ + L'/' + contact_folder, _contact);
 
     archives_.insert(std::make_pair(_contact, contact_arch));
 
@@ -57,8 +57,9 @@ void local_history::update_history(
 
 void local_history::get_images(const std::string& _contact, int64_t _from, int64_t _count, /*out*/ image_list& _images)
 {
-    get_contact_archive(_contact)->load_from_local();
-    get_contact_archive(_contact)->get_images(_from, _count, _images);
+    const auto archive = get_contact_archive(_contact);
+    archive->load_from_local();
+    archive->get_images(_from, _count, _images);
 }
 
 bool local_history::repair_images(const std::string& _contact)
@@ -68,8 +69,9 @@ bool local_history::repair_images(const std::string& _contact)
 
 void local_history::get_messages_index(const std::string& _contact, int64_t _from, int64_t _count, /*out*/ headers_list& _headers)
 {
-    get_contact_archive(_contact)->load_from_local();
-    get_contact_archive(_contact)->get_messages_index(_from, _count, -1, _headers);
+    const auto archive = get_contact_archive(_contact);
+    archive->load_from_local();
+    archive->get_messages_index(_from, _count, -1, _headers);
 }
 
 bool local_history::get_messages(const std::string& _contact, int64_t _from, int64_t _count_early, int64_t _count_later, /*out*/ std::shared_ptr<history_block> _messages)
@@ -98,7 +100,7 @@ bool local_history::get_history_file(const std::string& _contact, /*out*/ core::
 {
     std::wstring contact_folder = core::tools::from_utf8(_contact);
     std::replace(contact_folder.begin(), contact_folder.end(), L'|', L'_');
-    std::wstring file_name = archive_path_ + L"/" + contact_folder + L"/" + db_filename();
+    std::wstring file_name = archive_path_ + L'/' + contact_folder + L'/' + db_filename();
 
     contact_archive::get_history_file(file_name, _history_archive, _offset, _remaining_size, _cur_index, _mode);
     return true;
@@ -114,16 +116,16 @@ void local_history::get_messages_buddies(
 
 void local_history::get_dlg_state(const std::string& _contact, dlg_state& _state)
 {
-        _state = get_contact_archive(_contact)->get_dlg_state();
+    _state = get_contact_archive(_contact)->get_dlg_state();
 }
 
-void local_history::get_dlg_states(const std::vector<std::string>& _contacts, std::vector<dlg_state>& _states)
+std::vector<dlg_state> local_history::get_dlg_states(const std::vector<std::string>& _contacts)
 {
-    for (auto iter : _contacts)
-    {
-        auto state = get_contact_archive(iter)->get_dlg_state();
-        _states.push_back(state);
-    }
+    std::vector<dlg_state> states;
+    states.reserve(_contacts.size());
+    for (const auto& iter : _contacts)
+        states.emplace_back(get_contact_archive(iter)->get_dlg_state());
+    return states;
 }
 
 void local_history::set_dlg_state(const std::string& _contact, const dlg_state& _state, Out dlg_state& _result, Out dlg_state_changes& _changes)
@@ -155,8 +157,8 @@ std::shared_ptr<archive_hole> local_history::get_next_hole(const std::string& _c
 
 
 int64_t local_history::validate_hole_request(
-    const std::string& _contact, 
-    const archive_hole& _hole_request, 
+    const std::string& _contact,
+    const archive_hole& _hole_request,
     const int32_t _count)
 {
     return get_contact_archive(_contact)->validate_hole_request(_hole_request, _count);
@@ -164,45 +166,43 @@ int64_t local_history::validate_hole_request(
 
 void local_history::serialize(std::shared_ptr<headers_list> _headers, coll_helper& _coll)
 {
-    const std::string c_headers = "headers";
     ifptr<ihheaders_list> val_headers(_coll->create_hheaders_list(), false);
 
-    for (auto iter_header = _headers->begin(); iter_header != _headers->end(); iter_header++)
+    for (const auto& header : *_headers)
     {
-        std::unique_ptr<hheader> hh(new hheader());
-        hh->id_ = iter_header->get_id();
-        hh->prev_id_ = iter_header->get_prev_msgid();
-        hh->time_ = iter_header->get_time();
+        auto hh = std::make_unique<hheader>();
+        hh->id_ = header.get_id();
+        hh->prev_id_ = header.get_prev_msgid();
+        hh->time_ = header.get_time();
         val_headers->push_back(hh.release());
     }
 
-    _coll.set_value_as_hheaders(c_headers, val_headers.get());
+    _coll.set_value_as_hheaders("headers", val_headers.get());
 }
 
 
 void local_history::serialize_headers(std::shared_ptr<archive::history_block> _data, coll_helper& _coll)
 {
-    const std::string c_headers = "headers";
     ifptr<ihheaders_list> val_headers(_coll->create_hheaders_list(), false);
 
-    for (auto iter = _data->begin(); iter != _data->end(); iter++)
+    for (const auto& hist_block : *_data)
     {
-        std::unique_ptr<hheader> hh(new hheader());
-        hh->id_ = (*iter)->get_msgid();
-        hh->prev_id_ = (*iter)->get_prev_msgid();
-        hh->time_ = (*iter)->get_time();
+        auto hh = std::make_unique<hheader>();
+        hh->id_ = hist_block->get_msgid();
+        hh->prev_id_ = hist_block->get_prev_msgid();
+        hh->time_ = hist_block->get_time();
 
         val_headers->push_back(hh.release());
     }
 
-    _coll.set_value_as_hheaders(c_headers, val_headers.get());
+    _coll.set_value_as_hheaders("headers", val_headers.get());
 }
 
 not_sent_messages& local_history::get_pending_messages()
 {
     if (!not_sent_messages_)
     {
-        not_sent_messages_.reset(new not_sent_messages(archive_path_ + L"/" + L"pending.db"));
+        not_sent_messages_ = std::make_unique<not_sent_messages>(archive_path_ + L"/pending.db");
         not_sent_messages_->load_if_need();
     }
 
@@ -284,13 +284,23 @@ void local_history::find_previewable_links(
     }
 }
 
-int32_t local_history::remove_messages_from_not_sent(const std::string& _contact, archive::history_block_sptr _data)
+int32_t local_history::remove_messages_from_not_sent(const std::string& _contact, const archive::history_block_sptr& _data)
 {
     get_pending_messages().remove(_contact, _data);
     return 0;
 }
 
-void local_history::mark_message_duplicated(const std::string _message_internal_id)
+int32_t local_history::remove_messages_from_not_sent(const std::string& _contact, const std::shared_ptr<archive::history_block>& _data1, const std::shared_ptr<archive::history_block>& _data2)
+{
+    auto& pending_messages = get_pending_messages();
+    if (!_data1->empty())
+        pending_messages.remove(_contact, _data1);
+    if (!_data2->empty())
+        pending_messages.remove(_contact, _data2);
+    return 0;
+}
+
+void local_history::mark_message_duplicated(const std::string& _message_internal_id)
 {
     get_pending_messages().mark_duplicated(_message_internal_id);
 }
@@ -317,13 +327,21 @@ void local_history::optimize_contact_archive(const std::string& _contact)
     get_contact_archive(_contact)->optimize();
 }
 
+void local_history::add_mention(const std::string& _contact, std::shared_ptr<archive::history_message> _message)
+{
+
+}
+
+
+
+
 face::face(const std::wstring& _archive_path)
-    : thread_(new core::async_executer())
-    , history_cache_(new local_history(_archive_path))
+    : history_cache_(std::make_shared<local_history>(_archive_path))
+    , thread_(std::make_shared<core::async_executer>())
 {
 }
 
-std::shared_ptr<update_history_handler> face::update_history(const std::string& _contact, std::shared_ptr<archive::history_block> _data)
+std::shared_ptr<update_history_handler> face::update_history(const std::string& _contact, const std::shared_ptr<archive::history_block>& _data)
 {
     assert(!_contact.empty());
 
@@ -509,7 +527,7 @@ std::shared_ptr<request_history_file_handler> face::get_history_block(std::share
     auto handler = std::make_shared<request_history_file_handler>();
     std::weak_ptr<face> wr_this = shared_from_this();
 
-    std::shared_ptr<contact_and_offsets> remaining(new contact_and_offsets());
+    auto remaining = std::make_shared<contact_and_offsets>();
 
     thread_->run_async_function([_contacts, _archive, history_cache, remaining, _data]()->int32_t
     {
@@ -541,10 +559,12 @@ std::shared_ptr<request_history_file_handler> face::get_history_block(std::share
                 _archive->push_back(std::make_pair(_contact, prev_cur_index));
             }
         }
-        _archive->push_back(std::make_pair("", cur_index));
+        _archive->push_back(std::make_pair(std::string(), cur_index));
 
-        auto last_index = index;
-        for (; index < _contacts->size(); ++index)
+        const auto last_index = index;
+        const auto contacts_size = _contacts->size();
+        remaining->reserve(contacts_size - last_index);
+        for (; index < contacts_size; ++index)
         {
             remaining->push_back((*_contacts)[index]);
         }
@@ -598,7 +618,7 @@ std::shared_ptr<request_dlg_states_handler> face::get_dlg_states(const std::vect
 
     thread_->run_async_function([history_cache, _contacts, dialogs]()->int32_t
     {
-        history_cache->get_dlg_states(_contacts, *dialogs);
+        *dialogs = history_cache->get_dlg_states(_contacts);
 
         return 0;
 
@@ -648,7 +668,8 @@ std::shared_ptr<async_task_handlers> face::clear_dlg_state(const std::string& _c
 
     })->on_result_ = [handler](int32_t _error)
     {
-        handler->on_result_(_error);
+        if (handler->on_result_)
+            handler->on_result_(_error);
     };
 
     return handler;
@@ -745,7 +766,8 @@ std::shared_ptr<async_task_handlers> face::delete_messages_up_to(const std::stri
     )->on_result_ =
         [handler](int32_t _error)
         {
-            handler->on_result_(_error);
+            if (handler->on_result_)
+                handler->on_result_(_error);
         };
 
     return handler;
@@ -776,7 +798,8 @@ std::shared_ptr<find_previewable_links_handler> face::find_previewable_links(con
             }
 
             assert(handler->on_result_);
-            handler->on_result_(*uris);
+            if (handler->on_result_)
+                handler->on_result_(*uris);
         };
 
     return handler;
@@ -848,7 +871,7 @@ std::shared_ptr<async_task_handlers> face::update_if_exist_not_sent_message(cons
 }
 
 
-std::shared_ptr<async_task_handlers> face::remove_messages_from_not_sent(const std::string& _contact, archive::history_block_sptr _data)
+std::shared_ptr<async_task_handlers> face::remove_messages_from_not_sent(const std::string& _contact, const archive::history_block_sptr& _data)
 {
     auto handler = std::make_shared<async_task_handlers>();
     auto history_cache = history_cache_;
@@ -856,6 +879,24 @@ std::shared_ptr<async_task_handlers> face::remove_messages_from_not_sent(const s
     thread_->run_async_function([_contact, _data, history_cache]()->int32_t
     {
         return history_cache->remove_messages_from_not_sent(_contact, _data);
+
+    })->on_result_ = [handler](int32_t _error)
+    {
+        if (handler->on_result_)
+            handler->on_result_(_error);
+    };
+
+    return handler;
+}
+
+std::shared_ptr<async_task_handlers> face::remove_messages_from_not_sent(const std::string& _contact, const archive::history_block_sptr& _data1, const archive::history_block_sptr& _data2)
+{
+    auto handler = std::make_shared<async_task_handlers>();
+    auto history_cache = history_cache_;
+
+    thread_->run_async_function([_contact, _data1, _data2, history_cache]()->int32_t
+    {
+        return history_cache->remove_messages_from_not_sent(_contact, _data1, _data2);
 
     })->on_result_ = [handler](int32_t _error)
     {
@@ -1011,7 +1052,8 @@ std::shared_ptr<async_task_handlers> face::update_message_post_time(
 
     })->on_result_ = [handler](int32_t _error)
     {
-        handler->on_result_(0);
+        if (handler->on_result_)
+            handler->on_result_(0);
     };
 
     return handler;
@@ -1032,7 +1074,8 @@ std::shared_ptr<async_task_handlers> face::failed_pending_message(const std::str
 
     })->on_result_ = [handler](int32_t _error)
     {
-        handler->on_result_(0);
+        if (handler->on_result_)
+            handler->on_result_(0);
     };
 
     return handler;
@@ -1049,7 +1092,29 @@ std::shared_ptr<async_task_handlers> face::sync_with_history()
 
     })->on_result_ = [handler](int32_t _error)
     {
-        handler->on_result_(_error);
+        if (handler->on_result_)
+            handler->on_result_(_error);
+    };
+
+    return handler;
+}
+
+std::shared_ptr<async_task_handlers> face::add_mention(const std::string& _contact, std::shared_ptr<archive::history_message> _message)
+{
+    auto handler = std::make_shared<async_task_handlers>();
+
+    auto history_cache = history_cache_;
+
+    thread_->run_async_function([_contact, _message, history_cache]()->int32_t
+    {
+        history_cache->add_mention(_contact, _message);
+
+        return 0;
+
+    })->on_result_ = [handler](int32_t _error)
+    {
+        if (handler->on_result_)
+            handler->on_result_(_error);
     };
 
     return handler;

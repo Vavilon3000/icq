@@ -22,7 +22,7 @@ namespace Ui
     Q_SIGNALS:
         void fetchRequestedEvent(bool _isMoveToBottomIfNeed = true);
 
-        void needCleanup(QList<Logic::MessageKey> keysToUnload);
+        void needCleanup(const QVector<Logic::MessageKey>& keysToUnload);
 
         void scrollMovedToBottom();
 
@@ -35,6 +35,8 @@ namespace Ui
         void buttonDownClicked();
 
         void recreateAvatarRect();
+
+        void itemRead(const qint64 _id, const bool _visible);
 
     public:
         typedef std::function<bool(Ui::MessageItem*, const bool)> MessageItemVisitor;
@@ -51,9 +53,9 @@ namespace Ui
 
         void cancelWheelBufferReset();
 
-        void enumerateMessagesItems(const MessageItemVisitor visitor, const bool reversed) const;
+        void enumerateMessagesItems(const MessageItemVisitor& visitor, const bool reversed) const;
 
-        void enumerateWidgets(const WidgetVisitor visitor, const bool reversed) const;
+        void enumerateWidgets(const WidgetVisitor& visitor, const bool reversed) const;
 
         QWidget* getItemByPos(const int32_t pos) const;
 
@@ -65,13 +67,13 @@ namespace Ui
 
         QString getSelectedText() const;
 
-        QList<Data::Quote> getQuotes() const;
+        QVector<Data::Quote> getQuotes() const;
 
-        QList<Logic::MessageKey> getKeysToUnload() const;
+        QVector<Logic::MessageKey> getKeysToUnload() const;
 
         void insertWidget(const Logic::MessageKey &key, QWidget *widget);
 
-        void insertWidgets(const WidgetsList& _widgets, bool _isMoveToButtonIfNeed, int64_t _mess_id);
+        void insertWidgets(const WidgetsList& _widgets, bool _isMoveToButtonIfNeed, int64_t _mess_id, int64_t _countAfter, Logic::scroll_mode_type _scrollMode);
 
         bool isScrolling() const;
 
@@ -90,6 +92,7 @@ namespace Ui
         void scrollToBottom();
 
         void updateItemKey(const Logic::MessageKey &key);
+        void scrollTo(const Logic::MessageKey &key, Logic::scroll_mode_type _scrollMode);
 
         void updateScrollbar();
 
@@ -108,7 +111,14 @@ namespace Ui
         void setIsSearch(bool _isSearch);
         bool getIsSearch() const;
 
+        void setMessageId(qint64 _id);
+        qint64 getMessageId() const;
+
+        void setRecvLastMessage(bool _value);
+
         void updateItems();
+
+        void enableViewportShifting(bool enable);
 
     public slots:
         void notifySelectionChanges();
@@ -121,7 +131,7 @@ namespace Ui
         virtual void mouseReleaseEvent(QMouseEvent *e) override;
 
         virtual void wheelEvent(QWheelEvent *e) override;
-
+        virtual void hideEvent(QHideEvent*) override;
         virtual bool event(QEvent *e) override;
 
     private Q_SLOTS:
@@ -141,6 +151,7 @@ namespace Ui
 
 		/// resend from MessagesScrollLayout to HistoryControlPage
 		void onUpdateHistoryPosition(int32_t position, int32_t offset);
+        void onTimestampTimer();
 
     public Q_SLOTS:
         void onWheelEvent(QWheelEvent* e);
@@ -167,6 +178,7 @@ namespace Ui
         MessagesScrollAreaLayout *Layout_;
 
         QTimer ScrollAnimationTimer_;
+        QTimer timestampTimer_;
 
         double ScrollDistance_;
 
@@ -181,6 +193,8 @@ namespace Ui
         std::deque<int32_t> WheelEventsBuffer_;
 
         QTimer WheelEventsBufferResetTimer_;
+
+        void updateMode();
 
         void applySelection(const bool forShift = false);
 
@@ -199,6 +213,7 @@ namespace Ui
         void stopScrollAnimation();
 
         void resetUserActivityTimer();
+        void resetTimestampTimer();
 
         void eraseContact(QWidget* widget);
 
@@ -207,6 +222,9 @@ namespace Ui
         bool IsSearching_;
 
         int scrollValue_;
+
+        qint64 messageId_;
+        bool recvLastMessage_;
     };
 
 }

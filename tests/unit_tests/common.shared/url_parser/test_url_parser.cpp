@@ -132,6 +132,11 @@ BOOST_AUTO_TEST_CASE(all_tests)
 
     DataWrapper data;
 
+    BOOST_CHECK(check("https://store.playstation.com/#!/ru-ru/%d0%b8%d0%b3%d1%80%d1%8b/hellblade-senua%e2%80%99s-sacrifice/cid=EP8941-CUSA07527_00-HELLB2017NT003EN",
+        data.replace("https://store.playstation.com/#!/ru-ru/%d0%b8%d0%b3%d1%80%d1%8b/hellblade-senua%e2%80%99s-sacrifice/cid=EP8941-CUSA07527_00-HELLB2017NT003EN", url::type::site, url::protocol::https)));
+    BOOST_CHECK(check("‘http://62.16.20.0’", data.replace("http://62.16.20.0", url::type::site, url::protocol::http)));
+    BOOST_CHECK(check("(http://colocall.net/ua/)", data.replace("http://colocall.net/ua/", url::type::site, url::protocol::http)));
+    BOOST_CHECK(check("https://login:647474@mysite.com/", data.replace("https://login:647474@mysite.com/", url::type::site, url::protocol::https)));
     BOOST_CHECK(check("«12.127.17.72/test»", data.replace("http://12.127.17.72/test", url::type::site, url::protocol::http)));
     BOOST_CHECK(check("«12.127.17.72»", data.replace("http://12.127.17.72", url::type::site, url::protocol::http)));
     BOOST_CHECK(check("https://jira.mail.ru/browse/SWA-3529. hello", data.replace("https://jira.mail.ru/browse/SWA-3529", url::type::site, url::protocol::https)));

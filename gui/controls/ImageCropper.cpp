@@ -29,7 +29,7 @@ namespace Ui
     {
         pimpl->imageForCropping = _image;
         pimpl->scaledImage = pimpl->imageForCropping.scaled(QSize(width_, height_), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-         
+
         if (height_ != pimpl->scaledImage.height())
         {
             height_ = pimpl->scaledImage.height();
@@ -61,7 +61,7 @@ namespace Ui
 
     void ImageCropper::updareCroppingRect(bool _need_update)
     {
-        if (pimpl->isProportionFixed) 
+        if (pimpl->isProportionFixed)
         {
             auto croppintRectSideRelation = 1.0 * pimpl->croppingRect.width() / pimpl->croppingRect.height();
             auto proportionSideRelation = 1.0 * pimpl->proportion.width() / pimpl->proportion.height();
@@ -113,7 +113,7 @@ namespace Ui
     const QPixmap ImageCropper::cropImage() const
     {
         auto scaledImageSize = pimpl->scaledImage;
-        
+
         float leftDelta = 0;
         float topDelta = 0;
         if (this->size().height() == scaledImageSize.height()) {
@@ -137,10 +137,10 @@ namespace Ui
 
         return pimpl->imageForCropping.copy(realSizeRect.toRect());
     }
-    
+
     const QRectF ImageCropper::getCroppingRect() const
     {
-        return pimpl->croppingRect; 
+        return pimpl->croppingRect;
     }
 
     const QPixmap ImageCropper::getImage() const
@@ -165,11 +165,11 @@ namespace Ui
         {
             // if it's first showing, center crop area
             if (pimpl->croppingRect.isNull()) {
-                
+
                 auto width = std::max<int>(this->minScaledSize_, std::min(WIDGET_MINIMUM_SIZE.width(), this->width()) / 2);
                 auto height = std::max<int>(this->minScaledSize_, std::min(WIDGET_MINIMUM_SIZE.height(), this->height()) / 2);
                 pimpl->croppingRect.setSize(QSize(width, height));
-                
+
                 updareCroppingRect(false);
 
                 float x = (this->width() - pimpl->croppingRect.width()) / 2;
@@ -181,7 +181,7 @@ namespace Ui
             QPainterPath p;
             p.addRect(pimpl->croppingRect);
             p.addRect(this->rect());
-            QColor foggingColor("#000000");
+            QColor foggingColor(ql1s("#000000"));
             foggingColor.setAlphaF(0.6);
             widgetPainter.setBrush(QBrush(foggingColor));
             widgetPainter.setPen(Qt::transparent);
@@ -291,13 +291,13 @@ namespace Ui
             if (isPointNearSide(_cropRect.top(), _mousePosition.y())
                 && isPointNearSide(_cropRect.left(), _mousePosition.x())) {
                     cursorPosition = CursorPositionTopLeft;
-            } else if (isPointNearSide(_cropRect.bottom(), _mousePosition.y()) 
+            } else if (isPointNearSide(_cropRect.bottom(), _mousePosition.y())
                 && isPointNearSide(_cropRect.left(), _mousePosition.x())) {
                     cursorPosition = CursorPositionBottomLeft;
-            } else if (isPointNearSide(_cropRect.top(), _mousePosition.y()) 
+            } else if (isPointNearSide(_cropRect.top(), _mousePosition.y())
                 && isPointNearSide(_cropRect.right(), _mousePosition.x())) {
                     cursorPosition = CursorPositionTopRight;
-            } else if (isPointNearSide(_cropRect.bottom(), _mousePosition.y()) 
+            } else if (isPointNearSide(_cropRect.bottom(), _mousePosition.y())
                 && isPointNearSide(_cropRect.right(), _mousePosition.x())) {
                     cursorPosition = CursorPositionBottomRight;
             // one direction
@@ -320,7 +320,7 @@ namespace Ui
     void ImageCropper::updateCursorIcon(const QPointF& _mousePosition)
     {
         QCursor cursorIcon;
-        
+
         switch (cursorPosition(pimpl->croppingRect, _mousePosition))
         {
         case CursorPositionTopRight:
@@ -367,7 +367,7 @@ namespace Ui
         }
 
         // inside out rectangle
-        if (resultGeometry.left() >= resultGeometry.right() || resultGeometry.top() >= resultGeometry.bottom()) 
+        if (resultGeometry.left() >= resultGeometry.right() || resultGeometry.top() >= resultGeometry.bottom())
         {
             resultGeometry = QRect();
         }

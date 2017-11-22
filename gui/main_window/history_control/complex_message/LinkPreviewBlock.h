@@ -35,8 +35,6 @@ public:
 
     virtual IItemBlockLayout* getBlockLayout() const override;
 
-    const QString& getDescription() const;
-
     QSize getFaviconSizeUnscaled() const;
 
     QSize getPreviewImageSize() const;
@@ -81,7 +79,7 @@ public:
 
     virtual void setTextOpacity(double opacity) override;
 
-    virtual ContentType getContentType() const { return IItemBlock::Link; }
+    virtual ContentType getContentType() const override { return IItemBlock::Link; }
 
     virtual void connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover) override;
 
@@ -91,8 +89,10 @@ public:
 
     virtual int getMaxWidth() const override;
 
+    virtual QPoint getShareButtonPos(const bool _isBubbleRequired, const QRect& _bubbleRect) const override;
+
 protected:
-    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_color) override;
+    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& _quoteColor) override;
 
     virtual void initialize() override;
 
@@ -115,12 +115,8 @@ private Q_SLOTS:
 
     void onLinkMetainfoImageDownloaded(int64_t seq, bool success, QPixmap image);
 
-    void onSnapMetainfoDownloaded(int64_t seq, bool success, uint64_t snap_id);
-
 private:
     Q_PROPERTY(int PreloadingTicker READ getPreloadingTickerValue WRITE setPreloadingTickerValue);
-
-    bool createDescriptionControl(const QString &description);
 
     void createTextControls(const QRect &blockGeometry);
 
@@ -128,13 +124,9 @@ private:
 
     int getPreloadingTickerValue() const;
 
-    void requestSnapMetainfo();
-
     void setPreloadingTickerValue(const int32_t _val);
 
     Ui::TextEditEx *Title_;
-
-    Ui::TextEditEx *Annotation_;
 
     QPixmap FavIcon_;
 
@@ -164,8 +156,6 @@ private:
 
     QFont SiteNameFont_;
 
-    int64_t SnapMetainfoRequestId_;
-
     bool PressedOverSiteLink_;
 
     bool MetaDownloaded_;
@@ -181,8 +171,6 @@ private:
     QString ContentType_;
 
     Data::LinkMetadata Meta_;
-
-    uint64_t SnapId_;
 
     int TextFontSize_;
 

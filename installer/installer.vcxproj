@@ -22,10 +22,11 @@
     <ProjectGuid>{705EA9A3-CFAE-4A8D-BFC3-9D07DB6E3165}</ProjectGuid>
     <RootNamespace>gui</RootNamespace>
     <Keyword>Qt4VSv1.0</Keyword>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <PlatformToolSet>v110_xp</PlatformToolSet>
+    <PlatformToolSet>v141_xp</PlatformToolSet>
     <OutputDirectory>release\</OutputDirectory>
     <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
     <CharacterSet>Unicode</CharacterSet>
@@ -44,7 +45,7 @@
     <PrimaryOutput>gui</PrimaryOutput>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <PlatformToolSet>v110_xp</PlatformToolSet>
+    <PlatformToolSet>v141_xp</PlatformToolSet>
     <OutputDirectory>debug\</OutputDirectory>
     <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
     <CharacterSet>Unicode</CharacterSet>
@@ -96,8 +97,8 @@
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
     <CustomBuildBeforeTargets>Clean</CustomBuildBeforeTargets>
-    <LibraryPath>$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);%DXSDK_DIR%lib\x86</LibraryPath>
-    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);../external/zlib/include</IncludePath>
+    <LibraryPath>$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);%DXSDK_DIR%lib\x86;$(WindowsSdk_71A_LibraryPath_x86);$(VC_LibraryPath_x86)</LibraryPath>
+    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);../external/zlib/include;$(VC_IncludePath);$(WindowsSdk_71A_IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <CustomBuildAfterTargets />
@@ -107,8 +108,8 @@
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
     <CustomBuildBeforeTargets>Clean</CustomBuildBeforeTargets>
-    <LibraryPath>$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);%DXSDK_DIR%lib\x86</LibraryPath>
-    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);%DXSDK_DIR%lib\x86;$(WindowsSdk_71A_LibraryPath_x86);$(VC_LibraryPath_x86)</LibraryPath>
+    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);$(VC_IncludePath);$(WindowsSdk_71A_IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <CustomBuildAfterTargets />
@@ -137,7 +138,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>preprocessor.lib;dxguid.lib;Ws2_32.lib;..\external\gigabase_377\release\gigabase.lib;qtharfbuzzng.lib;glu32.lib;opengl32.lib;gdi32.lib;user32.lib;shell32.lib;qtmain.lib;Qt5Gui.lib;Qt5Core.lib;Qt5Widgets.lib;Qt5PlatformSupport.lib;qwindows.lib;qico.lib;Imm32.lib;Winmm.lib;psapi.lib;Qt5Multimedia.lib;Qt5Network.lib;qtaudio_windows.lib;strmiids.lib;..\external\zlib\lib\zlib.lib;..\external\curl\lib\libcurl.lib;wldap32.lib;qtpcre.lib;qtfreetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dxguid.lib;Ws2_32.lib;..\external\gigabase_377\release\gigabase.lib;qtharfbuzzng.lib;glu32.lib;opengl32.lib;gdi32.lib;user32.lib;shell32.lib;qtmain.lib;Qt5Gui.lib;Qt5Core.lib;Qt5Widgets.lib;Qt5PlatformSupport.lib;qwindows.lib;qico.lib;Imm32.lib;Winmm.lib;psapi.lib;Qt5Multimedia.lib;Qt5Network.lib;qtaudio_windows.lib;strmiids.lib;..\external\zlib\lib\zlib.lib;..\external\curl\lib\libcurl.lib;wldap32.lib;qtpcre.lib;qtfreetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\external\curl\lib;..\external\windows\;..\external\windows\qt\lib;..\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
       <DataExecutionPrevention>true</DataExecutionPrevention>
@@ -165,10 +166,9 @@ call python qt_prebuild.py -config $(Configuration)</Command>
       <Message>compile ui and moc files</Message>
     </PreBuildEvent>
     <CustomBuildStep>
-      <Command>
-        cd $(ProjectDir)
-        call clean.bat
-      </Command>
+      <Command>cd $(ProjectDir)
+mkdir $(TLogLocation)
+call clean.bat</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>clean</Message>
@@ -268,7 +268,7 @@ call python qt_prebuild.py -config $(Configuration)</Command>
       <OpenMPSupport>false</OpenMPSupport>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>preprocessor.lib;dxguid.lib;Ws2_32.lib;..\external\gigabase_377\debug\gigabase.lib;glu32.lib;opengl32.lib;gdi32.lib;user32.lib;shell32.lib;qtmaind.lib;Qt5Guid.lib;Qt5Cored.lib;Qt5Widgetsd.lib;Qt5PlatformSupportd.lib;qwindowsd.lib;qicod.lib;Imm32.lib;Winmm.lib;psapi.lib;Qt5Multimediad.lib;Qt5Networkd.lib;qtaudio_windowsd.lib;strmiids.lib;..\external\zlib\lib\zlib.lib;..\external\curl\lib\libcurl.lib;wldap32.lib;qtpcred.lib;qtfreetyped.lib;qtharfbuzzngd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dxguid.lib;Ws2_32.lib;..\external\gigabase_377\debug\gigabase.lib;glu32.lib;opengl32.lib;gdi32.lib;user32.lib;shell32.lib;qtmaind.lib;Qt5Guid.lib;Qt5Cored.lib;Qt5Widgetsd.lib;Qt5PlatformSupportd.lib;qwindowsd.lib;qicod.lib;Imm32.lib;Winmm.lib;psapi.lib;Qt5Multimediad.lib;Qt5Networkd.lib;qtaudio_windowsd.lib;strmiids.lib;..\external\zlib\lib\zlib.lib;..\external\curl\lib\libcurl.lib;wldap32.lib;qtpcred.lib;qtfreetyped.lib;qtharfbuzzngd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\external\windows\;..\external\windows\qt\lib;..\lib;..\external\curl\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
       <DataExecutionPrevention>true</DataExecutionPrevention>
@@ -298,6 +298,7 @@ call python qt_prebuild.py -config $(Configuration)</Command>
     </PreBuildEvent>
     <CustomBuildStep>
       <Command>cd $(ProjectDir)
+mkdir $(TLogLocation)
 call clean.bat
     </Command>
     </CustomBuildStep>

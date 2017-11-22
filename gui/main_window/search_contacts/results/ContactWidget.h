@@ -2,43 +2,43 @@
 
 namespace Logic
 {
-	class contact_profile;
+    class contact_profile;
 }
 
 namespace Ui
 {
-	class TextEditEx;
-	class LineEditEx;
-	class TextEmojiWidget;
-		
-	class ContactWidget : public QWidget
-	{
-		Q_OBJECT
+    class TextEditEx;
+    class LineEditEx;
+    class TextEmojiWidget;
 
-	Q_SIGNALS:
-		
-		void addContact(QString _contact);
-		void msgContact(QString _contact);
-		void callContact(QString _contact);
+    class ContactWidget : public QWidget
+    {
+        Q_OBJECT
+
+    Q_SIGNALS:
+
+        void addContact(QString _contact);
+        void msgContact(QString _contact);
+        void callContact(QString _contact);
         void contactInfo(QString _contact);
 
-	protected:
+    protected:
 
-		std::shared_ptr<Logic::contact_profile>	profile_;
+        std::shared_ptr<Logic::contact_profile> profile_;
 
-		TextEmojiWidget*	name_;
-		TextEmojiWidget*	info_;
-		QPushButton*		addButton_;
-		QPushButton*		callButton_;
-		QPushButton*		msgButton_;
-		
-	public:
+        TextEmojiWidget* name_;
+        TextEmojiWidget* info_;
+        QPushButton* addButton_;
+        QPushButton* callButton_;
+        QPushButton* msgButton_;
 
-		void onAddResult(bool _res);
+    public:
 
-		ContactWidget(QWidget* _parent, std::shared_ptr<Logic::contact_profile> _profile, const std::map<QString, QString>& _countries);
-		virtual ~ContactWidget();
-	};
+        void onAddResult(bool _res);
+
+        ContactWidget(QWidget* _parent, std::shared_ptr<Logic::contact_profile> _profile, const std::map<QString, QString>& _countries);
+        virtual ~ContactWidget();
+    };
 }
 
 

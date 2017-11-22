@@ -45,7 +45,11 @@ int main(int _argc, char* _argv[])
         return res;
 #endif //_WIN32
 
+#ifdef __linux__
+    QCoreApplication app(_argc, _argv);
+#else
     QApplication app(_argc, _argv);
+#endif
 
 #ifdef __linux__
 	QString icq_path = app.applicationDirPath() += "/icq";

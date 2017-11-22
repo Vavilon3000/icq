@@ -10,9 +10,9 @@
 #define SECURE_CALL_WINDOW_W Utils::scale_value(360)
 #define SECURE_CALL_WINDOW_H Utils::scale_value(320)
 
-#define SECURE_CALL_WINDOW_BORDER	 Utils::scale_value(24)
+#define SECURE_CALL_WINDOW_BORDER Utils::scale_value(24)
 #define SECURE_CALL_WINDOW_BORDER_UP Utils::scale_value(22)
-#define SECURE_CALL_WINDOW_UP_ARROW  Utils::scale_value(8)
+#define SECURE_CALL_WINDOW_UP_ARROW Utils::scale_value(8)
 #define SECURE_CALL_WINDOW_UP_OFFSET (SECURE_CALL_WINDOW_UP_ARROW + SECURE_CALL_WINDOW_BORDER_UP)
 
 #define DETAILS_URL "https://icq.com/security-calls"
@@ -22,19 +22,19 @@ const QString HINT_STYLE = "QLabel { color : #767676; }";
 const QString DETAILS_BUTTON_STYLE = QString(
     "QPushButton { text-align: bottom; vertical-align: text-bottom; color: %1;"
     "border-style: none; background-color: transparent; margin-bottom: 21dip; }"
-).arg(Utils::rgbaStringFromColor(Ui::CommonStyle::getLinkColor()));
+).arg(CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT).name());
 
-const QString BACKGROUND_COLOR = "QWidget { background: #ffffff; }";
+const QString BACKGROUND_COLOR = "QWidget { background-color: #ffffff; }";
 
 
 class WidgetWithBorder : public QWidget
 {
 public:
-	WidgetWithBorder(QWidget* parent);
+    WidgetWithBorder(QWidget* parent);
 
 protected:
 
-	virtual void paintEvent(QPaintEvent* _e) override;
+    virtual void paintEvent(QPaintEvent* _e) override;
 };
 
 Ui::ImageContainer::ImageContainer(QWidget* _parent)
@@ -122,43 +122,43 @@ void Ui::ImageContainer::swapImagePack(std::vector<std::shared_ptr<QImage> >& _i
 QPolygon getPolygon(const QRect& rc)
 {
     QRect rc1 = rc;
-    
-    
+
+
 // Fixed border under mac.
 #ifdef __APPLE__
     rc1.setWidth(rc.width() + 1);
     rc1.setHeight(rc.height() + 1);
 #endif
-    
-	const int cx = (rc1.left() + rc1.right()) * 0.5f;
-	const int cy = rc1.y();
 
-	int polygon[7][2];
-	polygon[0][0] = cx - SECURE_CALL_WINDOW_UP_ARROW;
-	polygon[0][1] = cy + SECURE_CALL_WINDOW_UP_ARROW;
+    const int cx = (rc1.left() + rc1.right()) * 0.5f;
+    const int cy = rc1.y();
 
-	polygon[1][0] = cx;
-	polygon[1][1] = cy;
+    int polygon[7][2];
+    polygon[0][0] = cx - SECURE_CALL_WINDOW_UP_ARROW;
+    polygon[0][1] = cy + SECURE_CALL_WINDOW_UP_ARROW;
 
-	polygon[2][0] = cx + SECURE_CALL_WINDOW_UP_ARROW;
-	polygon[2][1] = cy + SECURE_CALL_WINDOW_UP_ARROW;
+    polygon[1][0] = cx;
+    polygon[1][1] = cy;
 
-	polygon[3][0] = rc1.right();
-	polygon[3][1] = rc1.y() + SECURE_CALL_WINDOW_UP_ARROW;
+    polygon[2][0] = cx + SECURE_CALL_WINDOW_UP_ARROW;
+    polygon[2][1] = cy + SECURE_CALL_WINDOW_UP_ARROW;
 
-	polygon[4][0] = rc1.bottomRight().x();
-	polygon[4][1] = rc1.bottomRight().y();
+    polygon[3][0] = rc1.right();
+    polygon[3][1] = rc1.y() + SECURE_CALL_WINDOW_UP_ARROW;
 
-	polygon[5][0] = rc1.bottomLeft().x() + 1;
-	polygon[5][1] = rc1.bottomLeft().y();
+    polygon[4][0] = rc1.bottomRight().x();
+    polygon[4][1] = rc1.bottomRight().y();
 
-	polygon[6][0] = rc1.left() + 1;
-	polygon[6][1] = rc1.y() + SECURE_CALL_WINDOW_UP_ARROW;
+    polygon[5][0] = rc1.bottomLeft().x() + 1;
+    polygon[5][1] = rc1.bottomLeft().y();
 
-	QPolygon arrow;
-	arrow.setPoints(7, &polygon[0][0]);
+    polygon[6][0] = rc1.left() + 1;
+    polygon[6][1] = rc1.y() + SECURE_CALL_WINDOW_UP_ARROW;
 
-	return arrow;
+    QPolygon arrow;
+    arrow.setPoints(7, &polygon[0][0]);
+
+    return arrow;
 }
 
 
@@ -205,7 +205,7 @@ Ui::SecureCallWnd::SecureCallWnd(QWidget* _parent)
         assert(label);
         if (label)
         {
-			label->setContentsMargins(0, 0, 0, Utils::scale_value(18));
+            label->setContentsMargins(0, 0, 0, Utils::scale_value(18));
             rootLayout_->addWidget(label);
         }
     }
@@ -273,7 +273,7 @@ Ui::SecureCallWnd::SecureCallWnd(QWidget* _parent)
         QPushButton* btnOk = new voipTools::BoundBox<QPushButton>(underBtnWidget);
         btnOk->setCursor(QCursor(Qt::PointingHandCursor));
         Utils::ApplyStyle(btnOk, CommonStyle::getGrayButtonStyle());
-        btnOk->setText(QT_TRANSLATE_NOOP("voip_pages", "Ok"));
+        btnOk->setText(QT_TRANSLATE_NOOP("voip_pages", "OK"));
         connect(btnOk, SIGNAL(clicked()), this, SLOT(onBtnOkClicked()), Qt::QueuedConnection);
         underBtnLayout->addWidget(btnOk);
 
@@ -330,13 +330,13 @@ void Ui::SecureCallWnd::setSecureCode(const std::string& _text)
             images.push_back(image);
         }
     }
-    
+
     textSecureCode_->swapImagePack(images, Utils::scale_value(QSize(64, 64)));
 }
 
 void Ui::SecureCallWnd::updateMask()
 {
-	auto arrow = getPolygon(rect());
+    auto arrow = getPolygon(rect());
 
     QPainterPath path(QPointF(0, 0));
     path.addPolygon(arrow);
@@ -383,13 +383,11 @@ void Ui::SecureCallWnd::onBtnOkClicked()
 void Ui::SecureCallWnd::onDetailsButtonClicked()
 {
     QString url(DETAILS_URL);
-    Utils::InterConnector::instance().unsetUrlHandler();
     QDesktopServices::openUrl(url);
-    Utils::InterConnector::instance().setUrlHandler();
-    
+
     // On Mac it does not hide automatically, we make it manually.
     hide();
-    
+
     onSecureCallWndClosed();
 }
 
@@ -403,23 +401,23 @@ void Ui::SecureCallWnd::resizeEvent(QResizeEvent * event)
 
 WidgetWithBorder::WidgetWithBorder(QWidget* parent) : QWidget (parent) {}
 
-void WidgetWithBorder::paintEvent(QPaintEvent* _e) 
+void WidgetWithBorder::paintEvent(QPaintEvent* _e)
 {
-	QWidget::paintEvent(_e);
+    QWidget::paintEvent(_e);
 
-	if (parentWidget())
-	{
-		// Draw the border.
-		QPolygon polygon = getPolygon(parentWidget()->rect());
-		polygon.push_back(polygon.point(0));
+    if (parentWidget())
+    {
+        // Draw the border.
+        QPolygon polygon = getPolygon(parentWidget()->rect());
+        polygon.push_back(polygon.point(0));
 
-		QPainterPath path(QPointF(0, 0));
-		path.addPolygon(polygon);
+        QPainterPath path(QPointF(0, 0));
+        path.addPolygon(polygon);
 
-		QPainter painter(this);
+        QPainter painter(this);
         QColor borderColor("#000000");
         borderColor.setAlphaF(0.5);
-		painter.strokePath(path, QPen(borderColor, Utils::scale_value(2)));
-	}
+        painter.strokePath(path, QPen(borderColor, Utils::scale_value(2)));
+    }
 }
 

@@ -124,7 +124,7 @@ namespace installer
                 button_prev_->setFixedHeight(dpi::scale(40));
                 button_prev_->setFixedWidth(dpi::scale(120));
                 button_prev_->setObjectName("frame_button");
-                button_prev_->setText(QT_TR_NOOP("Back"));
+                button_prev_->setText(QT_TR_NOOP("BACK"));
                 button_prev_->setCursor(QCursor(Qt::PointingHandCursor));
                 buttonLayout_->addWidget(button_prev_);
                 connect(button_prev_, &QPushButton::clicked, this, &accounts_page_agent::prevClicked);
@@ -134,7 +134,7 @@ namespace installer
                 button_next_->setFixedHeight(dpi::scale(40));
                 button_next_->setFixedWidth(dpi::scale(120));
                 button_next_->setObjectName("custom_button");
-                button_next_->setText(QT_TR_NOOP("Next"));
+                button_next_->setText(QT_TR_NOOP("NEXT"));
                 button_next_->setCursor(QCursor(Qt::PointingHandCursor));
                 buttonLayout_->addWidget(button_next_);
                 connect(button_next_, &QPushButton::clicked, this, &accounts_page_agent::nextClicked);

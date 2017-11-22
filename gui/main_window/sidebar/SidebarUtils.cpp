@@ -4,6 +4,7 @@
 
 #include "../../controls/CommonStyle.h"
 #include "../../controls/CustomButton.h"
+#include "../../controls/LabelEx.h"
 #include "../../fonts.h"
 #include "../../utils/utils.h"
 
@@ -24,7 +25,7 @@ namespace Ui
             auto horLayout = Utils::emptyHLayout();
             horLayout->addSpacerItem(new QSpacerItem(leftMargin, 0, QSizePolicy::Fixed, QSizePolicy::Preferred));
             line_ = new QWidget(this);
-            line_->setStyleSheet("background: #d7d7d7");
+            line_->setStyleSheet(ql1s("background-color:") % CommonStyle::getColor(CommonStyle::Color::GRAY_BORDER).name());
             line_->setFixedHeight(Utils::scale_value(1));
             horLayout->addWidget(line_);
             horLayout->addSpacerItem(new QSpacerItem(rightMargin, 0, QSizePolicy::Fixed, QSizePolicy::Preferred));
@@ -51,7 +52,7 @@ namespace Ui
         Button_->setOffsets(textOffset, 0);
         Button_->setCursor(QCursor(Qt::PointingHandCursor));
         Button_->setText(text);
-        Button_->setTextColor("#454545");
+        Button_->setTextColor(qsl("#454545"));
         Button_->setFont(Fonts::appFontScaled(16));
         Button_->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed));
         Button_->setAlign(Qt::AlignLeft);
@@ -63,7 +64,7 @@ namespace Ui
         {
             vLayout->addSpacerItem(new QSpacerItem(0, Utils::scale_value(link_offset_top), QSizePolicy::Preferred, QSizePolicy::Fixed));
             auto horLayout = Utils::emptyHLayout();
-            Link_ = new QLabel(this);
+            Link_ = new LabelEx(this);
             Link_->setFont(Fonts::appFontScaled(12));
             horLayout->addSpacerItem(new QSpacerItem(Utils::scale_value(link_offset_left), 0, QSizePolicy::Fixed, QSizePolicy::Preferred));
             horLayout->addWidget(Link_);
@@ -100,9 +101,7 @@ namespace Ui
         if (!text.isEmpty())
         {
             Link_->setText(text);
-            QPalette p;
-            p.setColor(QPalette::Foreground, color);
-            Link_->setPalette(p);
+            Link_->setColor(color);
             Link_->show();
             setFixedHeight(Height_ + Utils::scale_value(link_offset_top * 2));
         }
@@ -132,7 +131,7 @@ namespace Ui
         if (Hovered_)
         {
             QPainter p(this);
-            p.fillRect(rect(), Ui::CommonStyle::getContactListHoveredColor());
+            p.fillRect(rect(), CommonStyle::getColor(CommonStyle::Color::GRAY_FILL_LIGHT));
         }
     }
 
@@ -181,7 +180,7 @@ namespace Ui
         if (Hovered_ && Enabled_)
         {
             QPainter p(this);
-            p.fillRect(rect(), Ui::CommonStyle::getContactListHoveredColor());
+            p.fillRect(rect(), CommonStyle::getColor(CommonStyle::Color::GRAY_FILL_LIGHT));
         }
     }
 

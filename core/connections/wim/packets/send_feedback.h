@@ -30,7 +30,7 @@ namespace core
             std::wstring log_;
 
         public:
-            send_feedback(const wim_packet_params& _params, const std::string &url, const std::map<std::string, std::string>& fields, const std::vector<std::string>& attachments);
+            send_feedback(wim_packet_params _params, const std::string &url, const std::map<std::string, std::string>& fields, const std::vector<std::string>& attachments);
             virtual ~send_feedback();
 
             bool result_;

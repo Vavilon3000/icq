@@ -121,7 +121,7 @@ namespace core
     {
         bool found = false;
 
-        for (auto iter = logins_.begin(); iter != logins_.end(); iter++)
+        for (auto iter = logins_.begin(); iter != logins_.end(); ++iter)
         {
             if (iter->get_login() == _login.get_login())
             {
@@ -163,8 +163,7 @@ namespace core
         if (logins_.begin()->get_login() == _old_login.get_login())
         {
             _new_login.set_id(_old_login.get_id());
-            logins_.pop_front();
-            logins_.push_front(_new_login);
+            logins_.front() = _new_login;
             save();
         }
     }

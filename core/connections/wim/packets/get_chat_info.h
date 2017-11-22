@@ -16,12 +16,12 @@ namespace core
 {
     namespace wim
     {
-        struct get_chat_info_params 
+        struct get_chat_info_params
         {
             std::string		aimid_;
             std::string		stamp_;
             uint32_t		members_limit_;
-            
+
             get_chat_info_params()
                 : members_limit_(0)
             {
@@ -40,8 +40,8 @@ namespace core
             chat_info					result_;
 
             get_chat_info(
-                const wim_packet_params& _params, 
-                const get_chat_info_params& _chat_params);
+                wim_packet_params _params,
+                get_chat_info_params _chat_params);
 
             virtual ~get_chat_info();
         };

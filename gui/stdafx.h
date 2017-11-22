@@ -1,5 +1,15 @@
 #pragma once
 
+#ifdef _WIN32
+#include <WinSDKVer.h>
+#define WINVER 0x0500
+#define _WIN32_WINDOWS 0x0500
+#define _WIN32_WINNT 0x0600
+#define _ATL_XP_TARGETING
+#include <SDKDDKVer.h>
+#include <Windows.h>
+#endif //_WIN32
+
 #include "../gui.shared/product.h"
 #include "utils/translator.h"
 #include "../gui.shared/constants.h"
@@ -43,16 +53,9 @@
 #endif //NO_ASSERT
 
 #if defined (_WIN32)
-
-#define WINVER 0x0500
-#define _WIN32_WINDOWS 0x0500
-#define _WIN32_WINNT 0x0600
-
 #include <tchar.h>
 #include <strsafe.h>
-#include <sdkddkver.h>
 #include <strsafe.h>
-#include <Windows.h>
 #include <sal.h>
 #include <Psapi.h>
 #include <ObjBase.h>
@@ -126,6 +129,7 @@
 #include <qframe.h>
 #include <QDesktopWidget>
 #include <QTextFrame>
+#include <QToolTip>
 #include <QScrollArea>
 #include <QStackedWidget>
 #include <QTableView>
@@ -162,6 +166,9 @@
 #include <QOpenGLBuffer>
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
+#include <QStringBuilder>
+#include <QPointer>
+#include <QVariantMap>
 
 #undef max
 #undef MAX
@@ -240,6 +247,7 @@
 #include <QtCore/qvariant.h>
 #include <QtWidgets/qframe.h>
 #include <QtWidgets/qdesktopwidget.h>
+#include <QtWidgets/qtooltip.h>
 #include <QtWidgets/qscrollarea.h>
 #include <QtWidgets/qstackedwidget.h>
 #include <QtWidgets/qtableview.h>
@@ -273,8 +281,15 @@
 #include <QtGui/qdrag.h>
 #include <QtWidgets/qgraphicsscene.h>
 #include <QtWidgets/qgraphicsitem.h>
+#include <QtCore/qstringbuilder.h>
+#include <QtCore/qpointer.h>
+#include <QtCore/qpauseanimation.h>
+#include <QtCore/qvariant.h>
 #else
 #include "macconfig.h"
+#ifndef HOCKEY_APPID
+#define HOCKEY_APPID @"13f40ef63c02469c93f566cc2c116952"
+#endif
 #import <QtCore/qresource.h>
 #import <QtCore/qtranslator.h>
 #import <QtGui/qscreen.h>
@@ -344,6 +359,7 @@
 #import <QtCore/qvariant.h>
 #import <QtWidgets/qframe.h>
 #import <QtWidgets/qdesktopwidget.h>
+#import <QtWidgets/qtooltip.h>
 #import <QtWidgets/qscrollarea.h>
 #import <QtWidgets/qstackedwidget.h>
 #import <QtWidgets/qtableview.h>
@@ -369,31 +385,79 @@
 #import <QtWidgets/qmenu.h>
 #import <QtWidgets/qmenubar.h>
 #import <QtGui/qclipboard.h>
-#import <QtCore/QObjectCleanupHandler.h>
+#import <QtCore/qobjectcleanuphandler.h>
 #import <QtGui/qmovie.h>
 #import <QtWidgets/qgesture.h>
-#import <QtCore/QUuid.h>
+#import <QtCore/quuid.h>
 #import <QtCore/qurlquery.h>
-#import <QtMultimedia/QMediaPlayer.h>
+#import <QtMultimedia/qmediaplayer.h>
 #import <QtCore/qendian.h>
 #import <QtGui/qdrag.h>
-#import <QtGui/QOpenGLTexture.h>
-#import <QtGui/QOpenGLShaderProgram.h>
+#import <QtGui/qopengltexture.h>
+#import <QtGui/qopenglshaderprogram.h>
 //#import <QtOpenGL/QGLWidget>
-#import <QtWidgets/QOpenglWidget.h>
-#import <QtGui/QOpenglWindow.h>
-#import <QtGui/QOpenGLFunctions.h>
-#import <QtGui/QOpenGLBuffer.h>
+#import <QtWidgets/qopenglwidget.h>
+#import <QtGui/qopenglwindow.h>
+#import <QtGui/qopenglfunctions.h>
+#import <QtGui/qopenglbuffer.h>
 #import <QtWidgets/qgraphicsscene.h>
 #import <QtWidgets/qgraphicsitem.h>
 #import <QtMacExtras/qmacfunctions.h>
-
+#import <QtCore/qstringbuilder.h>
+#import <QtCore/qpointer.h>
+#import <QtCore/qpauseanimation.h>
+#import <QtCore/qvariant.h>
 
 #endif // _WIN32
 
 #include "../common.shared/typedefs.h"
 #include "../common.shared/common.h"
 
+#define qsl(x) QStringLiteral(x)
+#define ql1s(x) QLatin1String(x)
+#define ql1c(x) QLatin1Char(x)
+
+#ifndef __AS_CONST__
+#define __AS_CONST__
+namespace Utils
+{
+    template <typename T>
+    constexpr typename std::add_const<T>::type& as_const(T& t) noexcept
+    {
+        static_assert(!std::is_const<T>::value, "apply to non-const only");
+        return t;
+    }
+    template <typename T>
+    void as_const(const T&&) = delete;
+}
+#endif // __AS_CONST__
+
+#ifndef __STRING_COMPARATOR__
+#define __STRING_COMPARATOR__
+
+struct StringComparator
+{
+    using is_transparent = std::true_type;
+
+    bool operator()(const QString& lhs, const QString& rhs) const { return lhs < rhs; }
+    bool operator()(const QStringRef& lhs, const QString& rhs) const { return lhs.compare(rhs) < 0; }
+    bool operator()(const QStringRef& lhs, const QStringRef& rhs) const { return lhs < rhs; }
+    bool operator()(const QString& lhs, const QStringRef& rhs) const { return lhs.compare(rhs) < 0; }
+    bool operator()(const QString& lhs, QLatin1String rhs) const { return lhs < rhs; }
+    bool operator()(QLatin1String lhs, const QString& rhs) const { return lhs < rhs; }
+    bool operator()(QLatin1String lhs, QLatin1String rhs) const { return lhs < rhs; }
+    bool operator()(QLatin1String lhs, const QStringRef& rhs) const { return rhs.compare(lhs) > 0; }
+    bool operator()(const QStringRef& lhs, QLatin1String rhs) const { return lhs.compare(rhs) < 0; }
+
+    template<typename T>
+    bool operator()(const char* lhs, const T& rhs) const { return operator()(ql1s(lhs), rhs); }
+
+    template<typename T>
+    bool operator()(const T& lhs, const char* rhs) const { return operator()(lhs, ql1s(rhs)); }
+
+    bool operator()(const char* lhs, const char* rhs) const { return operator()(ql1s(lhs), ql1s(rhs)); }
+};
+#endif // __STRING_COMPARATOR__
 
 namespace openal
 {

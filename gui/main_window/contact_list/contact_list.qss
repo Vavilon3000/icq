@@ -1,54 +1,17 @@
-QLabel#liveChatsTitle
-{
-    text-align: left baseline;
-    font-family: "%FONT_FAMILY_LIGHT%";
-    font-weight: %FONT_WEIGHT_LIGHT%;
-    font-size: 32dip;
-    margin-left: 16dip;
-    margin-top: 8dip;
-}
-
 QWidget#noContacts
 {
-	image: url(:/resources/placeholders/content_placeholder_cl_100.png);
-	margin: 0;
-}
-QLabel#noContactsLabel
-{
-	color: #767676; font-size: 15dip;
-	margin: 0; padding: 0;
-	padding-left: 16dip; padding-right: 16dip; 
+    image: url(:/placeholders/empty_cl_100);
+    margin: 0;
 }
 
 QWidget#noRecents
 {
-	image: url(:/resources/placeholders/content_placeholder_recents_100.png);
-	margin: 0;
-}
-QLabel#noRecentsLabel
-{
-	color: #767676; font-size: 15dip;
-	margin: 0; padding: 0;
+    image: url(:/placeholders/empty_recents_100);
+    margin: 0;
 }
 
 QWidget#noSearchResults
 {
-	image: url(:/resources/placeholders/content_placeholder_emptysearch_100.png);
-	margin: 0;
-}
-QLabel#noSearchResultsLabel
-{
-	color: #767676; font-size: 15dip;
-	margin: 0; padding: 0;
-}
-
-QLabel#livechats_topic_label
-{
-    qproperty-alignment: AlignCenter;
-    font-size: 16dip;
-    font-family: "%FONT_FAMILY_MEDIUM%";
-    font-weight: %FONT_WEIGHT_MEDIUM%;
-    min-height: 48dip;
-    max-height: 48dip;
-    color: #999999;
+    image: url(:/placeholders/empty_search_100);
+    margin: 0;
 }

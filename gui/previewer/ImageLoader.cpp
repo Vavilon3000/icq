@@ -21,9 +21,20 @@ Previewer::ImageLoader::ImageLoader(const QString& _aimId, const Data::Image& _i
     , state_(State::Success)
     , localFileName_(_localPath)
 {
-    if (!Utils::loadPixmap(_localPath, pixmap_))
+    QFileInfo fileInfo(_localPath);
+
+    const auto ext = fileInfo.suffix();
+
+    if (!fileInfo.exists())
     {
         load();
+    }
+    else
+    {
+        if (!Utils::is_video_extension(ext))
+        {
+            Utils::loadPixmap(_localPath, pixmap_);
+        }
     }
 }
 
@@ -60,7 +71,7 @@ void Previewer::ImageLoader::cancelLoading() const
     helper.set_value_as_string("contact", aimId_.toStdString());
     helper.set_value_as_string("url", image_.url_.toStdString());
     helper.set_value_as_int64("process_seq", seq_);
-    Ui::GetDispatcher()->post_message_to_core("files/download/abort", helper.get());
+    Ui::GetDispatcher()->post_message_to_core(qsl("files/download/abort"), helper.get());
 }
 
 Previewer::ImageLoader::State Previewer::ImageLoader::getState() const
@@ -117,7 +128,7 @@ void Previewer::ImageLoader::start()
     }
     else
     {
-        seq_ = Ui::GetDispatcher()->downloadImage(image_.url_, aimId_, QString(), false, 0, 0);
+        seq_ = Ui::GetDispatcher()->downloadImage(image_.url_, aimId_, QString(), false, 0, 0, true);
     }
 }
 

@@ -37,7 +37,7 @@ namespace core
         public:
 
             get_profile(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const std::string& _aimId);
 
             virtual ~get_profile();

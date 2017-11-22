@@ -27,13 +27,13 @@ namespace core
             std::string uin_from_;
             time_t message_time_;
 
-            std::string get_report_xml(time_t _current_time);
-            std::string get_report();
+            std::string get_report_xml(time_t _current_time) const;
+            std::string get_report() const;
 
         public:
 
             spam_report(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const std::string& _message_text,
                 const std::string& _uin_spam,
                 const std::string& _uin_from,

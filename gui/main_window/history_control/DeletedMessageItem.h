@@ -6,10 +6,10 @@ namespace Ui
 {
     class DeletedMessageItem : public HistoryControlPageItem
     {
-        virtual QString formatRecentsText() const { return QString(); }
+        QString formatRecentsText() const override { return QString(); }
 
     public:
-        DeletedMessageItem(QWidget* _parent);
+        explicit DeletedMessageItem(QWidget* _parent);
         virtual ~DeletedMessageItem();
 
 		virtual void setQuoteSelection() override;

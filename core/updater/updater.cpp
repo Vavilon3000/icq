@@ -35,7 +35,7 @@ namespace core
 #endif //_WIN32
 
 
-            /*	if (build::is_debug())
+            /*if (build::is_debug())
             {
             return "http://icq-builder1.mail.msk:8888/icq_update/";
             }
@@ -47,21 +47,18 @@ namespace core
 
         std::string get_update_version_url(const update_params& _params)
         {
-            std::string url = get_update_server() + "version.js" + "?" + "login=" + _params.login_;
-
-            return url;
-
+            return get_update_server() + "version.js?login=" + _params.login_;
         }
 
         updater::updater()
-            :	thread_(new core::async_executer(1)),
-            stop_(false)
+            : stop_(false),
+            thread_(std::make_unique<core::async_executer>(1))
         {
             timer_id_ = g_core->add_timer([this]()
             {
                 check_if_need();
 
-            }, (build::is_debug() ? (1000 * 10) : (1000 * 60 * 10)));
+            }, (build::is_debug() ? std::chrono::seconds(10) : std::chrono::minutes(10)));
 
             last_check_time_ = std::chrono::system_clock::now() - std::chrono::hours(check_period);
         }
@@ -168,7 +165,7 @@ namespace core
             tools::version_info server_version_info = tools::version_info(iter_major->value.GetInt(), iter_minor->value.GetInt(), iter_build->value.GetInt());
 
             if (local_version_info < server_version_info)
-                return do_update(iter_file->value.GetString(), iter_md5->value.GetString(), _params, _proxy);
+                return do_update(rapidjson_get_string(iter_file->value), rapidjson_get_string(iter_md5->value), _params, _proxy);
 
             return 0;
         }

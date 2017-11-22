@@ -40,14 +40,14 @@
 #define __LINEA__ __STRA(__LINE__)
 #define __LINEW__ __STRW(__LINE__)
 
-#define __FUNCLINEA__ __FUNCTION__"(#"__LINEA__")"
-#define __FUNCLINEW__ __FUNCTIONW__L"(#"__LINEW__L")"
+#define __FUNCLINEA__ __FUNCTION__ "(#" __LINEA__ ")"
+#define __FUNCLINEW__ __FUNCTIONW__ L"(#" __LINEW__ L")"
 
-#define __FILELINEA__ __FILE__"("__LINEA__")"
-#define __FILELINEW__ __FILEW__L"("__LINEW__L")"
+#define __FILELINEA__ __FILE__ "(" __LINEA__ ")"
+#define __FILELINEW__ __FILEW__ L"(" __LINEW__ L")"
 
-#define __TODOA__ __FILELINEA__": "
-#define __TODOW__ __FILELINEW__L": "
+#define __TODOA__ __FILELINEA__ ": "
+#define __TODOW__ __FILELINEW__ L": "
 
 #ifdef __APPLE__
 #   undef __TODOA__
@@ -88,14 +88,10 @@ namespace build
 		#endif
 	}
 
-	inline bool is_release()
-	{
-		#if !defined(_DEBUG) && !defined(DEBUG)
-			return true;
-		#else
-			return false;
-		#endif
-	}
+    inline bool is_release()
+    {
+        return !is_debug();
+    }
 
 	inline bool is_final_build()
 	{
@@ -159,7 +155,7 @@ namespace core
 {
     namespace stats
     {
-        typedef std::vector<std::pair<std::string, std:: string> > event_props_type;
+        typedef std::vector<std::pair<std::string, std::string>> event_props_type;
         const int32_t msg_pending_delay_s = 5;
     }
 }

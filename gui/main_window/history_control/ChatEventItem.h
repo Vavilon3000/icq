@@ -29,7 +29,7 @@ namespace Ui
 
         virtual QSize sizeHint() const override;
 
-         virtual bool setLastRead(const bool _isLastRead) override;
+         virtual void setLastStatus(LastStatus _lastStatus) override;
 
          virtual qint64 getId() const override;
 
@@ -44,8 +44,6 @@ namespace Ui
         TextEditEx *TextWidget_;
 
         const ::HistoryControl::ChatEventInfoSptr EventInfo_;
-
-        bool isLastRead_;
 
         int height_;
 

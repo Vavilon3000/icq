@@ -16,9 +16,9 @@ namespace core
 #ifdef __linux__
             return (core::tools::system::get_user_profile() + L"/.config/" + product_path);
 #elif _WIN32
-            return ::common::get_user_profile() + L"/" + product_path;
+            return ::common::get_user_profile() + L'/' + product_path;
 #else
-            return (core::tools::system::get_user_profile() + L"/" + product_path);
+            return (core::tools::system::get_user_profile() + L'/' + product_path);
 #endif //__linux__
         }
 
@@ -56,16 +56,15 @@ namespace core
             if (_uin)
             {
                 const auto &uin = *_uin;
-                assert(!uin.empty());
 
                 user_agent += uin;
-                user_agent += " ";
+                user_agent += ' ';
             }
 
             user_agent += get_app_name();
             user_agent += " (version ";
             user_agent += tools::version_info().get_version();
-            user_agent += ")";
+            user_agent += ')';
 
             user_agent.shrink_to_fit();
 
@@ -89,6 +88,18 @@ namespace core
             }
         }
 
+        std::string get_protocol_platform_string()
+        {
+            if (platform::is_apple())
+                return "mac";
+            else if (platform::is_windows())
+                return "windows";
+            else if (platform::is_linux())
+                return "linux";
+            else
+                return "unknown";
+        }
+
         std::wstring get_report_path()
         {
             return core::utils::get_product_data_path() + L"/reports";
@@ -104,7 +115,7 @@ namespace core
             return get_report_path() + L"/crashdump.dmp";
         }
 
-        const boost::filesystem::wpath get_logs_path()
+        boost::filesystem::wpath get_logs_path()
         {
             boost::filesystem::wpath logs_dir(get_product_data_path());
 

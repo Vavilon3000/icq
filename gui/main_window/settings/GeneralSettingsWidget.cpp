@@ -1,11 +1,14 @@
 #include "stdafx.h"
 #include "GeneralSettingsWidget.h"
 
+#include "../../controls/CommonStyle.h"
 #include "../../controls/TextEmojiWidget.h"
 #include "../../core_dispatcher.h"
 #include "../../gui_settings.h"
 #include "../../utils/InterConnector.h"
 #include "../../utils/utils.h"
+
+#define DEFAULT_DEVICE_UID "default_device"
 
 namespace Ui
 {
@@ -44,6 +47,7 @@ namespace Ui
         auto setActiveDevice = [this] (const voip_proxy::EvoipDevTypes& type)
         {
             QString settingsName;
+
             switch (type)
             {
                 case voip_proxy::kvoipDevTypeAudioPlayback: { settingsName = settings_speakers;   break; }
@@ -55,15 +59,16 @@ namespace Ui
                     return;
             };
 
-            QString val = get_gui_settings()->get_value<QString>(settingsName, "");
-            if (val != "")
+            QString val = get_gui_settings()->get_value<QString>(settingsName, QString());
+            bool applyDefaultDevice = getDefaultDeviceFlag(type);
+
+            if (!val.isEmpty())
             {
                 voip_proxy::device_desc description;
-                description.uid      = std::string(val.toUtf8());
+                description.uid      = applyDefaultDevice ? DEFAULT_DEVICE_UID : std::string(val.toUtf8());
                 description.dev_type = type;
 
-                user_selected_device_[type] = description.uid;
-                Ui::GetDispatcher()->getVoipController().setActiveDevice(description);
+                this->setActiveDevice(description);
             }
         };
 
@@ -86,7 +91,7 @@ namespace Ui
 
         initialized_ = true;
 
-        setStyleSheet(Utils::LoadStyle(":/main_window/settings/general_settings.qss"));
+        setStyleSheet(Utils::LoadStyle(qsl(":/qss/general_settings")));
         setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
 
         QHBoxLayout* mainLayout;
@@ -193,9 +198,16 @@ namespace Ui
     {
         devices_ = _devices;
 
+        // Remove non camera devices.
+        devices_.erase(std::remove_if(devices_.begin(), devices_.end(), []( const voip_proxy::device_desc& desc)
+        {
+            return (desc.dev_type == voip_proxy::kvoipDevTypeVideoCapture  &&  desc.video_dev_type != voip_proxy::kvoipDeviceCamera);
+        }), devices_.end());
+
         QMenu* menu = NULL;
         std::vector<DeviceInfo>* deviceList = NULL;
         TextEmojiWidget* currentSelected = NULL;
+        bool addDefaultDevice = false;
 
         switch (deviceType)
         {
@@ -203,12 +215,14 @@ namespace Ui
             menu = voiceAndVideo_.audioCaptureDevices;
             deviceList = &voiceAndVideo_.aCapDeviceList;
             currentSelected = voiceAndVideo_.aCapSelected;
+            addDefaultDevice = true;
             break;
 
         case voip_proxy::kvoipDevTypeAudioPlayback:
             menu = voiceAndVideo_.audioPlaybackDevices;
             deviceList = &voiceAndVideo_.aPlaDeviceList;
             currentSelected = voiceAndVideo_.aPlaSelected;
+            addDefaultDevice = true;
             break;
 
         case voip_proxy::kvoipDevTypeVideoCapture:
@@ -223,7 +237,7 @@ namespace Ui
             return;
         }
 
-        if (!menu || !deviceList)            
+        if (!menu || !deviceList)
         {
             return;
         }
@@ -232,8 +246,24 @@ namespace Ui
         menu->clear();
         if (currentSelected)
         {
-            currentSelected->setText("");
+            currentSelected->setText(QString());
         }
+
+#ifdef _WIN32
+        voip_proxy::device_desc defaultDeviceDescription;
+        if (addDefaultDevice && !devices_.empty())
+        {
+            DeviceInfo di;
+            di.name = QT_TRANSLATE_NOOP("settings_pages", "By default").toStdString() + " (" + devices_[0].name + ")";
+            di.uid  = DEFAULT_DEVICE_UID;
+
+            defaultDeviceDescription.name = di.name;
+            defaultDeviceDescription.uid  = di.uid;
+            defaultDeviceDescription.dev_type = deviceType;
+
+            deviceList->push_back(di);
+        }
+#endif
 
         using namespace voip_proxy;
 
@@ -242,12 +272,11 @@ namespace Ui
         for (unsigned ix = 0; ix < devices_.size(); ix++)
         {
             const device_desc& desc = devices_[ix];
- 
+
             DeviceInfo di;
             di.name = desc.name;
             di.uid  = desc.uid;
 
-            menu->addAction(desc.name.c_str());
             deviceList->push_back(di);
 
             if (user_selected_device_.count(deviceType) > 0 && user_selected_device_[deviceType] == di.uid)
@@ -260,6 +289,23 @@ namespace Ui
             }
         }
 
+#ifdef _WIN32
+        // For default device select
+        if (addDefaultDevice && !devices_.empty())
+        {
+            if (user_selected_device_.count(deviceType) > 0 && user_selected_device_[deviceType] == DEFAULT_DEVICE_UID)
+            {
+                selectedDesc = &defaultDeviceDescription;
+            }
+        }
+#endif
+
+        // Fill menu
+        for (DeviceInfo& device : *deviceList)
+        {
+            menu->addAction(device.name.c_str());
+        }
+
         if (currentSelected)
         {
             // User selected item has most priority, then voip active device, then first element in list.
@@ -269,8 +315,12 @@ namespace Ui
 
             if (desc)
             {
+                std::string realActiveDeviceID = setActiveDevice(*desc);
+#ifdef _WIN32
+                currentSelected->setText((realActiveDeviceID == DEFAULT_DEVICE_UID) ? defaultDeviceDescription.name.c_str() : desc->name.c_str());
+#else
                 currentSelected->setText(desc->name.c_str());
-                setActiveDevice(*desc);
+#endif
             }
         }
     }
@@ -291,7 +341,7 @@ namespace Ui
         QStackedWidget::paintEvent(_event);
 
         QPainter painter(this);
-        painter.setBrush(QBrush(QColor("#ffffff")));
+        painter.setBrush(QBrush(CommonStyle::getFrameColor()));
         painter.drawRect(
             geometry().x() - 1,
             geometry().y() - 1,
@@ -300,25 +350,89 @@ namespace Ui
         );
     }
 
-    void GeneralSettingsWidget::setActiveDevice(const voip_proxy::device_desc& _description)
+    std::string  GeneralSettingsWidget::setActiveDevice(const voip_proxy::device_desc& _description)
     {
-        Ui::GetDispatcher()->getVoipController().setActiveDevice(_description);
+        std::string runTimeUid = _description.uid;
+        voip_proxy::device_desc description = applyDefaultDeviceLogic(_description, runTimeUid);
+        Ui::GetDispatcher()->getVoipController().setActiveDevice(description);
 
         QString settingsName;
-        switch (_description.dev_type) {
+        switch (description.dev_type) {
         case voip_proxy::kvoipDevTypeAudioPlayback: { settingsName = settings_speakers;  break; }
         case voip_proxy::kvoipDevTypeAudioCapture: { settingsName = settings_microphone; break; }
         case voip_proxy::kvoipDevTypeVideoCapture: { settingsName = settings_webcam;     break; }
         case voip_proxy::kvoipDevTypeUndefined:
         default:
             assert(!"unexpected device type");
-            return;
+            return runTimeUid;
         };
 
-        user_selected_device_[_description.dev_type] = _description.uid;
+        user_selected_device_[description.dev_type] = runTimeUid;
 
-        if (get_gui_settings()->get_value<QString>(settingsName, "") != _description.uid.c_str())
-            get_gui_settings()->set_value<QString>(settingsName, _description.uid.c_str());
+        const auto uid = QString::fromStdString(description.uid);
+        if (get_gui_settings()->get_value<QString>(settingsName, QString()) != uid)
+            get_gui_settings()->set_value<QString>(settingsName, uid);
+
+        return runTimeUid;
+    }
+
+    bool GeneralSettingsWidget::getDefaultDeviceFlag(const voip_proxy::EvoipDevTypes& type)
+    {
+#ifdef _WIN32
+        QString defaultFlagSettingName;
+
+        switch (type)
+        {
+        case voip_proxy::kvoipDevTypeAudioPlayback: { defaultFlagSettingName = settings_speakers_is_default;  break; }
+        case voip_proxy::kvoipDevTypeAudioCapture: {  defaultFlagSettingName = settings_microphone_is_default; break; }
+        default:
+            return false;
+        };
+
+        return !defaultFlagSettingName.isEmpty() ?
+            get_gui_settings()->get_value<bool>(defaultFlagSettingName, false) : false;
+#else
+        return false;
+#endif
+    }
+
+    voip_proxy::device_desc GeneralSettingsWidget::applyDefaultDeviceLogic(const voip_proxy::device_desc& _description, std::string& runtimeDeviceUid)
+    {
+#ifdef _WIN32
+        QString defaultFlagSettingName;
+        runtimeDeviceUid = _description.uid;
+        voip_proxy::device_desc res = _description;
+
+        switch (_description.dev_type) {
+            case voip_proxy::kvoipDevTypeAudioPlayback: { defaultFlagSettingName = settings_speakers_is_default;  break; }
+            case voip_proxy::kvoipDevTypeAudioCapture: { defaultFlagSettingName = settings_microphone_is_default; break; }
+            default: return res;
+        }
+
+        const std::vector<voip_proxy::device_desc>& devList =
+            Ui::GetDispatcher()->getVoipController().deviceList(res.dev_type);
+
+        if (!devList.empty())
+        {
+            // If there is no default setting, we try to set current device to default, if user use default device.
+            if (!get_gui_settings()->contains_value(defaultFlagSettingName) && devList[0].uid == res.uid && !res.uid.empty())
+            {
+                res.uid = DEFAULT_DEVICE_UID;
+                runtimeDeviceUid = DEFAULT_DEVICE_UID;
+            }
+
+            // Default device is first in device list.
+            if (res.uid == DEFAULT_DEVICE_UID)
+            {
+                res.uid = devList[0].uid;
+            }
+
+            get_gui_settings()->set_value<bool>(defaultFlagSettingName, runtimeDeviceUid == DEFAULT_DEVICE_UID);
+        }
+        return res;
+#else
+        return _description;
+#endif
     }
 
 
@@ -346,9 +460,8 @@ namespace Ui
     {
         if (name == settings_sounds_enabled)
         {
-            sounds_.check_->blockSignals(true);
+            QSignalBlocker sb(sounds_.check_);
             sounds_.check_->setChecked(get_gui_settings()->get_value<bool>(settings_sounds_enabled, true));
-            sounds_.check_->blockSignals(false);
         }
     }
 
@@ -362,9 +475,8 @@ namespace Ui
     {
         if (name == settings_sounds_enabled)
         {
-            sounds_.check_->blockSignals(true);
+            QSignalBlocker sb(sounds_.check_);
             sounds_.check_->setChecked(get_gui_settings()->get_value<bool>(settings_sounds_enabled, true));
-            sounds_.check_->blockSignals(false);
         }
     }
 }

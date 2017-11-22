@@ -6,6 +6,8 @@
     #include "macos/VideoFrameMacos.h"
 #elif _WIN32
     #include "win32/VideoFrameWin32.h"
+#elif __linux__
+    #include "linux/VideoFrameLinux.h"
 #else
 #ifndef STRIP_VOIP
     #error "video frame need to create"
@@ -20,6 +22,8 @@ platform_specific::GraphicsPanel* platform_specific::GraphicsPanel::create(
     return  platform_macos::GraphicsPanelMacos::create(_parent, _panels, primaryVideo);
 #elif _WIN32
     return  new platform_win32::GraphicsPanelWin32(_parent, _panels, primaryVideo);
+#elif __linux__
+    return  new platform_linux::GraphicsPanelLinux(_parent, _panels, primaryVideo);
 #endif
     return nullptr;
 }
@@ -36,12 +40,12 @@ void platform_specific::GraphicsPanel::addPanels(std::vector<Ui::BaseVideoPanel*
 
 void platform_specific::GraphicsPanel::clearPanels()
 {
-    
+
 }
 
 void platform_specific::GraphicsPanel::fullscreenModeChanged(bool /*fullscreen*/)
 {
-    
+
 }
 
 void platform_specific::GraphicsPanel::fullscreenAnimationStart() {}

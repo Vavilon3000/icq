@@ -3,6 +3,7 @@
 namespace Ui
 {
     class CustomButton;
+    class LabelEx;
 
     class LineWidget : public QWidget
     {
@@ -31,11 +32,11 @@ Q_SIGNALS:
         void setLink(const QString& text, const QColor& color);
 
     protected:
-        virtual void paintEvent(QPaintEvent*);
-        virtual void enterEvent(QEvent*);
-        virtual void leaveEvent(QEvent*);
-        virtual void mouseReleaseEvent(QMouseEvent*);
-        virtual void resizeEvent(QResizeEvent *);
+        void paintEvent(QPaintEvent*) override;
+        void enterEvent(QEvent*) override;
+        void leaveEvent(QEvent*) override;
+        void mouseReleaseEvent(QMouseEvent*) override;
+        void resizeEvent(QResizeEvent *) override;
 
     private:
         void elideLink();
@@ -44,7 +45,7 @@ Q_SIGNALS:
         bool Hovered_;
         int Height_;
         CustomButton* Button_;
-        QLabel* Link_;
+        LabelEx* Link_;
         QString LinkText_;
     };
 
@@ -60,10 +61,10 @@ Q_SIGNALS:
         void setEnabled(bool value);
 
     protected:
-        virtual void paintEvent(QPaintEvent*);
-        virtual void enterEvent(QEvent*);
-        virtual void leaveEvent(QEvent*);
-        virtual void mouseReleaseEvent(QMouseEvent *);
+        void paintEvent(QPaintEvent*) override;
+        void enterEvent(QEvent*) override;
+        void leaveEvent(QEvent*) override;
+        void mouseReleaseEvent(QMouseEvent *) override;
 
     private:
         bool Hovered_;

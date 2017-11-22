@@ -12,7 +12,7 @@ using namespace Ui;
 
 void GeneralSettingsWidget::Creator::initNotifications(NotificationSettings* _parent, std::map<std::string, Synchronizator>& _collector)
 {
-    auto scrollArea = CreateScrollAreaAndSetTrScrollBar(_parent);
+    auto scrollArea = CreateScrollAreaAndSetTrScrollBarV(_parent);
     scrollArea->setWidgetResizable(true);
     Utils::grabTouchWidget(scrollArea->viewport(), true);
 
@@ -21,7 +21,7 @@ void GeneralSettingsWidget::Creator::initNotifications(NotificationSettings* _pa
 
     auto mainLayout = Utils::emptyVLayout(mainWidget);
     mainLayout->setAlignment(Qt::AlignTop);
-    mainLayout->setContentsMargins(Utils::scale_value(36), 0, Utils::scale_value(36), Utils::scale_value(36));
+    mainLayout->setContentsMargins(Utils::scale_value(16), 0, Utils::scale_value(36), Utils::scale_value(36));
 
     scrollArea->setWidget(mainWidget);
 

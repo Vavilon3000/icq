@@ -2,25 +2,25 @@
 
 namespace Ui {
 
-	class PictureWidget : public QWidget
-	{
-		QPixmap		pixmapToDraw_;
+    class PictureWidget : public QWidget
+    {
+        QPixmap pixmapToDraw_;
 
-		int			x_;
-		int			y_;
-		int         align_;
+        int x_;
+        int y_;
+        int         align_;
 
-	protected:
-		virtual void paintEvent(QPaintEvent*) override;
+    protected:
+        virtual void paintEvent(QPaintEvent*) override;
 
-	public:
+    public:
 
-		PictureWidget(QWidget* _parent, const QString& _imageName = QString());
+        PictureWidget(QWidget* _parent, const QString& _imageName = QString());
 
-		void setAlign(int flags);
-		void setOffsets(int _x, int _y);
-		void setImage(const QString& _imageName);
+        void setAlign(int flags);
+        void setOffsets(int _x, int _y);
+        void setImage(const QString& _imageName);
         void setImage(const QPixmap& _pixmap, int radius);
-	};
+    };
 
 }

@@ -43,8 +43,8 @@ namespace Ui
         tmt_init = 12,
         tmt_open_streams = 13,
         tmt_close_streams = 14,
-        tmt_wake_up = 15
-
+        tmt_wake_up = 15,
+        tmt_get_first_frame = 16
     };
 
     struct ThreadMessage
@@ -58,9 +58,9 @@ namespace Ui
 
         ThreadMessage(uint32_t _videoId = UINT32_MAX, const thread_message_type _message = thread_message_type::tmt_unknown)
             : message_(_message)
-            , videoId_(_videoId)
             , x_(0)
             , y_(0)
+            , videoId_(_videoId)
         {
         }
     };
@@ -143,7 +143,7 @@ namespace Ui
         //ffmpeg::AVPacket packet_;
 
         bool queueInited_;
-                
+
         ffmpeg::AVCodecContext* audioCodecContext_;
         decode_thread_state state_;
 
@@ -156,6 +156,7 @@ namespace Ui
                 buffersProcessed_(0),
                 iState_(0),
                 iQueuedBuffers_(0),
+                iloop_(0),
                 layout_(0),
                 channels_(0),
                 fmt_(AL_FORMAT_STEREO16),
@@ -164,16 +165,15 @@ namespace Ui
                 maxResampleSamples_(1024),
                 srcRate_(audio::outFrequency),
                 dstRate_(audio::outFrequency),
-                audioCodecContext_(0),
-                state_(decode_thread_state::dts_playing),
                 queueInited_(false),
-                iloop_(0)
+                audioCodecContext_(0),
+                state_(decode_thread_state::dts_playing)
         {
 
         }
     };
 
-    struct MediaData 
+    struct MediaData
     {
         bool syncWithAudio_;
 
@@ -235,7 +235,7 @@ namespace Ui
         bool eof_;
         bool stream_finished_;
 
-        VideoData() : eof_(false), stream_finished_(false), current_state_(dts_none) {}
+        VideoData() : current_state_(dts_none), eof_(false), stream_finished_(false)  {}
     };
 
     struct AudioData
@@ -260,7 +260,7 @@ namespace Ui
 
         void dataReady(uint32_t _videoId);
 
-        void nextframeReady(uint32_t _videoId, QImage _frame, double _pts, bool _eof);
+        void nextframeReady(uint32_t _videoId, const QImage& _frame, double _pts, bool _eof);
         void videoSizeChanged(QSize _sz);
         void streamsOpened(uint32_t _videoId);
         void streamsOpenFailed(uint32_t _videoId);
@@ -269,12 +269,17 @@ namespace Ui
         void seekedV(uint32_t _videoId);
         void seekedA(uint32_t _videoId);
 
-    public Q_SLOTS:
-            
         void audioQuit(uint32_t _videoId);
         void videoQuit(uint32_t _videoId);
         void demuxQuit(uint32_t _videoId);
         void streamsClosed(uint32_t _videoId);
+
+    public Q_SLOTS:
+
+        void onAudioQuit(uint32_t _videoId);
+        void onVideoQuit(uint32_t _videoId);
+        void onDemuxQuit(uint32_t _videoId);
+        void onStreamsClosed(uint32_t _videoId);
 
     private:
 
@@ -343,7 +348,9 @@ namespace Ui
         QSize getScaledSize(MediaData& _media) const;
         bool enableAudio(MediaData& _media) const;
         bool enableVideo(MediaData& _media) const;
-        
+
+        QImage getFirstFrame(const QString& _file);
+
         double getVideoTimebase(MediaData& _media);
         double getAudioTimebase(MediaData& _media);
         double synchronizeVideo(ffmpeg::AVFrame* _frame, double _pts, MediaData& _media);
@@ -353,21 +360,21 @@ namespace Ui
         void freeDecodeAudioData(MediaData& _media);
 
         bool readFrameAudio(
-            ffmpeg::AVPacket* _packet, 
-            AudioData& _audioData, 
-            openal::ALvoid** _frameData, 
+            ffmpeg::AVPacket* _packet,
+            AudioData& _audioData,
+            openal::ALvoid** _frameData,
             openal::ALsizei& _frameDataSize,
             bool& _flush,
             int& _seekCount,
-            MediaData& _media, 
+            MediaData& _media,
             uint32_t _videoId);
-        
+
         bool playNextAudioFrame(
-            ffmpeg::AVPacket* _packet, 
-            /*in out*/ AudioData& _audioData, 
-            bool& _flush, 
+            ffmpeg::AVPacket* _packet,
+            /*in out*/ AudioData& _audioData,
+            bool& _flush,
             int& _seekCount,
-            MediaData& _media, 
+            MediaData& _media,
             uint32_t _videoId);
 
         void cleanupAudioBuffers(MediaData& _media);
@@ -411,10 +418,10 @@ namespace Ui
         const int64_t& getStartTimeVideo(MediaData& _media) const;
 
         void setStartTimeAudio(const int64_t& _startTime, MediaData& _media);
-        
+
         const int64_t& getStartTimeAudio(MediaData& _media) const;
 
-        std::shared_ptr<MediaData> getMediaData(uint32_t _videoId, bool& _success);
+        std::shared_ptr<MediaData> getMediaData(uint32_t _videoId) const;
 
         void initFlushPacket(ffmpeg::AVPacket& _packet);
     };
@@ -433,7 +440,7 @@ namespace Ui
 
     public:
 
-        DemuxThread(VideoContext& _ctx);
+        explicit DemuxThread(VideoContext& _ctx);
     };
 
 
@@ -451,7 +458,7 @@ namespace Ui
 
     public:
 
-        VideoDecodeThread(VideoContext& _ctx);
+        explicit VideoDecodeThread(VideoContext& _ctx);
 
         void prepareCtx(MediaData& _media);
     };
@@ -471,7 +478,7 @@ namespace Ui
 
     public:
 
-        AudioDecodeThread(VideoContext& _ctx);
+        explicit AudioDecodeThread(VideoContext& _ctx);
     };
 
     class FrameRenderer
@@ -569,11 +576,20 @@ namespace Ui
     };
 #endif //__linux__
 
-    class MediaContainer
+    class MediaContainer : public QObject
     {
+        Q_OBJECT
+
     public:
+
         MediaContainer();
         ~MediaContainer();
+
+    Q_SIGNALS:
+
+        void frameReady(const QImage& _frame, const QString& _file);
+
+    public:
 
         void VideoDecodeThreadStart(uint32_t _mediaId);
         void AudioDecodeThreadStart(uint32_t _mediaId);
@@ -602,7 +618,7 @@ namespace Ui
         double computeDelay(double _picturePts, MediaData& _media);
 
         uint32_t init(uint32_t _id = 0);
-        
+
         void stopMedia(uint32_t _mediaId);
         void updateVideoScaleSize(const uint32_t _mediaId, const QSize _sz);
 
@@ -625,8 +641,10 @@ namespace Ui
     };
 
     MediaContainer* getMediaContainer();
-    
+
     void ResetMediaContainer();
+
+    MediaContainer* getMediaPreview(const QString& _media);
 
     //////////////////////////////////////////////////////////////////////////
     // FFMpegPlayer
@@ -663,7 +681,7 @@ namespace Ui
             bool eof_;
 
             DecodedFrame(const QPixmap& _image, const double _pts) : image_(_image), pts_(_pts), eof_(false) {}
-            DecodedFrame(const bool& _eof) : eof_(_eof) {}
+            DecodedFrame(bool _eof) : eof_(_eof) {}
         };
 
         std::unique_ptr<DecodedFrame> firstFrame_;
@@ -729,7 +747,7 @@ namespace Ui
         void onRendererSize(const QSize _sz);
         void onAudioTime(uint32_t _videoId, int64_t _avtime, double _offset);
         void onDataReady(uint32_t _videoId);
-        void onNextFrameReady(uint32_t _videoId, QImage _image, double _pts, bool _eof);
+        void onNextFrameReady(uint32_t _videoId, const QImage& _image, double _pts, bool _eof);
         void seekedV(uint32_t _videoId);
         void seekedA(uint32_t _videoId);
 
@@ -806,6 +824,8 @@ namespace Ui
         int32_t getRestoreVolume() const;
 
         void resetRenderer();
+
+        void requestFirstFrame(const QString& _file, std::function<void(QPixmap)> _ready);
 
     protected:
 

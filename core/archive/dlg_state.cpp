@@ -36,20 +36,22 @@ enum dlg_state_fields
     official = 13,
     fake = 14,
     hidden_msg_id = 15,
+    unread_mentions_count = 16,
 };
 
 dlg_state::dlg_state()
     : unread_count_(0)
+    , unread_mentions_count_(0)
     , last_msgid_(-1)
     , yours_last_read_(-1)
+    , del_up_to_(-1)
     , theirs_last_read_(-1)
     , theirs_last_delivered_(-1)
     , hidden_msg_id_(-1)
-    , last_message_(new history_message())
     , visible_(true)
-    , official_(false)
     , fake_(false)
-    , del_up_to_(-1)
+    , official_(false)
+    , last_message_(std::make_unique<history_message>())
 {
 }
 
@@ -60,13 +62,14 @@ dlg_state::~dlg_state()
 
 dlg_state::dlg_state(const dlg_state& _state)
 {
-    last_message_.reset(new history_message());
+    last_message_ = std::make_unique<history_message>();
     copy_from(_state);
 }
 
 void dlg_state::copy_from(const dlg_state& _state)
 {
     unread_count_ = _state.unread_count_;
+    unread_mentions_count_ = _state.unread_mentions_count_;
     set_last_msgid(_state.get_last_msgid());
     yours_last_read_ = _state.yours_last_read_;
     theirs_last_read_ = _state.theirs_last_read_;
@@ -118,7 +121,7 @@ bool dlg_state::has_last_message() const
 
 void dlg_state::clear_last_message()
 {
-    last_message_.reset(new history_message);
+    last_message_ = std::make_unique<history_message>();
 }
 
 const std::string& dlg_state::get_last_message_friendly() const
@@ -146,11 +149,11 @@ bool dlg_state::has_history_patch_version() const
     return !history_patch_version_.empty();
 }
 
-void dlg_state::set_history_patch_version(const std::string& _patch_version)
+void dlg_state::set_history_patch_version(std::string _patch_version)
 {
     assert(!_patch_version.empty());
 
-    history_patch_version_ = _patch_version;
+    history_patch_version_ = std::move(_patch_version);
 }
 
 void dlg_state::reset_history_patch_version()
@@ -163,9 +166,9 @@ const std::string& dlg_state::get_dlg_state_patch_version() const
     return dlg_state_patch_version_;
 }
 
-void dlg_state::set_dlg_state_patch_version(const std::string& _patch_version)
+void dlg_state::set_dlg_state_patch_version(std::string _patch_version)
 {
-    dlg_state_patch_version_ = _patch_version;
+    dlg_state_patch_version_ = std::move(_patch_version);
 }
 
 int64_t dlg_state::get_del_up_to() const
@@ -192,11 +195,22 @@ bool dlg_state::is_empty() const
     return (!has_last_msgid() && !last_message_->has_msgid());
 }
 
+void core::archive::dlg_state::set_unread_mentions_count(const int32_t _count)
+{
+    unread_mentions_count_ = _count;
+}
+
+int32_t core::archive::dlg_state::get_unread_mentions_count() const
+{
+    return unread_mentions_count_;
+}
+
 void dlg_state::serialize(icollection* _collection, const time_t _offset, const time_t _last_successful_fetch, const bool _serialize_message) const
 {
     coll_helper coll(_collection, false);
 
     coll.set<int64_t>("unreads", get_unread_count());
+    coll.set<int32_t>("unread_mention_count", get_unread_mentions_count());
     coll.set<int64_t>("last_msg_id", get_last_msgid());
     coll.set<int64_t>("yours_last_read", get_yours_last_read());
     coll.set<int64_t>("theirs_last_read", get_theirs_last_read());
@@ -230,6 +244,7 @@ void dlg_state::serialize(core::tools::binary_stream& _data) const
     state_pack.push_child(core::tools::tlv(dlg_state_fields::official, get_official()));
     state_pack.push_child(core::tools::tlv(dlg_state_fields::fake, get_fake()));
     state_pack.push_child(core::tools::tlv(dlg_state_fields::hidden_msg_id, get_hidden_msg_id()));
+    state_pack.push_child(core::tools::tlv(dlg_state_fields::unread_mentions_count, get_unread_mentions_count()));
 
     if (has_history_patch_version())
     {
@@ -272,6 +287,7 @@ bool dlg_state::unserialize(core::tools::binary_stream& _data)
     auto tlv_official = state_pack.get_item(dlg_state_fields::official);
     auto tlv_fake = state_pack.get_item(dlg_state_fields::fake);
     auto tlv_hidden_msg_id = state_pack.get_item(dlg_state_fields::hidden_msg_id);
+    auto tlv_mention_me_count = state_pack.get_item(dlg_state_fields::unread_mentions_count);
 
     if (!tlv_unreads_count || !tlv_last_msg_id || !tlv_yours_last_read || !tlv_theirs_last_read ||
         !tlv_theirs_last_delivered || !tlv_last_message || !tlv_visible)
@@ -323,6 +339,11 @@ bool dlg_state::unserialize(core::tools::binary_stream& _data)
         set_hidden_msg_id(tlv_hidden_msg_id->get_value<int64_t>());
     }
 
+    if (tlv_mention_me_count)
+    {
+        set_unread_mentions_count(tlv_mention_me_count->get_value<int32_t>(0));
+    }
+
     core::tools::binary_stream bs_message = tlv_last_message->get_value<core::tools::binary_stream>();
     last_message_->unserialize(bs_message);
 
@@ -338,7 +359,7 @@ dlg_state_changes::dlg_state_changes()
 }
 
 archive_state::archive_state(const std::wstring& _file_name, const std::string& _contact_id)
-    : storage_(new storage(_file_name))
+    : storage_(std::make_unique<storage>(_file_name))
     , contact_id_(_contact_id)
 {
     assert(!contact_id_.empty());
@@ -403,7 +424,7 @@ const dlg_state& archive_state::get_state()
 {
     if (!state_)
     {
-        state_.reset(new dlg_state());
+        state_ = std::make_unique<dlg_state>();
 
         load();
 
@@ -452,6 +473,7 @@ void archive_state::merge_state(const dlg_state& _new_state, Out dlg_state_chang
     state_->set_official(_new_state.get_official());
     state_->set_theirs_last_read(_new_state.get_theirs_last_read());
     state_->set_theirs_last_delivered(_new_state.get_theirs_last_delivered());
+    state_->set_unread_mentions_count(_new_state.get_unread_mentions_count());
 
     auto hidden_msg_id = _new_state.get_hidden_msg_id();
     if (hidden_msg_id != -1)
@@ -549,7 +571,7 @@ void archive_state::merge_state(const dlg_state& _new_state, Out dlg_state_chang
 void archive_state::set_state(const dlg_state& _state, Out archive::dlg_state_changes& _changes)
 {
     if (!state_)
-        state_.reset(new dlg_state());
+        state_ = std::make_unique<dlg_state>();
 
     merge_state(_state, Out _changes);
 

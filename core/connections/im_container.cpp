@@ -7,6 +7,7 @@
 #include "../../corelib/enumerations.h"
 #include "wim/wim_im.h"
 #include "wim/wim_packet.h"
+#include "wim/auth_parameters.h"
 #include "../Voip/VoipManager.h"
 
 #include "../core.h"
@@ -33,9 +34,9 @@ voip_manager::BitmapDescription get_bitmap_from_stream(core::istream* stream, in
     return res;
 }
 
-im_container::im_container(std::shared_ptr<voip_manager::VoipManager> voip_manager)
-    :   voip_manager_(voip_manager),
-        logins_(new im_login_list(utils::get_product_data_path() + L"/settings/ims.stg"))
+im_container::im_container(const std::shared_ptr<voip_manager::VoipManager>& voip_manager)
+    : logins_(std::make_unique<im_login_list>(utils::get_product_data_path() + L"/settings/ims.stg"))
+    , voip_manager_(voip_manager)
 {
     REGISTER_IM_MESSAGE("login_by_password", on_login_by_password);
     REGISTER_IM_MESSAGE("login_by_password_for_attach_uin", on_login_by_password_for_attach_uin);
@@ -79,6 +80,11 @@ im_container::im_container(std::shared_ptr<voip_manager::VoipManager> voip_manag
     REGISTER_IM_MESSAGE("download/raise_priority", on_download_raise_priority);
     REGISTER_IM_MESSAGE("stickers/meta/get", on_get_stickers_meta);
     REGISTER_IM_MESSAGE("stickers/sticker/get", on_get_sticker);
+    REGISTER_IM_MESSAGE("stickers/pack/info", on_get_stickers_pack_info);
+    REGISTER_IM_MESSAGE("stickers/pack/add", on_add_stickers_pack);
+    REGISTER_IM_MESSAGE("stickers/pack/remove", on_remove_stickers_pack);
+    REGISTER_IM_MESSAGE("stickers/store/get", on_get_stickers_store);
+    REGISTER_IM_MESSAGE("stickers/big_set_icon/get", on_get_set_icon_big);
     REGISTER_IM_MESSAGE("chats/info/get", on_get_chat_info);
     REGISTER_IM_MESSAGE("chats/blocked/get", on_get_chat_blocked);
     REGISTER_IM_MESSAGE("chats/pending/get", on_get_chat_pending);
@@ -123,22 +129,16 @@ im_container::im_container(std::shared_ptr<voip_manager::VoipManager> voip_manag
     REGISTER_IM_MESSAGE("chats/mod/link", on_mod_chat_link);
     REGISTER_IM_MESSAGE("chats/mod/ro", on_mod_chat_ro);
     REGISTER_IM_MESSAGE("chats/mod/age", on_mod_chat_age);
-    
+
     REGISTER_IM_MESSAGE("chats/block", on_block_chat_member);
     REGISTER_IM_MESSAGE("chats/role/set", on_set_chat_member_role);
-    REGISTER_IM_MESSAGE("close_promo", on_close_promo);
     REGISTER_IM_MESSAGE("phoneinfo", on_phoneinfo);
-    REGISTER_IM_MESSAGE("snap/mark_as_read", on_snap_read);
-    REGISTER_IM_MESSAGE("snap/delete", on_delete_read);
-    REGISTER_IM_MESSAGE("snap/get_metainfo", on_snap_download_metainfo);
     REGISTER_IM_MESSAGE("masks/get_id_list", on_get_mask_id_list);
     REGISTER_IM_MESSAGE("masks/preview/get", on_get_mask_preview);
     REGISTER_IM_MESSAGE("masks/model/get", on_get_mask_model);
     REGISTER_IM_MESSAGE("masks/get", on_get_mask);
     REGISTER_IM_MESSAGE("mrim/get_key", on_mrim_get_key);
-    REGISTER_IM_MESSAGE("snaps/refresh", on_snaps_refresh);
-    REGISTER_IM_MESSAGE("snaps/refresh_user_snaps", on_refresh_user_snaps);
-    REGISTER_IM_MESSAGE("snaps/remove_from_cache", on_remove_from_snaps_storage);
+    REGISTER_IM_MESSAGE("merge_account", on_merge_account);
 }
 
 
@@ -156,8 +156,8 @@ void core::im_container::create()
 
 void im_container::connect_ims()
 {
-    for (auto iter = ims_.begin(); iter < ims_.end(); iter++)
-        (*iter)->connect();
+    for (const auto& x : ims_)
+        x->connect();
 }
 
 bool im_container::update_login(im_login_id& _login)
@@ -176,7 +176,7 @@ bool core::im_container::create_ims()
     {
     }
 
-    im_login_id login("", default_im_id);
+    im_login_id login(std::string(), default_im_id);
 
     if (logins_->get_first_login(login))
     {
@@ -189,7 +189,7 @@ bool core::im_container::create_ims()
 
 std::string core::im_container::get_first_login() const
 {
-    im_login_id login("", default_im_id);
+    im_login_id login(std::string(), default_im_id);
     logins_->get_first_login(login);
     return login.get_login();
 }
@@ -213,23 +213,23 @@ void core::im_container::fromInternalProxySettings2Voip(const core::proxy_settin
         voipProxySettings.type          = VoipProxySettings::kProxyType_None;
     } else {
         switch (proxySettings.proxy_type_) {
-        case 0:  
+        case 0:
             voipProxySettings.type = VoipProxySettings::kProxyType_Http;
             break;
 
-        case 4:  
+        case 4:
             voipProxySettings.type = VoipProxySettings::kProxyType_Socks4;
             break;
 
-        case 5:  
+        case 5:
             voipProxySettings.type = VoipProxySettings::kProxyType_Socks5;
             break;
 
-        case 6:  
+        case 6:
             voipProxySettings.type = VoipProxySettings::kProxyType_Socks4a;
             break;
 
-        default: 
+        default:
             voipProxySettings.type = VoipProxySettings::kProxyType_None;
         }
     }
@@ -308,9 +308,14 @@ void core::im_container::on_voip_call_message(int64_t _seq, coll_helper& _params
             windowParams.watermark.hwnd = windowParams.hwnd;
         }
 
-        std::string buttonsParams[] = { "normalButton" , "disabledButton", "pressedButton" , "highlightedButton" };
-        voip_manager::BitmapDescription* buttons[] = {&windowParams.normalButton, &windowParams.disabledButton, 
-            &windowParams.pressedButton,  &windowParams.highlightedButton};
+        std::string buttonsParams[] = { "closeNormalButton" , "closeDisabledButton", "closePressedButton" , "closeHighlightedButton",
+            "goToChatNormalButton", "goToChatHighlightedButton", "goToChatPressedButton", "goToChatDisabledButton" };
+
+        voip_manager::BitmapDescription* buttons[] = {&windowParams.closeButton.normalButton, &windowParams.closeButton.disabledButton,
+            &windowParams.closeButton.pressedButton,  &windowParams.closeButton.highlightedButton,
+
+            &windowParams.goToChatButton.normalButton, &windowParams.goToChatButton.disabledButton,
+            &windowParams.goToChatButton.pressedButton,  &windowParams.goToChatButton.highlightedButton};
 
         for (int i = 0; i < sizeof(buttonsParams) / sizeof(buttonsParams[0]); i ++)
         {
@@ -417,7 +422,7 @@ void core::im_container::on_voip_call_message(int64_t _seq, coll_helper& _params
 
         im->on_voip_window_set_conference_layout(hwnd, (voip_manager::ConferenceLayout)vol);
     }
-	else 
+	else
 	{
         assert(false);
     }
@@ -573,6 +578,7 @@ void im_container::on_get_archive_messages(int64_t _seq, coll_helper& _params)
         _params.get_value_as_int64("count_early"),
         _params.get_value_as_int64("count_later"),
         _params.get_value_as_bool("need_prefetch"),
+        _params.get_value_as_bool("is_first_request"),
 		last_message_catcher);
 }
 
@@ -600,7 +606,7 @@ void core::im_container::on_send_message(int64_t _seq, coll_helper& _params)
     {
         throw new std::runtime_error("artificial crash");
     }
-    
+
     bool is_sms = false;
     if (_params->is_value_exist("is_sms"))
     {
@@ -615,7 +621,7 @@ void core::im_container::on_send_message(int64_t _seq, coll_helper& _params)
         if (is_sticker)
         {
             std::stringstream ss_message;
-            ss_message << "ext:" << _params.get_value_as_int("sticker/set_id") << ":" << "sticker:" << _params.get_value_as_int("sticker/id");
+            ss_message << "ext:" << _params.get_value_as_int("sticker/set_id") << ":sticker:" << _params.get_value_as_int("sticker/id");
 
             message = ss_message.str();
         }
@@ -627,11 +633,28 @@ void core::im_container::on_send_message(int64_t _seq, coll_helper& _params)
     if (_params->is_value_exist("quotes"))
     {
         core::iarray* array = _params.get_value_as_array("quotes");
-        for (auto i = 0; i < array->size(); ++i)
+        const auto size = array->size();
+        quotes.reserve(size);
+        for (auto i = 0; i < size; ++i)
         {
             core::archive::quote q;
             q.unserialize(array->get_at(i)->get_as_collection());
-            quotes.push_back(q);
+            quotes.push_back(std::move(q));
+        }
+    }
+
+    core::archive::mentions_map mentions;
+    if (_params->is_value_exist("mentions"))
+    {
+        core::iarray* array = _params.get_value_as_array("mentions");
+        for (auto i = 0; i < array->size(); ++i)
+        {
+            auto coll = array->get_at(i)->get_as_collection();
+            coll_helper helper(coll, false);
+
+            std::string aimid = helper.get_value_as_string("aimid");
+            std::string friendly = helper.get_value_as_string("friendly");
+            mentions.emplace(std::move(aimid), std::move(friendly));
         }
     }
 
@@ -642,8 +665,9 @@ void core::im_container::on_send_message(int64_t _seq, coll_helper& _params)
         _params.get_value_as_string("contact"),
         message,
         type,
-        "",
-        quotes);
+        std::string(),
+        quotes,
+        mentions);
 }
 
 void core::im_container::on_feedback(int64_t _seq, coll_helper& _params)
@@ -673,10 +697,10 @@ void core::im_container::on_feedback(int64_t _seq, coll_helper& _params)
     if (_params.is_value_exist("attachement"))
     {
         core::iarray* array = _params.get_value_as_array("attachement");
-        for (auto i = 0; i < array->size(); ++i)
-        {
-            files.push_back(array->get_at(i)->get_as_string());
-        }
+        const auto size = array->size();
+        files.reserve(size);
+        for (auto i = 0; i < size; ++i)
+            files.emplace_back(array->get_at(i)->get_as_string());
     }
 
     im->send_feedback(_seq, url, fields, files);
@@ -687,7 +711,7 @@ void core::im_container::on_phoneinfo(int64_t seq, coll_helper& _params)
     std::shared_ptr<base_im> im = get_im(_params);
     if (!im)
     {
-        im = std::make_shared<wim::im>(im_login_id(""), voip_manager_);
+        im = std::make_shared<wim::im>(im_login_id(std::string()), voip_manager_);
         ims_.push_back(im);
     }
 
@@ -791,7 +815,7 @@ void core::im_container::on_login_by_password(int64_t _seq, coll_helper& _params
     info.set_password(_params.get_value_as_string("password"));
     info.set_save_auth_data(_params.get_value_as_bool("save_auth_data"));
 
-    std::shared_ptr<base_im> im = std::make_shared<wim::im>(im_login_id(""), voip_manager_);
+    std::shared_ptr<base_im> im = std::make_shared<wim::im>(im_login_id(std::string()), voip_manager_);
     ims_.clear();
     im->login(_seq, info);
     ims_.push_back(im);
@@ -821,7 +845,7 @@ void core::im_container::on_login_get_sms_code(int64_t _seq, coll_helper& _param
     if (is_login)
     {
         ims_.clear();
-        im = std::make_shared<wim::im>(im_login_id(""), voip_manager_);
+        im = std::make_shared<wim::im>(im_login_id(std::string()), voip_manager_);
     }
     else
     {
@@ -853,65 +877,9 @@ void core::im_container::on_login_by_phone(int64_t _seq, coll_helper& _params)
         (*ims_.begin())->start_attach_phone(_seq, info);
 }
 
-void core::im_container::on_snap_read(int64_t _seq, coll_helper& _params)
-{
-    assert(_seq > 0);
-
-    auto im = get_im(_params);
-    if (!im)
-    {
-        return;
-    }
-
-    const auto contact_aimid = _params.get<std::string>("contact_aimid");
-    assert(!contact_aimid.empty());
-
-    const auto snap_id = _params.get<uint64_t>("snap_id");
-    assert(snap_id > 0);
-
-    const auto mark_prev_snaps_read = _params.get<bool>("mark_prev_snaps_read");
-    const auto refresh_storage = _params.get<bool>("refresh_storage");
-
-    im->read_snap(snap_id, contact_aimid, mark_prev_snaps_read, refresh_storage);
-}
-
-void core::im_container::on_delete_read(int64_t _seq, coll_helper& _params)
-{
-    assert(_seq > 0);
-
-    auto im = get_im(_params);
-    if (!im)
-    {
-        return;
-    }
-
-    const auto snap_id = _params.get<uint64_t>("snap_id");
-    assert(snap_id > 0);
-
-    im->delete_snap(snap_id);
-}
-
-void core::im_container::on_snap_download_metainfo(int64_t _seq, coll_helper& _params)
-{
-    assert(_seq > 0);
-
-    auto im = get_im(_params);
-    if (!im)
-    {
-        return;
-    }
-
-    const auto ttl_id = _params.get<std::string>("ttl_id");
-    assert(!ttl_id.empty());
-
-    const auto contact_aimid = _params.get<std::string>("contact");
-    bool raise_priority = _params.get<bool>("raise", false);
-
-    im->download_snap_metainfo(_seq, contact_aimid, ttl_id, raise_priority);
-}
-
 void core::im_container::on_connect_after_migration(int64_t _seq, coll_helper& _params)
 {
+    ims_.clear();
     create();
 }
 
@@ -969,6 +937,8 @@ void core::im_container::logout(const bool _is_auth_error)
     if (ims_.empty())
         return;
 
+    ims_.front()->erase_auth_data();
+
     coll_helper coll(g_core->create_collection(), true);
 
     coll.set_value_as_bool("is_auth_error", _is_auth_error);
@@ -987,14 +957,19 @@ void core::im_container::on_stats(int64_t _seq, coll_helper& _params)
 {
     core::stats::event_props_type props;
 
-    core::iarray* prop_array = _params.get_value_as_array("props");
-    for (auto i = 0; prop_array && i < prop_array->size(); ++i)
+    if (const auto prop_array = _params.get_value_as_array("props"))
     {
-        core::coll_helper value(prop_array->get_at(i)->get_as_collection(), false);
-        auto prop_name = value.get_value_as_string("name");
-        auto prop_value = value.get_value_as_string("value");
-        props.push_back(std::make_pair(prop_name, prop_value));
+        const auto size = prop_array->size();
+        props.reserve(size);
+        for (auto i = 0; i < size; ++i)
+        {
+            core::coll_helper value(prop_array->get_at(i)->get_as_collection(), false);
+            auto prop_name = value.get_value_as_string("name");
+            auto prop_value = value.get_value_as_string("value");
+            props.push_back(std::make_pair(prop_name, prop_value));
+        }
     }
+
 
     g_core->insert_event((core::stats::stats_event_names)_params.get_value_as_int("event"), props);
 }
@@ -1146,19 +1121,23 @@ void core::im_container::on_history_search(int64_t _seq, coll_helper& _params)
     std::string pattern;
     if (_params.is_value_exist("symbols_array"))
     {
-        core::iarray* searchSymbolsArray = _params.get_value_as_array("symbols_array");
-        for (auto i = 0; i < searchSymbolsArray->size(); ++i)
+        const auto searchSymbolsArray = _params.get_value_as_array("symbols_array");
+        const auto search_symbol_size = searchSymbolsArray->size();
+        searchSymbolsPatterns.reserve(search_symbol_size);
+        for (auto i = 0; i < search_symbol_size; ++i)
         {
             std::vector<std::string> patternForSymbol;
             core::coll_helper symbol_value(searchSymbolsArray->get_at(i)->get_as_collection(), false);
 
-            auto symbols_patterns = symbol_value.get_value_as_array("symbols_patterns");
-            for (auto i = 0; i < symbols_patterns->size(); ++i)
+            const auto symbols_patterns = symbol_value.get_value_as_array("symbols_patterns");
+            const auto patterns_size = symbols_patterns->size();
+            patternForSymbol.reserve(patterns_size);
+            for (auto j = 0; j < patterns_size; ++j)
             {
-                core::coll_helper value(symbols_patterns->get_at(i)->get_as_collection(), false);
-                patternForSymbol.push_back(value.get_value_as_string("symbol_pattern"));
+                core::coll_helper value(symbols_patterns->get_at(j)->get_as_collection(), false);
+                patternForSymbol.emplace_back(value.get_value_as_string("symbol_pattern"));
             }
-            searchSymbolsPatterns.push_back(patternForSymbol);
+            searchSymbolsPatterns.push_back(std::move(patternForSymbol));
         }
     }
     else
@@ -1166,10 +1145,10 @@ void core::im_container::on_history_search(int64_t _seq, coll_helper& _params)
         pattern = _params.get_value_as_string("init_pattern");
     }
 
-    for (auto symbol_iter = searchSymbolsPatterns.begin(); symbol_iter != searchSymbolsPatterns.end(); ++symbol_iter)
+    for (auto& symbol_iter : searchSymbolsPatterns)
     {
-        for (auto iter = symbol_iter->begin(); iter != symbol_iter->end(); ++iter)
-            *iter = ::core::tools::system::to_upper(*iter);
+        for (auto& iter : symbol_iter)
+            iter = ::core::tools::system::to_upper(iter);
     }
 
     im->history_search_in_cl(searchSymbolsPatterns, _seq, _params.get_value_as_uint("fixed_patterns_count"), pattern);
@@ -1326,6 +1305,7 @@ void im_container::on_download_image(int64_t _seq, coll_helper& _params)
         _params.get<bool>("is_preview"),
         _params.get<int32_t>("preview_width", 0),
         _params.get<int32_t>("preview_height", 0),
+        _params.get<bool>("ext_resource", true),
         _params.get<bool>("raise", false));
 }
 
@@ -1425,6 +1405,55 @@ void im_container::on_get_sticker(int64_t _seq, coll_helper& _params)
         _params.get<int32_t>("set_id"),
         _params.get<int32_t>("sticker_id"),
         _params.get<core::sticker_size>("size"));
+}
+
+void im_container::on_get_stickers_pack_info(int64_t _seq, coll_helper& _params)
+{
+    auto im = get_im(_params);
+    if (!im)
+        return;
+
+    im->get_stickers_pack_info(_seq, _params.get<int32_t>("set_id"), _params.get<std::string>("store_id"));
+}
+
+void im_container::on_add_stickers_pack(int64_t _seq, coll_helper& _params)
+{
+    auto im = get_im(_params);
+    if (!im)
+        return;
+
+    im->add_stickers_pack(_seq,
+        _params.get<int32_t>("set_id"),
+        _params.get<std::string>("store_id"));
+}
+
+void im_container::on_remove_stickers_pack(int64_t _seq, coll_helper& _params)
+{
+    auto im = get_im(_params);
+    if (!im)
+        return;
+
+    im->remove_stickers_pack(_seq,
+        _params.get<int32_t>("set_id"),
+        _params.get<std::string>("store_id"));
+}
+
+void im_container::on_get_stickers_store(int64_t _seq, coll_helper& _params)
+{
+    auto im = get_im(_params);
+    if (!im)
+        return;
+
+    im->get_stickers_store(_seq);
+}
+
+void im_container::on_get_set_icon_big(int64_t _seq, coll_helper& _params)
+{
+    auto im = get_im(_params);
+    if (!im)
+        return;
+
+    im->get_set_icon_big(_seq, _params.get<int32_t>("set_id"));
 }
 
 void im_container::on_get_chat_info(int64_t _seq, coll_helper& _params)
@@ -1638,13 +1667,17 @@ void core::im_container::on_update_profile(int64_t _seq, coll_helper& _params)
 
     std::vector<std::pair<std::string, std::string>> fields;
 
-    auto field_array = _params.get_value_as_array("fields");
-    for (auto i = 0; field_array && i < field_array->size(); ++i)
+    if (const auto field_array = _params.get_value_as_array("fields"))
     {
-        core::coll_helper value(field_array->get_at(i)->get_as_collection(), false);
-        auto field_name = value.get_value_as_string("field_name");
-        auto field_value = value.get_value_as_string("field_value");
-        fields.push_back(std::make_pair(field_name, field_value));
+        const auto size = field_array->size();
+        fields.reserve(size);
+        for (auto i = 0; i < size; ++i)
+        {
+            core::coll_helper value(field_array->get_at(i)->get_as_collection(), false);
+            auto field_name = value.get_value_as_string("field_name");
+            auto field_value = value.get_value_as_string("field_value");
+            fields.push_back(std::make_pair(field_name, field_value));
+        }
     }
 
     im->update_profile(_seq, fields);
@@ -1721,12 +1754,14 @@ void core::im_container::on_create_chat(int64_t _seq, coll_helper& _params)
     auto im = get_im(_params);
     if (!im)
         return;
-    
+
     auto params = core::wim::chat_params::create(_params);
     std::vector<std::string> members;
+    if (const auto member_array = _params.get_value_as_array("members"))
     {
-        auto member_array = _params.get_value_as_array("members");
-        for (auto i = 0; member_array && i < member_array->size(); ++i)
+        const auto size = member_array->size();
+        members.reserve(size);
+        for (auto i = 0; i < size; ++i)
             members.push_back(member_array->get_at(i)->get_as_string());
     }
     im->create_chat(_seq, _params.get_value_as_string("aimid"), _params.get_value_as_string("name"), members, params);
@@ -1737,7 +1772,7 @@ void core::im_container::on_mod_chat_params(int64_t _seq, coll_helper& _params)
     auto im = get_im(_params);
     if (!im)
         return;
-    
+
     auto params = core::wim::chat_params::create(_params);
     im->mod_chat_params(_seq, _params.get_value_as_string("aimid"), params);
 }
@@ -1783,7 +1818,7 @@ void core::im_container::on_mod_chat_link(int64_t _seq, coll_helper& _params)
     auto im = get_im(_params);
     if (!im)
         return;
-    
+
     im->mod_chat_link(_seq, _params.get_value_as_string("aimid"), _params.get_value_as_bool("link"));
 }
 
@@ -1792,7 +1827,7 @@ void core::im_container::on_mod_chat_ro(int64_t _seq, coll_helper& _params)
     auto im = get_im(_params);
     if (!im)
         return;
-    
+
     im->mod_chat_ro(_seq, _params.get_value_as_string("aimid"), _params.get_value_as_bool("ro"));
 }
 
@@ -1801,7 +1836,7 @@ void core::im_container::on_mod_chat_age(int64_t _seq, coll_helper& _params)
     auto im = get_im(_params);
     if (!im)
         return;
-    
+
     im->mod_chat_age(_seq, _params.get_value_as_string("aimid"), _params.get_value_as_bool("age"));
 }
 
@@ -1821,12 +1856,6 @@ void core::im_container::on_set_chat_member_role(int64_t _seq, coll_helper& _par
         return;
 
     im->set_chat_member_role(_seq, _params.get_value_as_string("aimid"), _params.get_value_as_string("contact"), _params.get_value_as_string("role"));
-}
-
-void core::im_container::on_close_promo(int64_t _seq, coll_helper& _params)
-{
-    g_core->set_need_show_promo(false);
-    on_connect_after_migration(_seq, _params);
 }
 
 void im_container::on_get_mask_id_list(int64_t _seq, coll_helper& _params)
@@ -1867,33 +1896,6 @@ void im_container::on_get_mask(int64_t _seq, coll_helper& _params)
     im->get_mask(_seq, _params.get_value_as_string("mask_id"));
 }
 
-void im_container::on_snaps_refresh(int64_t _seq, coll_helper& _params)
-{
-    auto im = get_im(_params);
-    if (!im)
-        return;
-
-    im->refresh_snaps_storage();
-}
-
-void im_container::on_refresh_user_snaps(int64_t _seq, coll_helper& _params)
-{
-    auto im = get_im(_params);
-    if (!im)
-        return;
-
-    im->refresh_user_snaps(_params.get_value_as_string("aimid"));
-}
-
-void im_container::on_remove_from_snaps_storage(int64_t _seq, coll_helper& _params)
-{
-    auto im = get_im(_params);
-    if (!im)
-        return;
-
-    im->remove_from_snaps_storage(_params.get_value_as_string("aimid"));
-}
-
 bool im_container::has_valid_login() const
 {
     auto im = get_im_by_id(0);
@@ -1901,4 +1903,16 @@ bool im_container::has_valid_login() const
         return false;
 
     return im->has_valid_login();
+}
+
+void im_container::on_merge_account(int64_t _seq, coll_helper& _params)
+{
+    auto im = get_im(_params);
+    if (!im)
+        return;
+
+    core::wim::auth_parameters auth;
+    auth.unserialize(_params);
+
+    return im->merge_exported_account(auth);
 }

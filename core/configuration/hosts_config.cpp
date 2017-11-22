@@ -48,12 +48,12 @@ namespace core
             return false;
         }
 
-        for (rapidjson::Value::ConstMemberIterator iter = doc.MemberBegin(); iter != doc.MemberEnd(); ++iter)
+        for (auto iter = doc.MemberBegin(), end = doc.MemberEnd(); iter != end; ++iter)
         {
             if (!iter->value.IsString() || !iter->name.IsString())
                 continue;
 
-            hosts_[iter->name.GetString()] = tools::trim_right<std::string>(iter->value.GetString(), std::string(" "));
+            hosts_[rapidjson_get_string(iter->name)] = tools::trim_right<std::string>(rapidjson_get_string(iter->value), std::string(" "));
         }
 
         return true;
@@ -230,7 +230,7 @@ namespace core
         std::wstring file_name = get_file_name();
 
         g_core->save_async([bs_data, file_name]
-        { 
+        {
             bs_data->save_2_file(file_name);
 
             return 0;
@@ -282,7 +282,7 @@ namespace core
 
             ptr_this->save_if_needed();
 
-        }, 1000*10);
+        }, std::chrono::seconds(10));
     }
 
     std::string hosts_config::get_host_alt(const std::string& _host) const
@@ -296,9 +296,9 @@ namespace core
         return (build::is_debug() ? std::chrono::minutes(1) : std::chrono::hours(24));
     }
 
-    int32_t hosts_config::get_first_request_timeout_ms()
+    std::chrono::milliseconds hosts_config::get_first_request_timeout()
     {
-        return (build::is_debug() ? (1000 * 10) : (1000 * 60 * 10));
+        return std::chrono::milliseconds(build::is_debug() ? (1000 * 10) : (1000 * 60 * 10));
     }
 
     void hosts_config::change_scheme()

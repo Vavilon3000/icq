@@ -2,14 +2,14 @@
 
 namespace Ui
 {
-	class ComboButton : public QPushButton
-	{
-		Q_OBJECT
+    class ComboButton : public QPushButton
+    {
+        Q_OBJECT
 
-	public:
+    public:
 
-		ComboButton(QWidget* _parent);
-		virtual ~ComboButton();
-	};
+        ComboButton(QWidget* _parent);
+        virtual ~ComboButton();
+    };
 
 }

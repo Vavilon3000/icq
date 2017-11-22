@@ -38,18 +38,18 @@ namespace Ui
         TextEmojiLabel* name_;
         TextEmojiLabel* status_;
     };
-    
+
     class NameWidget : public QWidget
     {
         Q_OBJECT
     public:
         NameWidget(QWidget* _parent, int _nameBaseline);
         virtual ~NameWidget();
-        
+
         void setName  (const char* _name);
-        
+
         void setNameProperty(const char* _propName, bool _val);
-        
+
     private:
         TextEmojiLabel* name_;
     };

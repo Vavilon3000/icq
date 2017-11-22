@@ -21,15 +21,16 @@ const milliseconds_t default_http_execute_timeout = 8000;
 
 http_request_simple::http_request_simple(proxy_settings _proxy_settings, const std::string &_user_agent, stop_function _stop_func, progress_function _progress_func)
     : stop_func_(_stop_func),
-    output_(new tools::binary_stream()),
-    header_(new tools::binary_stream()),
+    progress_func_(_progress_func),
+    output_(std::make_shared<tools::binary_stream>()),
+    header_(std::make_shared<tools::binary_stream>()),
     is_time_condition_(false),
     last_modified_time_(0),
     post_data_(0),
     post_data_size_(0),
     copy_post_data_(false),
-    timeout_(default_http_execute_timeout),
     connect_timeout_(default_http_connect_timeout),
+    timeout_(default_http_execute_timeout),
     range_from_(-1),
     range_to_(-1),
     is_post_form_(false),
@@ -37,9 +38,7 @@ http_request_simple::http_request_simple(proxy_settings _proxy_settings, const s
     keep_alive_(false),
     priority_(100),
     proxy_settings_(_proxy_settings),
-    user_agent_(_user_agent),
-    replace_log_function_([](tools::binary_stream&){}),
-    progress_func_(_progress_func)
+    user_agent_(_user_agent)
 {
     assert(!user_agent_.empty());
 }
@@ -66,9 +65,9 @@ void http_request_simple::push_post_parameter(const std::wstring& name, const st
     post_parameters_[tools::from_utf16(name)] = tools::from_utf16(value);
 }
 
-void http_request_simple::push_post_parameter(const std::string& name, const std::string& value)
+void http_request_simple::push_post_parameter(std::string name, std::string value)
 {
-    post_parameters_[name] = value;
+    post_parameters_[std::move(name)] = std::move(value);
 }
 
 void http_request_simple::push_post_form_parameter(const std::wstring& name, const std::wstring& value)
@@ -76,10 +75,10 @@ void http_request_simple::push_post_form_parameter(const std::wstring& name, con
     post_form_parameters_[tools::from_utf16(name)] = tools::from_utf16(value);
 }
 
-void http_request_simple::push_post_form_parameter(const std::string& name, const std::string& value)
+void http_request_simple::push_post_form_parameter(std::string name, std::string value)
 {
     assert(!name.empty());
-    post_form_parameters_[name] = value;
+    post_form_parameters_[std::move(name)] = std::move(value);
 }
 
 void http_request_simple::push_post_form_file(const std::wstring& name, const std::wstring& file_name)
@@ -133,7 +132,7 @@ void http_request_simple::set_timeout(int32_t _timeout_ms)
 
 std::string http_request_simple::get_post_param() const
 {
-    std::string result = "";
+    std::string result;
     if (!post_parameters_.empty())
     {
         std::stringstream ss_post_params;
@@ -163,20 +162,20 @@ void http_request_simple::set_post_params(curl_context* _ctx)
     if (!post_params.empty())
         set_post_data(post_params.c_str(), (int32_t)post_params.length(), true);
 
-    for (auto iter = post_form_parameters_.begin(); iter != post_form_parameters_.end(); ++iter)
+    for (const auto& iter : post_form_parameters_)
     {
-        if (!iter->second.empty())
-            _ctx->set_form_field(iter->first.c_str(), iter->second.c_str());
+        if (!iter.second.empty())
+            _ctx->set_form_field(iter.first.c_str(), iter.second.c_str());
     }
 
-    for (auto iter = post_form_files_.begin(); iter != post_form_files_.end(); ++iter)
+    for (const auto& iter : post_form_files_)
     {
-        _ctx->set_form_file(iter->first.c_str(), iter->second.c_str());
+        _ctx->set_form_file(iter.first.c_str(), iter.second.c_str());
     }
 
-    for (auto iter = post_form_filedatas_.begin(); iter != post_form_filedatas_.end(); ++iter)
+    for (auto& iter : post_form_filedatas_)
     {
-        _ctx->set_form_filedata(iter->first.c_str(), tools::from_utf16(iter->second.file_name_).c_str(), iter->second.file_stream_);
+        _ctx->set_form_filedata(iter.first.c_str(), tools::from_utf16(iter.second.file_name_).c_str(), iter.second.file_stream_);
     }
 
     if (post_data_ && post_data_size_)
@@ -188,11 +187,13 @@ void http_request_simple::set_post_params(curl_context* _ctx)
         _ctx->set_post();
 }
 
-bool http_request_simple::send_request(bool _post)
+bool http_request_simple::send_request(bool _post, double& _request_time)
 {
     curl_context ctx(output_, stop_func_, progress_func_, keep_alive_);
 
     const auto& proxy_settings = g_core->get_proxy_settings();
+
+    _request_time = 0;
 
     if (!ctx.init(connect_timeout_, timeout_, proxy_settings, user_agent_))
     {
@@ -223,6 +224,7 @@ bool http_request_simple::send_request(bool _post)
 
     response_code_ = ctx.get_response_code();
     header_ = ctx.get_header();
+    _request_time = ctx.get_request_time();
 
     return true;
 }
@@ -282,12 +284,19 @@ void* http_request_simple::get_async(completion_function _completion_function)
 
 bool http_request_simple::post()
 {
-    return send_request(true);
+    double request_time = 0;
+    return send_request(true, request_time);
 }
 
 bool http_request_simple::get()
 {
-    return send_request(false);
+    double request_time = 0;
+    return send_request(false, request_time);
+}
+
+bool http_request_simple::get(double& _connect_time)
+{
+    return send_request(false, _connect_time);
 }
 
 void http_request_simple::set_range(int64_t _from, int64_t _to)
@@ -296,24 +305,24 @@ void http_request_simple::set_range(int64_t _from, int64_t _to)
     range_to_ = _to;
 }
 
-std::shared_ptr<tools::stream> http_request_simple::get_response()
+std::shared_ptr<tools::stream> http_request_simple::get_response() const
 {
     return output_;
 }
 
-std::shared_ptr<tools::binary_stream> http_request_simple::get_header()
+std::shared_ptr<tools::binary_stream> http_request_simple::get_header() const
 {
     return header_;
 }
 
-long http_request_simple::get_response_code()
+long http_request_simple::get_response_code() const
 {
     return response_code_;
 }
 
-void http_request_simple::get_post_parameters(std::map<std::string, std::string>& _params)
+const std::map<std::string, std::string>& http_request_simple::get_post_parameters() const
 {
-    _params = post_parameters_;
+    return post_parameters_;
 }
 
 void http_request_simple::set_custom_header_param(const std::string& _value)
@@ -354,7 +363,7 @@ void http_request_simple::set_post_data(const char* _data, int32_t _size, bool _
 }
 
 
-std::vector<std::mutex*> http_request_simple::ssl_sync_objects;
+std::vector<boost::mutex*> http_request_simple::ssl_sync_objects;
 
 static unsigned long id_function(void)
 {
@@ -376,7 +385,7 @@ void core::http_request_simple::init_global()
     auto lock_count = CRYPTO_num_locks();
     http_request_simple::ssl_sync_objects.resize(lock_count);
     for (auto i = 0;  i < lock_count;  i++)
-        http_request_simple::ssl_sync_objects[i] = new std::mutex();
+        http_request_simple::ssl_sync_objects[i] = new boost::mutex();
 
     CRYPTO_set_id_callback(id_function);
     CRYPTO_set_locking_callback(locking_function);
@@ -416,13 +425,13 @@ void core::http_request_simple::set_priority(priority_t _priority)
     priority_ = _priority;
 }
 
-void core::http_request_simple::set_etag(const char *etag)
+void core::http_request_simple::set_etag(const std::string& etag)
 {
-    if (etag && strlen(etag))
+    if (!etag.empty())
     {
         std::stringstream ss;
         ss << "If-None-Match: \"" << etag << "\"";
-        custom_headers_.push_back(ss.str().c_str());
+        custom_headers_.push_back(ss.str());
     }
 }
 
@@ -431,9 +440,9 @@ void core::http_request_simple::set_replace_log_function(replace_log_function _f
     replace_log_function_ = _func;
 }
 
-std::string core::http_request_simple::get_post_url()
+std::string core::http_request_simple::get_post_url() const
 {
-    return url_ + "?" + get_post_param();
+    return url_ + '?' + get_post_param();
 }
 
 proxy_settings core::http_request_simple::get_user_proxy() const

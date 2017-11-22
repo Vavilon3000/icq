@@ -12,8 +12,7 @@ namespace common
     struct core_gui_settings
     {
         core_gui_settings()
-            :   recents_avatars_size_(-1),
-                is_build_icq_(1)
+            :   core_gui_settings(1, -1)
         {
         }
 

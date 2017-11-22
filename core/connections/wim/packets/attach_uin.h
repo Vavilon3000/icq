@@ -27,8 +27,8 @@ namespace core
             wim_packet_params from_params_;
 
         public:
-            
-            attach_uin(const wim_packet_params& _from_params, const wim_packet_params& _to_params);
+
+            attach_uin(wim_packet_params _from_params, wim_packet_params _to_params);
 
             virtual ~attach_uin();
         };

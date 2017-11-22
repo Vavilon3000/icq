@@ -9,7 +9,7 @@ using namespace core;
 using namespace archive;
 
 messages_data::messages_data(const std::wstring& _file_name)
-    :	storage_(new storage(_file_name))
+    :	storage_(std::make_unique<storage>(_file_name))
 {
 }
 
@@ -34,11 +34,9 @@ bool messages_data::get_messages(headers_list& _headers, history_block& _message
 
     core::tools::binary_stream message_data;
 
-    for (auto iter_header = _headers.begin(); iter_header != _headers.end(); iter_header++)
+    for (const auto &header : _headers)
     {
         message_data.reset();
-
-        const auto &header = *iter_header;
         assert(!header.is_patch());
 
         if (!storage_->read_data_block(header.get_data_offset(), message_data))
@@ -66,7 +64,7 @@ bool messages_data::get_messages(headers_list& _headers, history_block& _message
         const auto modifications = get_message_modifications(header);
         msg->apply_modifications(modifications);
 
-        _messages.push_back(msg);
+        _messages.push_back(std::move(msg));
     }
 
     return res;
@@ -221,16 +219,16 @@ void messages_data::search_in_archive(std::shared_ptr<contact_and_offsets> _cont
             {
                 top_ids.insert(mess_id);
 
-                std::shared_ptr<searched_msg> search_msg(new searched_msg());
+                auto search_msg = std::make_shared<searched_msg>();
                 search_msg->contact = _contact;
                 search_msg->id = mess_id;
                 search_msg->term = _cterm->lower_term;
                 search_msg->contact = _contact;
-                messages_ids.push_back(search_msg);
+                messages_ids.push_back(std::move(search_msg));
             }
         }
 
-        if (current_pos == (*_archive)[contact_i].second && (*_archive)[contact_i].first != "")
+        if (current_pos == (*_archive)[contact_i].second && !((*_archive)[contact_i].first.empty()))
         {
             *_offset = -1;
         }
@@ -252,6 +250,7 @@ history_block messages_data::get_message_modifications(const message_header& _he
     core::tools::binary_stream message_data;
 
     const auto &modification_headers = _header.get_modifications();
+    modifications.reserve(modification_headers.size());
     for (const auto &header : modification_headers)
     {
         if (!storage_->read_data_block(header.get_data_offset(), message_data))
@@ -273,7 +272,7 @@ history_block messages_data::get_message_modifications(const message_header& _he
             continue;
         }
 
-        modifications.push_back(modification);
+        modifications.push_back(std::move(modification));
     }
 
     return modifications;
@@ -290,10 +289,8 @@ bool messages_data::update(const archive::history_block& _data)
 
     core::tools::binary_stream message_data;
 
-    for (auto iter_hm = _data.begin(); iter_hm != _data.end(); ++iter_hm)
+    for (const auto& msg : _data)
     {
-        auto msg = *iter_hm;
-
         message_data.reset();
         msg->serialize(message_data);
 

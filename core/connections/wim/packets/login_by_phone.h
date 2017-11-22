@@ -36,13 +36,13 @@ namespace core
         public:
 
             phone_login(
-                const wim_packet_params& params,
-                const phone_info& _info);
+                wim_packet_params params,
+                phone_info _info);
 
             virtual ~phone_login();
 
-            const std::string get_session_key() const { return session_key_; }
-            const std::string get_a_token() const { return a_token_; }
+            const std::string& get_session_key() const { return session_key_; }
+            const std::string& get_a_token() const { return a_token_; }
             const uint32_t get_expired_in() const { return expired_in_; }
             const uint32_t get_host_time() const { return host_time_; }
             const int64_t	get_time_offset() const { return time_offset_; }

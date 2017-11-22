@@ -67,13 +67,13 @@ namespace Utils
             return (contentHeight + fix);
         }
 
-	if (platform::is_linux())
+        if (platform::is_linux())
         {
-            const auto isMultiline = (textHeight >= Utils::scale_value(20));
+            const auto isMultiline = (textHeight >= Utils::scale_value(34));
             const auto fix = (
                 isMultiline ?
-                    Utils::scale_value(10) :
-                    Utils::scale_value(-5)
+                    Utils::scale_value(7) :
+                    Utils::scale_value(-7)
             );
 
             return (contentHeight + fix);
@@ -118,7 +118,7 @@ namespace Utils
 
     int32_t evaluateActualLineHeight(const QFontMetrics &_m)
     {
-        return _m.boundingRect("Mj").height();
+        return _m.boundingRect(qsl("Mj")).height();
     }
 
     int32_t evaluateActualLineHeight(const QFont &_font)
@@ -201,8 +201,8 @@ namespace Utils
         QString limitedText;
         for (;;)
         {
-            limitedText = splitText.join(' ');
-            limitedText += ellipsis;
+            limitedText.clear();
+            limitedText += splitText.join(ql1c(' ')) % ellipsis;
 
             if (splitText.length() < MIN_CHUNKS_NUM)
             {

@@ -2,9 +2,14 @@
 #include "ContactItem.h"
 #include "contact_profile.h"
 
+namespace
+{
+    const int maxDaysForActive = 7;
+}
+
 namespace Logic
 {
-	ContactItem::ContactItem(Data::Contact* _contact)
+	ContactItem::ContactItem(Data::ContactPtr _contact)
 		: contact_(_contact)
 		, visible_(true)
 	{
@@ -52,17 +57,22 @@ namespace Logic
 
 	bool ContactItem::is_phone() const
 	{
-		return contact_->UserType_ == "sms" || contact_->UserType_ == "phone";
+		return contact_->UserType_ == ql1s("sms") || contact_->UserType_ == ql1s("phone");
 	}
 
-	bool ContactItem::recently() const
+    bool ContactItem::recently() const
 	{
-		return contact_->LastSeen_.isValid() && contact_->LastSeen_.daysTo(QDateTime::currentDateTime()) <= 180;
+        return recently(QDateTime::currentDateTime());
 	}
 
     bool ContactItem::recently(const QDateTime& _current) const
     {
-        return contact_->LastSeen_.isValid() && contact_->LastSeen_.daysTo(_current) <= 180;
+        return contact_->LastSeen_.isValid() && contact_->LastSeen_.daysTo(_current) <= maxDaysForActive;
+    }
+
+    bool ContactItem::is_active(const QDateTime& _current) const
+    {
+        return (is_online() || recently(_current) || is_chat() || is_live_chat()) && !is_group();
     }
 
 	bool ContactItem::is_chat() const
@@ -128,4 +138,24 @@ namespace Logic
 	{
 		return contact_->AimId_;
 	}
+
+    int ContactItem::get_outgoing_msg_count() const
+    {
+        return contact_->OutgoingMsgCount_;
+    }
+
+    void ContactItem::set_outgoing_msg_count(const int _count)
+    {
+        contact_->OutgoingMsgCount_ = _count;
+    }
+
+    void ContactItem::set_stamp(const QString & _stamp)
+    {
+        stamp_ = _stamp;
+    }
+
+    QString ContactItem::get_stamp() const
+    {
+        return stamp_;
+    }
 }

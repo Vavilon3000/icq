@@ -6,12 +6,12 @@
 namespace core
 {
     class async_executer;
-    
+
     namespace tools
     {
         class binary_stream;
     }
-    
+
     namespace themes
     {
         class theme
@@ -21,10 +21,12 @@ namespace core
             bool tile_;
             int32_t position_;
             std::string tint_color_;
-            
+
             std::string typing_color_;
             std::wstring folder_path_;
             int32_t theme_id_;
+            bool delivery_status_light_;
+
         public:
             theme(std::wstring folder_path);
             bool is_tile() const { return tile_; }
@@ -40,47 +42,47 @@ namespace core
             bool unserialize(const rapidjson::Value& _node, const ThemesScale _themes_scale);
             std::wstring get_image_path() const;
             std::wstring get_thumb_path() const;
-            
+            bool get_delivery_status_light() const;
+
         public:
 
             struct bubble {
-                std::string bg1_color_;
-                std::string bg2_color_;
+                std::string bg_color_;
                 std::string time_color_;
                 std::string info_color_;
                 void unserialize(const rapidjson::Value& _node);
             };
             bubble incoming_bubble_;
             bubble outgoing_bubble_;
-            
+
             struct date {
                 std::string bg_color_;
                 std::string text_color_;
                 void unserialize(const rapidjson::Value& _node);
             } date_;
-            
+
             struct preview_stickers {
                 std::string time_color_;
                 void unserialize(const rapidjson::Value& _node);
             } preview_stickers_;
-            
+
             struct chat_event {
                 std::string bg_color_;
                 std::string text_color_;
                 void unserialize(const rapidjson::Value& _node);
             } chat_event_;
-            
+
             struct contact_name {
                 std::string text_color_;
                 void unserialize(const rapidjson::Value& _node);
             } contact_name_;
-            
+
             struct new_messages_plate {
                 std::string bg_color_;
                 std::string text_color_;
                 void unserialize(const rapidjson::Value& _node);
             } new_messages_plate_;
-            
+
             struct typing {
                 typing()
                     : light_gif_(0)
@@ -92,39 +94,37 @@ namespace core
                 void unserialize(const rapidjson::Value& _node);
             } typing_;
         };
-        
+
         class download_task
         {
             std::string source_url_;
             std::wstring dest_file_;
-            
+
             int32_t set_id_;
             int32_t theme_id_;
-            
+            time_t modified_time_;
+
             std::list<int64_t> requests_;
         public:
-            
-            download_task(
-                          const std::string& _source_url,
+
+            download_task(const std::string& _source_url,
                           const std::wstring& _dest_file,
-                          int32_t _theme_id
-//                          , sticker_size _size
+                          time_t _modified_time,
+                          int32_t _theme_id = -1
                           );
-            
+
             const std::string& get_source_url() const;
             const std::wstring& get_dest_file() const;
-//            int32_t get_set_id() const;
-//            int32_t get_sticker_id() const;
-//            sticker_size get_size() const;
+            time_t get_last_modified_time() const;
             std::list<int64_t> get_requests() const;
             int32_t get_theme_id() const { return theme_id_; }
-            
+
             void push_request(int64_t _seq);
         };
-        
+
         typedef std::list<std::shared_ptr<themes::theme>>	themes_list;
         typedef std::list<download_task> download_tasks;
-        
+
         class cache
         {
             std::wstring themes_path_;
@@ -144,6 +144,8 @@ namespace core
             std::string get_theme_image_url(const theme& _theme) const;
             std::wstring get_theme_image_path(const int32_t _theme_id) const;
             std::wstring get_theme_thumb_path(const int32_t _theme_id) const;
+            time_t get_theme_thumb_time(const theme& _theme) const;
+            time_t get_theme_image_time(const theme& _theme) const;
             bool meta_loaded(const download_task& _task);
             bool get_next_theme_task(download_task& _task);
             bool theme_loaded(const download_task& _task, std::list<int64_t>& _requests);
@@ -151,10 +153,11 @@ namespace core
             void get_theme_image(int64_t _seq, int32_t _theme_id, tools::binary_stream& _data);
             theme* get_theme(int32_t _theme_id);
             void clear_all();
+            void clear_missing();
             inline ThemesScale get_themes_scale() { return themes_scale_; }
             void set_themes_scale(ThemesScale _themes_scale) { themes_scale_ = _themes_scale; }
         };
-        
+
         class parse_result
         {
             bool	result_;
@@ -163,7 +166,7 @@ namespace core
             parse_result(bool _result) : result_(_result) {}
             bool get_result() const { return result_; }
         };
-        
+
         class load_result
         {
             bool				result_;
@@ -177,10 +180,6 @@ namespace core
         {
         public:
             std::function<void(T0, T1)>	on_result_;
-            result_handler()
-            {
-                on_result_ = [](T0, T1){};
-            }
         };
 
         template<class T0>
@@ -188,12 +187,8 @@ namespace core
         {
         public:
             std::function<void(T0)>	on_result_;
-            result_handler()
-            {
-                on_result_ = [](T0){};
-            }
         };
-        
+
         class face
         {
             std::shared_ptr<cache> cache_;
@@ -212,6 +207,7 @@ namespace core
             std::shared_ptr<result_handler<coll_helper>> serialize_meta(coll_helper _coll);
             theme* get_theme(int32_t _theme_id);
             void clear_all();
+            void clear_missing();
             ThemesScale get_themes_scale();
             void set_themes_scale(ThemesScale _themes_scale);
         };

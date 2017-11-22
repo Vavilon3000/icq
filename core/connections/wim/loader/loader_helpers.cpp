@@ -6,7 +6,6 @@
 #include "../wim_packet.h"
 
 #include "preview_proxy.h"
-#include "snap_metainfo.h"
 
 #include "loader_helpers.h"
 
@@ -47,9 +46,7 @@ std::wstring get_path_in_cache(const std::wstring& _cache_dir, const std::string
         filename += get_uri_ext(_uri);
     }
 
-    const auto append_js_extension = (
-        (_path_type == path_type::link_meta) ||
-        (_path_type == path_type::snap_meta));
+    const auto append_js_extension = (_path_type == path_type::link_meta);
     if (append_js_extension)
     {
         assert(!append_extension);
@@ -68,7 +65,6 @@ const std::string& get_path_suffix(const path_type _type)
 
     static const std::string LINK_PREVIEW_SUFFIX = "lp";
     static const std::string LINK_META_SUFFIX = "lm";
-    static const std::string SNAP_META_SUFFIX = "sm";
 
     switch(_type)
     {
@@ -77,9 +73,6 @@ const std::string& get_path_suffix(const path_type _type)
 
     case path_type::link_meta:
         return LINK_META_SUFFIX;
-
-    case path_type::snap_meta:
-        return SNAP_META_SUFFIX;
 
     case path_type::file:
         // no suffix for the gentlemen please
@@ -122,34 +115,6 @@ preview_proxy::link_meta_uptr load_link_meta_from_file(const std::wstring &_path
     return preview_proxy::parse_json(json.data(), _uri);
 }
 
-snaps::snap_metainfo_uptr load_snap_meta_from_file(const std::wstring &_path, const std::string &_ttl_id)
-{
-    assert(!_path.empty());
-    assert(!_ttl_id.empty());
-
-    tools::binary_stream json_file;
-    if (!json_file.load_from_file(_path))
-    {
-        return nullptr;
-    }
-
-    const auto file_size = json_file.available();
-    if (file_size == 0)
-    {
-        return nullptr;
-    }
-
-    const auto json_str = (char*)json_file.read(file_size);
-
-    std::vector<char> json;
-    json.reserve(file_size + 1);
-
-    json.assign(json_str, json_str + file_size);
-    json.push_back('\0');
-
-    return snaps::parse_json(json.data(), _ttl_id);
-}
-
 std::string sign_loader_uri(const std::string &_host, const wim_packet_params &_params, const str_2_str_map &_extra)
 {
     assert(!_host.empty());
@@ -168,7 +133,7 @@ std::string sign_loader_uri(const std::string &_host, const wim_packet_params &_
     p["sig_sha256"] = sha256;
 
     std::stringstream ss_url;
-    ss_url << _host << "?" << wim_packet::format_get_params(p);
+    ss_url << _host << '?' << wim_packet::format_get_params(p);
 
     return ss_url.str();
 }

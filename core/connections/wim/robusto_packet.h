@@ -30,12 +30,12 @@ namespace core
             virtual int32_t execute_request(std::shared_ptr<core::http_request_simple> _request) override;
 
             virtual int32_t parse_results(const rapidjson::Value& _node_results);
-            const std::string get_req_id() const;
+            std::string get_req_id() const;
 
 
         public:
 
-            robusto_packet(const wim_packet_params& _params);
+            robusto_packet(wim_packet_params _params);
             virtual ~robusto_packet();
 
             void set_robusto_params(const robusto_packet_params& _params);

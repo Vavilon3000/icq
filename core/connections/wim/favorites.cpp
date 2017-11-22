@@ -18,7 +18,7 @@ favorite::favorite(const std::string& _aimid, const int64_t _time)
 }
 
 
-void favorite::serialize(rapidjson::Value& _node, rapidjson_allocator& _a)
+void favorite::serialize(rapidjson::Value& _node, rapidjson_allocator& _a) const
 {
     _node.AddMember("aimId",  get_aimid(), _a);
     _node.AddMember("time", time_, _a);
@@ -31,7 +31,7 @@ int32_t favorite::unserialize(const rapidjson::Value& _node)
     if (iter_aimid == _node.MemberEnd() || !iter_aimid->value.IsString())
         return -1;
 
-    aimid_ = iter_aimid->value.GetString();
+    aimid_ = rapidjson_get_string(iter_aimid->value);
 
     auto iter_time = _node.FindMember("time");
     if (iter_time == _node.MemberEnd() || !iter_time->value.IsInt64())
@@ -110,17 +110,17 @@ int64_t favorites::get_time(const std::string& _aimid) const
 void favorites::serialize(rapidjson::Value& _node, rapidjson_allocator& _a)
 {
     rapidjson::Value node_contacts(rapidjson::Type::kArrayType);
-
-    for (auto iter = contacts_.begin(); iter != contacts_.end(); ++iter)
+    node_contacts.Reserve(contacts_.size(), _a);
+    for (const auto& iter : contacts_)
     {
         rapidjson::Value node_contact(rapidjson::Type::kObjectType);
 
-        iter->serialize(node_contact, _a);
+        iter.serialize(node_contact, _a);
 
-        node_contacts.PushBack(node_contact, _a);
+        node_contacts.PushBack(std::move(node_contact), _a);
     }
 
-    _node.AddMember("favorites", node_contacts, _a);
+    _node.AddMember("favorites", std::move(node_contacts), _a);
 }
 
 
@@ -130,14 +130,14 @@ int32_t favorites::unserialize(const rapidjson::Value& _node)
     if (iter_contacts == _node.MemberEnd() || !iter_contacts->value.IsArray())
         return -1;
 
-    for (auto iter = iter_contacts->value.Begin(); iter != iter_contacts->value.End(); iter++)
+    for (auto iter = iter_contacts->value.Begin(), end = iter_contacts->value.End(); iter != end; ++iter)
     {
         favorite dlg;
         if (dlg.unserialize(*iter) != 0)
             return -1;
 
-        contacts_.push_back(dlg);
-        index_.insert(std::make_pair<std::string, int64_t>(dlg.get_aimid(), dlg.get_time()));
+        index_.insert(std::make_pair(dlg.get_aimid(), dlg.get_time()));
+        contacts_.push_back(std::move(dlg));
     }
 
     return 0;

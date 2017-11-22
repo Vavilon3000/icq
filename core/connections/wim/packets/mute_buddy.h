@@ -26,7 +26,7 @@ namespace core
         public:
 
             mute_buddy(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const std::string& _aimid,
                 bool mute);
 

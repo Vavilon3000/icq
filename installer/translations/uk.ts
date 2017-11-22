@@ -24,20 +24,20 @@
         <translation>ICQ</translation>
     </message>
     <message>
-        <source>Back</source>
-        <translation>Назад</translation>
-    </message>
-    <message>
-        <source>Next</source>
-        <translation>Далі</translation>
-    </message>
-    <message>
         <source>Choose ICQ account</source>
         <translation>Виберіть обліковий запис у ICQ</translation>
     </message>
     <message>
         <source>Skip step</source>
         <translation>Пропустити крок</translation>
+    </message>
+    <message>
+        <source>BACK</source>
+        <translation>НАЗАД</translation>
+    </message>
+    <message>
+        <source>NEXT</source>
+        <translation>ДАЛI</translation>
     </message>
 </context>
 <context>
@@ -110,17 +110,16 @@
         <translation>Політику конфіденційності</translation>
     </message>
     <message>
-        <source>Install</source>
-        <translatorcomment>To intall ICQ app</translatorcomment>
-        <translation>Інсталювати</translation>
-    </message>
-    <message>
         <source>Welcome to Mail.Ru Agent</source>
         <translation>Вітаємо у Mail.Ru Агенті</translation>
     </message>
     <message>
         <source>This will install Mail.Ru Agent on your computer</source>
         <translation>Програма інсталює Mail.Ru Агент на ваш комп&apos;ютер</translation>
+    </message>
+    <message>
+        <source>INSTALL</source>
+        <translation>IНСТАЛЮВАТИ</translation>
     </message>
 </context>
 <context>

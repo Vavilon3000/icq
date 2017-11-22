@@ -43,27 +43,29 @@ void Ui::ShadowedWidget<__Base>::paintEvent(QPaintEvent*)
     painter.save();
 
     const QRect rc = __Base::rect();
-    if (__Base::internalWidth(painter) <= rc.width())
+    //if (__Base::internalWidth(painter) <= rc.width())
     {
         __Base::internalDraw(painter, rc);
         painter.restore();
         return;
     }
 
-    QPixmap pixmap(QSize(rc.width(), rc.height()));
+/* Disable for now because it works bad on retina.
+    QPixmap pixmap(Utils::scale_bitmap(QSize(rc.width(), rc.height())));
     pixmap.fill(Qt::transparent);
 
     QPainter p(&pixmap);
     p.setPen(painter.pen());
     p.setFont(painter.font());
 
-    __Base::internalDraw(p, rc);
+    __Base::internalDraw(p, Utils::scale_bitmap(rc));
     p.setCompositionMode(QPainter::CompositionMode_DestinationIn);
 
     p.fillRect(QRect(rc.right() - tailLenPx_ + 1, 0, tailLenPx_, pixmap.rect().height()), linearGradient_);
     p.end();
 
-    painter.drawPixmap(QPoint(rc.left(), rc.top()), pixmap);
+    painter.drawPixmap(Utils::scale_bitmap(rc), pixmap, pixmap.rect());
+*/
     painter.restore();
 }
 
@@ -83,15 +85,15 @@ Ui::NameAndStatusWidget::NameAndStatusWidget(QWidget* _parent, int _nameBaseline
     QFont font = QApplication::font();
     font.setStyleStrategy(QFont::PreferAntialias);
 
-    name_ = new voipTools::BoundBox<ShadowedWidget<TextEmojiLabel> >(this);
+    name_ = new voipTools::BoundBox<ShadowedWidget<TextEmojiLabel>>(this);
     name_->setFont(font);
-    name_->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+    name_->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding));
     name_->setSizeToBaseline(_nameBaseline); // SORRY, MANKIND!!! THIS IS NECCESSARY EVIL BECAUSE TextEmojiLabel IS TERRIBLE!!!
     layout()->addWidget(name_);
 
     status_ = new voipTools::BoundBox<ShadowedWidget<TextEmojiLabel> >(this);
     status_->setFont(font);
-    status_->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+    status_->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding));
     status_->setSizeToBaseline(_statusBaseline);// SORRY, MANKIND!!! THIS IS NECCESSARY EVIL BECAUSE TextEmojiLabel IS TERRIBLE!!!
     layout()->addWidget(status_);
 
@@ -100,21 +102,21 @@ Ui::NameAndStatusWidget::NameAndStatusWidget(QWidget* _parent, int _nameBaseline
 
 Ui::NameAndStatusWidget::~NameAndStatusWidget()
 {
-    
+
 }
 
 void Ui::NameAndStatusWidget::setNameProperty(const char* _propName, bool _val)
 {
     name_->setProperty(_propName, _val);
-	name_->style()->unpolish(name_);
-	name_->style()->polish(name_);
+    name_->style()->unpolish(name_);
+    name_->style()->polish(name_);
 }
 
 void Ui::NameAndStatusWidget::setStatusProperty(const char* _propName, bool _val)
 {
     status_->setProperty(_propName, _val);
-	status_->style()->unpolish(status_);
-	status_->style()->polish(status_);
+    status_->style()->unpolish(status_);
+    status_->style()->polish(status_);
 }
 
 void Ui::NameAndStatusWidget::setName(const char* _name)
@@ -142,33 +144,36 @@ Ui::NameWidget::NameWidget(QWidget* _parent, int _nameBaseline)
     , name_(NULL)
 {
     setContentsMargins(0, 0, 0, 0);
-    
-    QVBoxLayout* rootLayout = Utils::emptyVLayout();
-    rootLayout->setAlignment(Qt::AlignLeft);
+
+    QHBoxLayout* rootLayout = Utils::emptyHLayout();
+    rootLayout->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     setLayout(rootLayout);
-    
+
     rootLayout->addSpacerItem(new QSpacerItem(1, 1, QSizePolicy::Minimum, QSizePolicy::Expanding));
-    
+
     QFont font = QApplication::font();
     font.setStyleStrategy(QFont::PreferAntialias);
-    
+
     name_ = new voipTools::BoundBox<ShadowedWidget<TextEmojiLabel> >(this);
     name_->setFont(font);
-    name_->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+    name_->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding));
     name_->setSizeToBaseline(_nameBaseline); // SORRY, MANKIND!!! THIS IS NECCESSARY EVIL BECAUSE TextEmojiLabel IS TERRIBLE!!!
-    layout()->addWidget(name_);
-    
+    rootLayout->addWidget(name_);
+
     rootLayout->addSpacerItem(new QSpacerItem(1, 1, QSizePolicy::Minimum, QSizePolicy::Expanding));
 }
 
 Ui::NameWidget::~NameWidget()
 {
-    
+
 }
 
 void Ui::NameWidget::setNameProperty(const char* _propName, bool _val)
 {
-    name_->setProperty(_propName, _val);
+    if (name_)
+    {
+        name_->setProperty(_propName, _val);
+    }
 }
 
 void Ui::NameWidget::setName(const char* _name)

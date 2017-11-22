@@ -28,9 +28,13 @@
 #include "../gui_coll_helper.h"
 #include "../../core_dispatcher.h"
 #include "../../gui_settings.h"
+#include "../../utils/InterConnector.h"
+#include "../../main_window/MainWindow.h"
 
 #import "SSKeychain.h"
 #import "NSData+Base64.h"
+
+#import <CommonCrypto/CommonCrypto.h>
 
 namespace
 {
@@ -99,7 +103,7 @@ namespace
             QString authToken = prefs.get<QString>("wim.session.authToken");
             QString sessionKey = prefs.get<QString>("wim.session.sessionKey");
             
-            MacProfile newProfile(MacProfile::Type::ICQ, profileId, uin);
+            MacProfile newProfile(MacProfileType::ICQ, profileId, uin);
             
             newProfile.setName(displayId);
             newProfile.setToken(authToken);
@@ -124,11 +128,34 @@ namespace
     }
 }
 
-MacProfile::MacProfile(const Type &type, const QString &identifier, const QString &uin, const QString &pw):
+MacProfile::MacProfile():
+    type_(MacProfileType::ICQ),
+    timeOffset_(0),
+    selected_(false)
+{
+}
+
+MacProfile::MacProfile(const MacProfileType &type, const QString &identifier, const QString &uin, const QString &pw):
     type_(type),
-    identifier_(identifier),
     uin_(uin),
-    pw_(pw)
+    pw_(pw),
+    identifier_(identifier),
+    selected_(false)
+{
+}
+
+MacProfile::MacProfile(const MacProfile &profile):
+    type_(profile.type()),
+    uin_(profile.uin()),
+    pw_(profile.pw()),
+    name_(profile.name()),
+    token_(profile.token()),
+    key_(profile.key()),
+    aimsid_(profile.aimsid()),
+    identifier_(profile.identifier()),
+    fetchUrl_(profile.fetchUrl()),
+    timeOffset_(profile.timeOffset()),
+    selected_(profile.selected())
 {
 }
 
@@ -171,6 +198,11 @@ void MacProfile::setTimeOffset(time_t timeOffset)
     timeOffset_ = timeOffset;
 }
 
+void MacProfile::setSelected(bool selected)
+{
+    selected_ = selected;
+}
+
 const QString &MacProfile::uin() const
 {
     return uin_;
@@ -211,9 +243,24 @@ time_t MacProfile::timeOffset() const
     return timeOffset_;
 }
 
-MacMigrationManager::MacMigrationManager(QString accountId):
-    accountId_(accountId)
+bool MacProfile::selected() const
 {
+    return selected_;
+}
+
+MacMigrationManager::MacMigrationManager(QObject* _parent)
+: QObject(_parent)
+, loginSeq_(-1)
+{
+}
+
+MacMigrationManager::~MacMigrationManager()
+{
+}
+
+void MacMigrationManager::init(QString accountId)
+{
+    accountId_ = accountId;
     if (accountId == "account")
     {
         QString profilesPath = MacSupport::settingsPath().append("/settings/profiles.dat");
@@ -225,13 +272,9 @@ MacMigrationManager::MacMigrationManager(QString accountId):
     {
         QString accountsDirectory = MacSupport::settingsPath();
         accountsDirectory = accountsDirectory.append("/Accounts").append("/").append(accountId);
-    
+        
         profiles_ = MacMigrationManager::profiles2(accountsDirectory, accountId);
     }
-}
-
-MacMigrationManager::~MacMigrationManager()
-{
 }
 
 MacProfilesList MacMigrationManager::profiles1(QString profilesPath, QString generalPath)
@@ -315,7 +358,7 @@ MacProfilesList MacMigrationManager::profiles1(QString profilesPath, QString gen
                     authToken = toQString(keychainPass);
                 }
                 
-                MacProfile newProfile(MacProfile::Type::ICQ, profileId, uin);
+                MacProfile newProfile(MacProfileType::ICQ, profileId, uin);
 
                 newProfile.setName(displayId);
                 newProfile.setToken(authToken);
@@ -350,7 +393,7 @@ MacProfilesList MacMigrationManager::profiles1(QString profilesPath, QString gen
                 
                 NSString * keychainPass = [SSKeychain passwordForService:[NSString stringWithUTF8String:(build::is_icq() ? product_name_icq_mac_a : product_name_agent_mac_a)] account:keychainAcc];
                 
-                MacProfile newProfile(MacProfile::Type::Agent, profileId, uin, toQString(keychainPass));
+                MacProfile newProfile(MacProfileType::Agent, profileId, uin, toQString(keychainPass));
                 newProfile.setName(displayId);
                 newProfile.setTimeOffset(localTimeSkew);
                 
@@ -416,46 +459,52 @@ MacProfilesList MacMigrationManager::profiles2(QString accountDirectory, QString
     return list;
 }
 
-bool MacMigrationManager::migrateProfile(const MacProfile &profile)
+QString MacMigrationManager::passwordMD5(QString pass)
+{
+    NSString * pw = fromQString(pass);
+    
+    const char *cStr = [pw UTF8String];
+    unsigned char result[CC_MD5_DIGEST_LENGTH];
+    CC_MD5( cStr, (CC_LONG)strlen(cStr), result );
+    
+    NSString * md5 = [NSString stringWithFormat:
+                      @"%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+                      result[0], result[1], result[2], result[3],
+                      result[4], result[5], result[6], result[7],
+                      result[8], result[9], result[10], result[11],
+                      result[12], result[13], result[14], result[15]
+                      ];
+    
+    return toQString(md5);
+}
+
+bool MacMigrationManager::migrateProfile(const MacProfile &profile, bool isFirst)
 {
     Ui::get_gui_settings()->set_value<bool>(settings_mac_accounts_migrated, true);
-    
-    if (profile.key().isEmpty())
-    {
-        Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
-        collection.set_value_as_qstring("login", profile.uin());
-        if (profile.type() == MacProfile::Type::ICQ)
-        {
-            collection.set_value_as_qstring("password", profile.token());
-        }
-        else if (profile.type() == MacProfile::Type::Agent)
-        {
-            collection.set_value_as_qstring("password", profile.pw());
-        }
-        collection.set_value_as_bool("save_auth_data", true);
-        collection.set_value_as_bool("is_login", true);
-        collection.set_value_as_bool("not_log", true);
-        Ui::GetDispatcher()->post_message_to_core("login_by_password", collection.get());
-        
-        return true;
-    }
     
     NSMutableDictionary * json = [NSMutableDictionary dictionary];
 
     json[@"login"] = fromQString(profile.uin());
     json[@"aimid"] = fromQString(profile.uin());
-    json[@"timeoffset"] = @(profile.timeOffset());
-    json[@"devid"] = @"ic18eTwFBO7vAdt9";
-    if (profile.type() == MacProfile::Type::ICQ)
+    
+    if (profile.type() == MacProfileType::ICQ)
     {
-        json[@"atoken"] = fromQString(profile.token());
-        json[@"sessionkey"] = fromQString(profile.key());
-        json[@"aimsid"] = fromQString(profile.aimsid());
-        json[@"fetchurl"] = fromQString(profile.fetchUrl());
+        if (profile.key().length())
+        {
+            json[@"timeoffset"] = @(profile.timeOffset());
+            json[@"devid"] = @"ic18eTwFBO7vAdt9";
+            json[@"atoken"] = fromQString(profile.token());
+            json[@"sessionkey"] = fromQString(profile.key());
+            json[@"aimsid"] = fromQString(profile.aimsid());
+            json[@"fetchurl"] = fromQString(profile.fetchUrl());
+        } else
+        {
+            json[@"password_md5"] = fromQString(profile.token());
+        }
     }
-    else if (profile.type() == MacProfile::Type::Agent)
+    else if (profile.type() == MacProfileType::Agent)
     {
-        //
+        json[@"password_md5"] = fromQString(passwordMD5(profile.pw()));
     }
     
     NSData * data = [NSJSONSerialization dataWithJSONObject:json options:NSJSONWritingPrettyPrinted error:nil];
@@ -469,24 +518,53 @@ bool MacMigrationManager::migrateProfile(const MacProfile &profile)
         NSString * fileName = fromQString(settingsPath);
         [[NSFileManager defaultManager] createDirectoryAtPath:fileName withIntermediateDirectories:YES attributes:nil error:nil];
         
-        settingsPath = settingsPath.append(auth_export_file_name);
+        settingsPath = settingsPath.append(isFirst ? auth_export_file_name : auth_export_file_name_merge);
         
         fileName = fromQString(settingsPath);
         if ([data writeToFile:fileName atomically:YES])
         {
-            Ui::GetDispatcher()->post_message_to_core("connect_after_migration", nullptr);
+            if (isFirst)
+            {
+                Ui::GetDispatcher()->post_message_to_core("connect_after_migration", nullptr);
+            }
             
             return true;
         }
+        
+        removePassword(profile);
     }
 
     return false;
 }
 
-bool MacMigrationManager::mergeProfiles(const MacProfile &profile1, const MacProfile &profile2)
+void MacMigrationManager::loginProfile(const MacProfile &profile, const MacProfile& merge)
 {
-    NSLog(@"%s %s", profile1.uin().toStdString().c_str(), profile2.uin().toStdString().c_str());
-    return false;
+    QString pw = profile.pw();
+    if (profile.type() == MacProfileType::ICQ && profile.key().isEmpty())
+        pw = profile.token();
+    
+    if (!profile.uin().isEmpty() && !pw.isEmpty())
+    {
+        Ui::get_gui_settings()->set_value<bool>(settings_mac_accounts_migrated, true);
+        
+        Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
+        collection.set_value_as_qstring("login", profile.uin());
+        collection.set_value_as_qstring("password", pw);
+        collection.set_value_as_bool("save_auth_data", true);
+        collection.set_value_as_bool("not_log", true);
+        loginSeq_ = Ui::GetDispatcher()->post_message_to_core(qsl("login_by_password"), collection.get());
+        
+        QObject::connect(Ui::GetDispatcher(), SIGNAL(loginResult(int64_t, int)), this, SLOT(loginResult(int64_t, int)), Qt::DirectConnection);
+        
+        profileToLogin_ = profile;
+        profileToMerge_ = merge;
+        return;
+    }
+    
+    if (!profile.uin().isEmpty())
+        migrateProfile(profile, true);
+    if (!merge.uin().isEmpty())
+        migrateProfile(merge, false);
 }
 
 QString MacMigrationManager::canMigrateAccount()
@@ -532,3 +610,75 @@ QString MacMigrationManager::canMigrateAccount()
     return "";
 }
 
+void MacMigrationManager::loginResult(int64_t _seq, int _result)
+{
+    if (loginSeq_ != _seq)
+        return;
+    
+    bool withMerge = !profileToMerge_.uin().isEmpty();
+    
+    QObject::disconnect(Ui::GetDispatcher(), SIGNAL(loginResult(int64_t, int)), this, SLOT(loginResult(int64_t, int)));
+    
+    if (_result != 0)
+    {
+        migrateProfile(profileToLogin_, true);
+        if (withMerge)
+            migrateProfile(profileToMerge_, false);
+    }
+    else
+    {
+        Ui::get_gui_settings()->set_value<bool>(settings_mac_accounts_migrated, true);
+        if (withMerge)
+            mergeProfile(profileToMerge_);
+    }
+
+    removePassword(profileToLogin_);
+    if (withMerge)
+        removePassword(profileToMerge_);
+    
+    profileToLogin_ = MacProfile();
+    profileToMerge_ = MacProfile();
+    
+    auto w = Utils::InterConnector::instance().getMainWindow();
+    if (w)
+        w->showMainPage();
+}
+
+void MacMigrationManager::removePassword(const MacProfile &profile)
+{
+    if (profile.identifier().isEmpty())
+        return;
+    
+    NSString * keychainAcc = [NSString stringWithFormat:@"%@#%@", profile.identifier().toNSString(), profile.identifier().toNSString()];
+    [SSKeychain deletePasswordForService: [NSString stringWithUTF8String:(build::is_icq() ? product_name_icq_mac_a : product_name_agent_mac_a)] account: keychainAcc];
+}
+
+void MacMigrationManager::mergeProfile(const MacProfile &profile)
+{
+    Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
+    collection.set_value_as_qstring("login", profile.uin());
+    collection.set_value_as_qstring("aimid", profile.uin());
+    
+    if (profile.type() == MacProfileType::ICQ)
+    {
+        if (profile.key().length())
+        {
+            collection.set_value_as_int64("timeoffset", profile.timeOffset());
+            collection.set_value_as_qstring("devid", ql1s("ic18eTwFBO7vAdt9"));
+            collection.set_value_as_qstring("atoken", profile.token());
+            collection.set_value_as_qstring("sessionkey", profile.key());
+            collection.set_value_as_qstring("aimsid", profile.aimsid());
+            collection.set_value_as_qstring("fetchurl", profile.fetchUrl());
+        }
+        else
+        {
+            collection.set_value_as_qstring("password_md5", profile.token());
+        }
+    }
+    else if (profile.type() == MacProfileType::Agent)
+    {
+        collection.set_value_as_qstring("password_md5", passwordMD5(profile.pw()));
+    }
+
+    Ui::GetDispatcher()->post_message_to_core(qsl("merge_account"), collection.get());
+}

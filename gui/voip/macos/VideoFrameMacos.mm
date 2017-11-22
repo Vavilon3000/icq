@@ -92,6 +92,12 @@
     return self;
 }
 
+- (void)dealloc
+{
+    [self unregisterSpaceNotification];
+    [super dealloc];
+}
+
 - (void)windowWillEnterFullScreen:(NSNotification *)notification
 {
     if (_notification)
@@ -145,12 +151,23 @@
     }
 }
 
+-(void)unregisterSpaceNotification
+{
+    NSNotificationCenter *notificationCenter = [[NSWorkspace sharedWorkspace] notificationCenter];
+    
+    if (notificationCenter)
+    {
+        [notificationCenter removeObserver:self];
+    }
+}
+
 @end
 
 NSString *kAppNameKey      = @"applicationName"; // Application Name & PID
 NSString *kWindowOriginKey = @"windowOrigin";    // Window Origin as a string
 NSString *kWindowSizeKey   = @"windowSize";      // Window Size as a string
 NSString *kWindowRectKey   = @"windowRect";      // The overall front-to-back ordering of the windows as returned by the window server
+NSString *kWindowIDKey     = @"windowId";
 
 inline uint32_t ChangeBits(uint32_t currentBits, uint32_t flagsToChange, BOOL setFlags) {
     if(setFlags) {
@@ -196,6 +213,8 @@ void WindowListApplierFunction(const void *inputDictionary, void *context) {
         NSString *sizeString = [NSString stringWithFormat:@"%.0f*%.0f", bounds.size.width, bounds.size.height];
         outputEntry[kWindowSizeKey] = sizeString;
 #endif
+        
+        outputEntry[kWindowIDKey] = entry[(id)kCGWindowNumber];
         
         WindowRect* wr = [[WindowRect alloc] init];
         wr.rect = bounds;
@@ -357,7 +376,7 @@ void platform_macos::unsetAspectRatioForWindow(QWidget& wnd)
     setAspectRatioForWindow(wnd, 0.0f, 0.0f);
 }
 
-bool platform_macos::windowIsOverlapped(QWidget* frame) {
+bool platform_macos::windowIsOverlapped(QWidget* frame, const std::vector<QWidget*>& _exclude) {
     assert(!!frame);
     if (!frame) { return false; }
     
@@ -369,6 +388,8 @@ bool platform_macos::windowIsOverlapped(QWidget* frame) {
     assert(!!window);
     if (!window) { return false; }
     
+    QRect screenGeometry = QDesktopWidget().availableGeometry(frame);
+    
     const CGWindowID windowID = (CGWindowID)[window windowNumber];
     CGWindowListOption listOptions = kCGWindowListOptionOnScreenAboveWindow;
     listOptions = ChangeBits(listOptions, kCGWindowListExcludeDesktopElements, YES);
@@ -379,13 +400,39 @@ bool platform_macos::windowIsOverlapped(QWidget* frame) {
     
     CFArrayApplyFunction(windowList, CFRangeMake(0, CFArrayGetCount(windowList)), &WindowListApplierFunction, (__bridge void *)(windowListData));
 
-    const QRect frameRect([window frame].origin.x, [window frame].origin.y, [window frame].size.width, [window frame].size.height);
+    // Flip y coord.
+    const QRect frameRect([window frame].origin.x, screenGeometry.height() - int([window frame].origin.y + [window frame].size.height), [window frame].size.width, [window frame].size.height);
     const int originalSquare = frameRect.width() * frameRect.height();
+
+    // Fill array with exclude window id.
+    QList<CGWindowID> excludeWindowID;
+    for (auto widget : _exclude)
+    {
+        if (widget)
+        {
+            NSView* view = (NSView*)widget->winId();
+            if (view)
+            {
+                NSWindow* window = [view window];
+                if (window)
+                {
+                    excludeWindowID.push_back((CGWindowID)[window windowNumber]);
+                }
+            }
+        }
+    }
     
     QRegion selfRegion(frameRect);
     for (NSMutableDictionary* params in windowListData.outputArray) {
+        // Skip if it is excluded window.
+        CGWindowID winId = [params[kWindowIDKey] unsignedIntValue];
+        if (excludeWindowID.indexOf(winId) != -1)
+        {
+            continue;
+        }
         WindowRect* wr = params[kWindowRectKey];
-        QRegion wrRegion(QRect(wr.rect.origin.x, wr.rect.origin.y, wr.rect.size.width, wr.rect.size.height));
+        QRect rc(wr.rect.origin.x, wr.rect.origin.y, wr.rect.size.width, wr.rect.size.height);
+        QRegion wrRegion(rc);
         selfRegion -= wrRegion;
     }
     
@@ -482,7 +529,7 @@ platform_macos::FullScreenNotificaton::FullScreenNotificaton (QWidget& parentWin
         FullScreenDelegate* delegate = [[FullScreenDelegate alloc] init: this];
         [window setDelegate: delegate];
         _delegate = delegate;
-        [delegate retain];
+        //[delegate retain];
     }
 }
 

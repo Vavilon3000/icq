@@ -17,19 +17,18 @@ core::curl_context::curl_context(std::shared_ptr<tools::stream> _output, http_re
     :
     curl_(curl_handler::instance().get_handle()),
     output_(_output),
-    header_(new core::tools::binary_stream()),
-    log_data_(new core::tools::binary_stream()),
+    header_(std::make_shared<core::tools::binary_stream>()),
     stop_func_(_stop_func),
     progress_func_(_progress_func),
-    header_chunk_(0),
-    post(NULL),
-    last(NULL),
+    bytes_transferred_pct_(0),
     need_log_(true),
+    log_data_(std::make_shared<core::tools::binary_stream>()),
+    header_chunk_(0),
+    post(nullptr),
+    last(nullptr),
     keep_alive_(_keep_alive),
     priority_(100),
-    timeout_(0),
-    replace_log_function_([](tools::binary_stream&){}),
-    bytes_transferred_pct_(0)
+    timeout_(0)
 {
 }
 
@@ -98,7 +97,7 @@ bool core::curl_context::init(milliseconds_t _connect_timeout, milliseconds_t _t
         if (_proxy_settings.need_auth_)
         {
             curl_easy_setopt(curl_, CURLOPT_PROXYAUTH, CURLAUTH_ANY);
-            curl_easy_setopt(curl_, CURLOPT_PROXYUSERPWD, tools::from_utf16(_proxy_settings.login_ + L":" + _proxy_settings.password_).c_str());
+            curl_easy_setopt(curl_, CURLOPT_PROXYUSERPWD, tools::from_utf16(_proxy_settings.login_ + L':' + _proxy_settings.password_).c_str());
         }
     }
 
@@ -107,7 +106,7 @@ bool core::curl_context::init(milliseconds_t _connect_timeout, milliseconds_t _t
 
 void core::curl_context::set_replace_log_function(replace_log_function _func)
 {
-    replace_log_function_ = _func;
+    replace_log_function_ = std::move(_func);
 }
 
 bool core::curl_context::is_need_log()
@@ -137,7 +136,7 @@ void core::curl_context::set_range(int64_t _from, int64_t _to)
     assert(_from < _to);
 
     std::stringstream ss_range;
-    ss_range << _from << "-" << _to;
+    ss_range << _from << '-' << _to;
 
     curl_easy_setopt(curl_, CURLOPT_RANGE, ss_range.str().c_str());
 }
@@ -228,31 +227,56 @@ bool core::curl_context::execute_request()
 
     const CURLcode res = handler.get();
 
-    const auto finish = std::chrono::steady_clock().now();
-
-    std::stringstream error;
-    error << "curl_easy_perform result is ";
-    error << res << '\n';
-    error << "completed in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish -start).count() << " ms";
-    error << std::endl;
-
-    write_log_string(error.str());
-
-    replace_log_function_(*log_data_);
-
-    g_core->get_network_log().write_data(*log_data_);
+    write_log_message(std::to_string(res), start);
 
     return (res == CURLE_OK);
 }
 
 void core::curl_context::execute_request_async(http_request_simple::completion_function _completion_function)
 {
-    curl_handler::instance().perform_async(priority_, timeout_, curl_, _completion_function);
+    const auto start = std::chrono::steady_clock().now();
+
+    curl_handler::instance().perform_async(priority_, timeout_, curl_,
+        [start, _completion_function, this](bool _success)
+        {
+            write_log_message(_success ? "success" : "failed", start);
+            _completion_function(_success);
+        });
+}
+
+double core::curl_context::get_request_time()
+{
+    if (!curl_)
+        return 0;
+
+    double result = 0;
+    auto res = curl_easy_getinfo(curl_, CURLINFO_TOTAL_TIME, &result);
+    if (res == CURLE_OK)
+        return result;
+
+    return 0;
+}
+
+void core::curl_context::write_log_message(const std::string& _result, std::chrono::steady_clock::time_point _start_time)
+{
+    const auto finish = std::chrono::steady_clock().now();
+
+    std::stringstream message;
+    message << "curl_easy_perform result is ";
+    message << _result << '\n';
+    message << "completed in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish -_start_time).count() << " ms";
+    message << std::endl;
+    write_log_string(message.str());
+
+    if (replace_log_function_)
+        replace_log_function_(*log_data_);
+
+    g_core->get_network_log().write_data(*log_data_);
 }
 
 void core::curl_context::set_custom_header_params(const std::list<std::string>& _params)
 {
-    for (auto parameter : _params)
+    for (const auto& parameter : _params)
         header_chunk_ = curl_slist_append(header_chunk_, parameter.c_str());
 
     if (header_chunk_)
@@ -324,69 +348,39 @@ static int32_t progress_callback(void* ptr, double TotalToDownload, double NowDo
     return 0;
 }
 
-std::vector<std::string> get_filter_keywords()
-{
-    std::vector<std::string> keywords;
-    keywords.push_back("schannel:");
-    keywords.push_back("STATE:");
-
-    return keywords;
+namespace {
+    const std::string filter1 = "schannel:";
+    const std::string filter2 = "STATE:";
 }
 
-const std::string filter1 = "schannel:";
-const std::string filter2 = "STATE:";
-
-static int32_t trace_function(CURL* _handle, curl_infotype _type, unsigned char* _data, size_t _size, void* _userp)
+static int32_t trace_function(CURL* /*_handle*/, curl_infotype _type, unsigned char* _data, size_t _size, void* _userp)
 {
     auto ctx = (core::curl_context*) _userp;
     if (!ctx->is_need_log())
         return 0;
 
-    std::stringstream ss;
-
-    const char *text = "";
-
-    (void)_userp;
-    (void)_handle; /* prevent compiler warning */
-
     switch (_type)
     {
     case CURLINFO_TEXT:
-        {
-            if (filter1.length() < _size && memcmp(_data, filter1.c_str(), filter1.length()) == 0)
-                return 0;
+        if (filter1.length() < _size && memcmp(_data, filter1.c_str(), filter1.length()) == 0)
+            return 0;
 
-            if (filter2.length() < _size && memcmp(_data, filter2.c_str(), filter2.length()) == 0)
-                return 0;
-        }
+        if (filter2.length() < _size && memcmp(_data, filter2.c_str(), filter2.length()) == 0)
+            return 0;
+
         break;
     case CURLINFO_HEADER_OUT:
-    //    text = "=> Send header";
-        break;
     case CURLINFO_DATA_OUT:
     case CURLINFO_SSL_DATA_OUT:
-    //    text = "=> Send data";
-        break;
     case CURLINFO_HEADER_IN:
-    //    text = "<= Recv header";
         break;
     case CURLINFO_DATA_IN:
     case CURLINFO_SSL_DATA_IN:
-    //    text = "<= Recv data";
         return 0;
-    default:
-        break;
-    }
-
-    core::tools::binary_stream bs;
-
-    if (*text != '\0')
-    {
-        ctx->write_log_string(text);
-        ctx->write_log_string("\n");
     }
 
     ctx->write_log_data((const char*) _data, (uint32_t) _size);
-
+    if (ctx->replace_log_function_)
+        ctx->replace_log_function_(*ctx->log_data_);
     return 0;
 }

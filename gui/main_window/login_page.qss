@@ -1,156 +1,150 @@
 Ui--LoginPage
 {
-	background-color: #ffffff;
+    background-color: #ffffff;
 }
 
 QWidget#stackedWidget
 {
-	max-width: 320dip;
-	min-width: 320dip;
+    max-width: 320dip;
+    min-width: 320dip;
 }
 
 QLabel#hint
 {
     min-height: 48dip;
-	max-height: 48dip;
+    max-height: 48dip;
     margin-top: 12dip;
     margin-bottom: 12dip;
-	font-size: 24dip;
+    font-size: 24dip;
 }
 
 QPushButton#passwordForgotten
 {
     min-height: 32dip;
-	max-height: 32dip;
+    max-height: 32dip;
     font-size: 16dip;
     text-align: top;
 }
 
 QWidget#countryWidget
 {
-	min-height: 48dip;
-	max-height: 48dip;
-	border-style: none;
-	border-bottom-style: solid;
-	border-bottom-width: 1dip;
-	border-bottom-color: #d7d7d7;
+    min-height: 48dip;
+    max-height: 48dip;
+    border-style: none;
+    border-bottom-style: solid;
+    border-bottom-width: 1dip;
+    border-bottom-color: #d7d7d7;
 }
 
 QTreeView[CountrySearchView="true"]
 {
-	border-style: solid;
-	border-width: 1dip;
-	border-color: #579e1c;
-	font-size: 16dip;
-	selection-background-color: #ffffff;
-	selection-color: #000000;
+    border-style: solid;
+    border-width: 1dip;
+    border-color: #57b359;
+    font-size: 16dip;
+    selection-background-color: #ffffff;
+    selection-color: #000000;
 }
 
 
 QLineEdit#countryCodeEdit
 {
-	border-style: outset;
-	min-height: 48dip;
-	font-size: 18dip;
+    border-style: outset;
+    min-height: 48dip;
+    font-size: 18dip;
 }
 
 QWidget#phoneWidget[Common="true"]
 {
-	background-color: transparent;
-	border-bottom-color: #d7d7d7;
-	border-bottom-width: 1dip;
-	border-bottom-style: solid;
-	min-height: 48dip;
-	max-height: 48dip;
-	margin-top: 4dip;
+    background-color: transparent;
+    border-bottom-color: #d7d7d7;
+    border-bottom-width: 1dip;
+    border-bottom-style: solid;
+    min-height: 48dip;
+    max-height: 48dip;
+    margin-top: 4dip;
 }
 
 QWidget#phoneWidget[Focused="true"]
 {
-	background-color: transparent;
-	border-bottom-color: #579e1c;
-	border-bottom-width: 1dip;
-	border-bottom-style: solid;
-	margin-top: 4dip;
+    background-color: transparent;
+    border-bottom-color: #57b359;
+    border-bottom-width: 1dip;
+    border-bottom-style: solid;
+    margin-top: 4dip;
 }
 
 QWidget#phoneWidget[Error="true"]
 {
-	background-color: transparent;
-	border-bottom-color: #d0021b;
-	border-bottom-width: 1dip;
-	border-bottom-style: solid;
-	margin-top: 4dip;
+    background-color: transparent;
+    border-bottom-color: #d0021b;
+    border-bottom-width: 1dip;
+    border-bottom-style: solid;
+    margin-top: 4dip;
 }
 
 QLineEdit#phoneEdit[Common="true"]
 {
-	border-style: outset;
-	min-height: 48dip;
-	max-height: 48dip;
-	font-size: 18dip;
-	text-align: left;
-	padding-left: 10dip;
+    border-style: outset;
+    min-height: 48dip;
+    max-height: 48dip;
+    font-size: 18dip;
+    text-align: left;
+    padding-left: 10dip;
 }
 
 QLineEdit#phoneEdit[Error="true"]
 {
-	border-style: outset;
-	min-height: 48dip;
-	max-height: 48dip;
-	font-size: 18dip;
-	text-align: left;
-	padding-left: 10dip;
-	color: #d0021b;
+    border-style: outset;
+    min-height: 48dip;
+    max-height: 48dip;
+    font-size: 18dip;
+    text-align: left;
+    padding-left: 10dip;
+    color: #d0021b;
 }
 
 QWidget#switchLogin
 {
-	min-height: 30dip;
-	max-height: 30dip;
-	margin-bottom: 12dip;
+    min-height: 30dip;
+    max-height: 30dip;
+    margin-bottom: 12dip;
 }
 
 QWidget#controlsWidget
 {
-	max-width: 1000dip;
-	min-width: 400dip;
+    max-width: 1000dip;
+    min-width: 400dip;
 }
 
 QWidget#mainWidget
 {
-	background-color: transparent;
+    background-color: transparent;
 }
 
 Qwidget#enteredPhone
 {
-	margin-bottom: 32dip;
-}
-
-QLabel#errorLabel
-{
-	font-size: 15dip;
-	color: #d0021b;
+    margin-bottom: 32dip;
 }
 
 QWidget#errorWidget
 {
-	min-height: 30dip;
+    min-height: 30dip;
 }
 
 QWidget#nextButton
 {
-	min-width: 150dip;
-	min-height: 40dip;
-	max-height: 40dip;
-	margin-top: 20dip;
+    min-width: 150dip;
+    min-height: 40dip;
+    max-height: 40dip;
+    margin-top: 20dip;
 }
 
 QPushButton#settingsButton
 {
-	min-width: 28dip;
-	max-width: 28dip;
-	min-height: 24dip;
-	max-height: 24dip;
-	border-image: url(:/resources/settings/settings_general_100.png);
+    min-width: 28dip;
+    max-width: 28dip;
+    min-height: 24dip;
+    max-height: 24dip;
+    border-image: url(:/resources/settings/settings_general_100.png);
 }

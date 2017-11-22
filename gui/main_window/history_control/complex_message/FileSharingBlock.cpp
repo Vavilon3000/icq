@@ -9,7 +9,6 @@
 #include "../../../gui_settings.h"
 #include "../../../main_window/MainWindow.h"
 #include "../../../previewer/GalleryWidget.h"
-#include "../../../previewer/Previewer.h"
 #include "../../../themes/ResourceIds.h"
 #include "../../../themes/ThemePixmap.h"
 #include "../../../utils/InterConnector.h"
@@ -48,17 +47,13 @@ FileSharingBlock::FileSharingBlock(
     const QString &link,
     const core::file_sharing_content_type type)
     : FileSharingBlockBase(parent, link, type)
-    , PreviewRequestId_(-1)
-    , CtrlButton_(nullptr)
     , IsBodyPressed_(false)
     , IsShowInDirLinkPressed_(false)
     , OpenPreviewer_(false)
-    , SnapId_(0)
-    , SnapMetainfoRequestId_(-1)
-    , IsFailedSnap_(false)
-    , SnapAuthorNickCtrl_(nullptr)
     , IsVisible_(false)
     , IsInPreloadDistance_(true)
+    , PreviewRequestId_(-1)
+    , CtrlButton_(nullptr)
 {
     parseLink();
 
@@ -73,12 +68,12 @@ FileSharingBlock::FileSharingBlock(
     if (getType() != core::file_sharing_content_type::undefined)
         QuoteAnimation_.setSemiTransparent();
 
-    if (getType() == core::file_sharing_content_type::video ||
-        getType() == core::file_sharing_content_type::snap_video)
+    if (getType() == core::file_sharing_content_type::video)
     {
         /// no play quote
         QuoteAnimation_.deactivate();
     }
+    setMouseTracking(true);
 }
 
 FileSharingBlock::~FileSharingBlock()
@@ -100,7 +95,6 @@ QSize FileSharingBlock::getCtrlButtonSize() const
 QSize FileSharingBlock::getOriginalPreviewSize() const
 {
     assert(isPreviewable());
-    assert(!isFailedSnap());
     assert(!OriginalPreviewSize_.isEmpty());
 
     return OriginalPreviewSize_;
@@ -111,22 +105,6 @@ QString FileSharingBlock::getShowInDirLinkText() const
     return QT_TRANSLATE_NOOP("chat_page","Show in folder");
 }
 
-bool FileSharingBlock::isAuthorVisible() const
-{
-    return (isSnap() && !isFailedSnap());
-}
-
-bool FileSharingBlock::isFailedSnap() const
-{
-    if (IsFailedSnap_)
-    {
-        assert(isPreviewable());
-        return true;
-    }
-
-    return false;
-}
-
 bool FileSharingBlock::isPreviewReady() const
 {
     return !Preview_.isNull();
@@ -134,13 +112,16 @@ bool FileSharingBlock::isPreviewReady() const
 
 bool FileSharingBlock::isSharingEnabled() const
 {
-    return !IsFailedSnap_;
+    return true;
 }
 
 void FileSharingBlock::onVisibilityChanged(const bool isVisible)
 {
     IsVisible_ = isVisible;
+
     FileSharingBlockBase::onVisibilityChanged(isVisible);
+    if (CtrlButton_)
+        CtrlButton_->onVisibilityChanged(isVisible);
 
     const auto isPreviewRequestInProgress = (PreviewRequestId_ != -1);
     if (isPreviewRequestInProgress)
@@ -161,8 +142,8 @@ bool FileSharingBlock::isInPreloadRange(const QRect& _widgetAbsGeometry, const Q
     if (intersected.height() != 0)
         return true;
 
-    return std::min(abs(_viewportVisibilityAbsRect.y() - _widgetAbsGeometry.y())
-        , abs(_viewportVisibilityAbsRect.bottom() - _widgetAbsGeometry.bottom())) < 1000;
+    return std::min(std::abs(_viewportVisibilityAbsRect.y() - _widgetAbsGeometry.y())
+        , std::abs(_viewportVisibilityAbsRect.bottom() - _widgetAbsGeometry.bottom())) < 1000;
 }
 
 void FileSharingBlock::onDistanceToViewportChanged(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect)
@@ -182,25 +163,10 @@ void FileSharingBlock::onDistanceToViewportChanged(const QRect& _widgetAbsGeomet
     onChangeLoadState(IsInPreloadDistance_);
 }
 
-void FileSharingBlock::setAuthorNickGeometry(const QRect &rect)
-{
-    assert(!rect.isEmpty());
-    assert(isAuthorVisible());
-
-    if (!SnapAuthorNickCtrl_)
-    {
-        return;
-    }
-
-    SnapAuthorNickCtrl_->setGeometry(rect);
-    SnapAuthorNickCtrl_->setVisible(true);
-}
-
 void FileSharingBlock::setCtrlButtonGeometry(const QRect &rect)
 {
     assert(!rect.isEmpty());
     assert(CtrlButton_);
-    assert(!isFailedSnap());
 
     if (!CtrlButton_)
     {
@@ -222,16 +188,7 @@ void FileSharingBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& 
 
     if (isPreviewable())
     {
-        QRect authorAvatarRect;
-        QRect authorNickRect;
-
-        if (isSnap())
-        {
-            authorAvatarRect = getFileSharingLayout()->getAuthorAvatarRect();
-            authorNickRect = getFileSharingLayout()->getAuthorNickRect();
-        }
-
-        drawPreviewableBlock(p, contentRect, authorAvatarRect, authorNickRect, quote_color);
+        drawPreviewableBlock(p, contentRect, quote_color);
 
         if (quote_color.isValid() && !isVideo())
         {
@@ -239,7 +196,7 @@ void FileSharingBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& 
                 _rect,
                 MessageStyle::getBorderRadius(),
                 isOutgoing());
-            
+
             p.setClipPath(clip_path);
             p.fillRect(_rect, QBrush(quote_color));
         }
@@ -263,15 +220,6 @@ void FileSharingBlock::initializeFileSharingBlock()
 {
     setCursor(Qt::PointingHandCursor);
 
-    connectGeneralSignals(true);
-
-    if (isSnap())
-    {
-        requestSnapMetainfo();
-
-        return;
-    }
-
     sendGenericMetainfoRequests();
 }
 
@@ -287,11 +235,6 @@ void FileSharingBlock::mousePressEvent(QMouseEvent *event)
 
     IsShowInDirLinkPressed_ = false;
     IsBodyPressed_ = false;
-
-    if (IsFailedSnap_)
-    {
-        return;
-    }
 
     const auto isLeftButton = (event->button() == Qt::LeftButton);
     if (!isLeftButton)
@@ -346,20 +289,18 @@ void FileSharingBlock::applyClippingPath(QPainter &p, const QRect &previewRect)
     const auto shouldResetClippingPath = (PreviewClippingPath_.isEmpty() || isPreviewRectChanged);
     if (shouldResetClippingPath)
     {
-        const auto flags = (isAuthorVisible() ? Utils::RenderBubble_BottomRounded : Utils::RenderBubble_AllRounded);
-
         PreviewClippingPath_ = Utils::renderMessageBubble(
             previewRect,
             MessageStyle::getBorderRadius(),
             isOutgoing(),
-            flags);
+            Utils::RenderBubble_AllRounded);
 
         auto relativePreviewRect = QRect(0, 0, previewRect.width(), previewRect.height());
         RelativePreviewClippingPath_ = Utils::renderMessageBubble(
             relativePreviewRect,
             MessageStyle::getBorderRadius(),
             isOutgoing(),
-            flags);
+            Utils::RenderBubble_AllRounded);
     }
 
     p.setClipPath(PreviewClippingPath_);
@@ -373,50 +314,6 @@ void FileSharingBlock::changeGifPlaybackStatus(const bool isPlaying)
     {
         CtrlButton_->setVisible(!isPlaying);
         CtrlButton_->raise();
-    }
-}
-
-void FileSharingBlock::connectGeneralSignals(const bool isConnected)
-{
-    if (isConnected)
-    {
-        QMetaObject::Connection connection;
-
-        connection = QObject::connect(
-            GetDispatcher(),
-            &core_dispatcher::snapMetainfoDownloaded,
-            this,
-            &FileSharingBlock::onSnapMetainfoDownloaded,
-            (Qt::ConnectionType)(Qt::QueuedConnection | Qt::UniqueConnection));
-        assert(connection);
-
-        if (isSnap())
-        {
-            connection = QObject::connect(
-                Logic::GetAvatarStorage(),
-                &Logic::AvatarStorage::avatarChanged,
-                this,
-                &FileSharingBlock::onSnapAuthorAvatarChanged,
-                (Qt::ConnectionType)(Qt::QueuedConnection | Qt::UniqueConnection));
-            assert(connection);
-        }
-
-        return;
-    }
-
-    QObject::disconnect(
-        GetDispatcher(),
-        &core_dispatcher::snapMetainfoDownloaded,
-        this,
-        &FileSharingBlock::onSnapMetainfoDownloaded);
-
-    if (isSnap())
-    {
-        QObject::disconnect(
-            Logic::GetAvatarStorage(),
-            &Logic::AvatarStorage::avatarChanged,
-            this,
-            &FileSharingBlock::onSnapAuthorAvatarChanged);
     }
 }
 
@@ -486,83 +383,6 @@ void FileSharingBlock::connectImageSignals(const bool isConnected)
         &FileSharingBlock::onImageDownloadError);
 }
 
-void FileSharingBlock::createAuthorNickControl(const QString &_authorName)
-{
-    assert(!SnapAuthorNickCtrl_);
-    assert(!_authorName.isEmpty());
-
-    const auto font = Style::Snaps::getAuthorNickFont();
-
-    SnapAuthorNickCtrl_ = new TextEmojiWidget(
-        this,
-        Fonts::appFont(font.pixelSize()),
-        Ui::CommonStyle::getTextCommonColor());
-
-    SnapAuthorNickCtrl_->setEllipsis(true);
-    SnapAuthorNickCtrl_->setText(_authorName, Ui::CommonStyle::getTextCommonColor());
-}
-
-void FileSharingBlock::drawFailedSnap(QPainter &p, const QRect &previewRect)
-{
-    assert(isFailedSnap());
-    assert(SnapExpiredImage_);
-
-    // draw bubble
-
-    p.save();
-
-    const auto fillWithDefaultBrush = (isStandalone() || isSelected());
-    if (fillWithDefaultBrush)
-    {
-        const auto &bodyBrush = MessageStyle::getBodyBrush(isOutgoing(), isSelected(), getThemeId());
-        p.setBrush(bodyBrush);
-    }
-    else
-    {
-        p.setBrush(Style::Snaps::getFailedSnapBrush());
-    }
-
-    p.drawRect(previewRect);
-
-    p.restore();
-
-    // draw icon
-
-    auto iconRect = SnapExpiredImage_->GetRect();
-    iconRect.moveCenter(previewRect.center());
-    SnapExpiredImage_->Draw(p, iconRect);
-
-    // draw text
-
-    const auto labelFont = Style::Snaps::getFailedSnapFont();
-    const QFontMetrics labelFontMetrics(labelFont);
-
-    const auto textLeft = previewRect.left();
-    const auto textWidth = previewRect.width();
-    const auto textHeight = labelFontMetrics.height();
-
-    const auto LABEL_BASELINE_OFFSET = Utils::scale_value(32);
-    auto textTop = (
-        iconRect.bottom() + 1 +
-        LABEL_BASELINE_OFFSET -
-        textHeight);
-
-    const QRect textRect(textLeft, textTop, textWidth, textHeight);
-
-    const QPen textPen(Style::Snaps::getFailedSnapColor());
-
-    p.save();
-
-    p.setPen(textPen);
-    p.setFont(labelFont);
-
-    const auto labelText = QT_TRANSLATE_NOOP("chat_page","Snap expired");
-
-    p.drawText(textRect, Qt::AlignHCenter, labelText);
-
-    p.restore();
-}
-
 void FileSharingBlock::drawPlainFileBlock(QPainter &p, const QRect &frameRect, const QColor& quote_color)
 {
     assert(isPlainFile());
@@ -606,14 +426,14 @@ void FileSharingBlock::drawPlainFileBubble(QPainter &p, const QRect &bubbleRect,
         MessageStyle::getBorderRadius(),
         MessageStyle::getBorderRadius());
 
-	if (quote_color.isValid())
-	{
-		p.setBrush(quote_color);
-		p.drawRoundedRect(
-			bubbleRect,
-			MessageStyle::getBorderRadius(),
-			MessageStyle::getBorderRadius());
-	}
+    if (quote_color.isValid())
+    {
+        p.setBrush(quote_color);
+        p.drawRoundedRect(
+            bubbleRect,
+            MessageStyle::getBorderRadius(),
+            MessageStyle::getBorderRadius());
+    }
     p.restore();
 }
 
@@ -685,7 +505,7 @@ void FileSharingBlock::drawPlainFileShowInDirLink(QPainter &p, const QRect &link
     const auto &btnText = getShowInDirLinkText();
 
     p.setFont(Style::Files::getShowInDirLinkFont());
-    p.setPen(QPen(Ui::CommonStyle::getLinkColor()));
+    p.setPen(QPen(CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT)));
     p.drawText(linkRect, btnText);
 
     p.restore();
@@ -724,11 +544,11 @@ void FileSharingBlock::drawPreview(QPainter &p, const QRect &previewRect, QPaint
         {
             p.drawPixmap(previewRect, Preview_);
 
-			if (quote_color.isValid() && SnapId_ == 0)
-			{
-				p.setBrush(QBrush(quote_color));
-				p.drawRoundedRect(previewRect, Utils::scale_value(8), Utils::scale_value(8));
-			}
+            if (quote_color.isValid())
+            {
+                p.setBrush(QBrush(quote_color));
+                p.drawRoundedRect(previewRect, Utils::scale_value(8), Utils::scale_value(8));
+            }
         }
         else
         {
@@ -756,72 +576,15 @@ void FileSharingBlock::drawPreview(QPainter &p, const QRect &previewRect, QPaint
     }
 }
 
-void FileSharingBlock::drawPreviewableBlock(QPainter &p, const QRect &previewRect, const QRect &authorAvatarRect, const QRect &authorNickRect, const QColor& quote_color)
+void FileSharingBlock::drawPreviewableBlock(QPainter &p, const QRect &previewRect, const QColor& quote_color)
 {
-    if (isAuthorVisible())
-    {
-        drawSnapAuthor(p, authorAvatarRect, authorNickRect, previewRect);
-    }
-
     applyClippingPath(p, previewRect);
-
-    if (isFailedSnap())
-    {
-        drawFailedSnap(p, previewRect);
-        return;
-    }
 
     drawPreview(p, previewRect, RelativePreviewClippingPath_, quote_color);
 
     if (isFileDownloading())
     {
         p.fillRect(previewRect, Style::Preview::getImageShadeBrush());
-    }
-}
-
-void FileSharingBlock::drawSnapAuthor(QPainter &p, const QRect &authorAvatarRect, const QRect &authorNameRect, const QRect &previewRect)
-{
-    assert(isSnap() && !isFailedSnap());
-    assert(authorAvatarRect.isValid());
-    assert(authorNameRect.isValid());
-    assert(previewRect.isValid());
-
-    if (isStandalone())
-    {
-        const QRect nameClipRect(
-            0,
-            0,
-            previewRect.width(),
-            previewRect.top() + 1);
-
-        auto nameClipArea = Utils::renderMessageBubble(
-            nameClipRect,
-            MessageStyle::getBorderRadius(),
-            isOutgoing(),
-            Utils::RenderBubble_TopRounded);
-
-        const QRect nameBackground(
-            0,
-            0,
-            previewRect.width(),
-            previewRect.top() + MessageStyle::getBorderRadius());
-
-        p.save();
-
-        p.setClipPath(nameClipArea);
-
-        const auto brush = MessageStyle::getBodyBrush(isOutgoing(), false, getThemeId());
-        p.setBrush(brush);
-
-        p.drawRoundedRect(nameBackground, MessageStyle::getBorderRadius(), MessageStyle::getBorderRadius());
-
-        p.restore();
-    }
-
-    if (SnapAuthorAvatar_)
-    {
-        assert(!SnapAuthorAvatar_->isNull());
-        p.drawPixmap(authorAvatarRect, *SnapAuthorAvatar_);
     }
 }
 
@@ -873,11 +636,8 @@ void FileSharingBlock::initPlainFile()
         CtrlButton_,
         &ActionButtonWidget::dragSignal,
         this,
-        [this]
-        ()
-        {
-            drag();
-        });
+        &FileSharingBlock::drag);
+    assert(connectionDrag);
 }
 
 void FileSharingBlock::initPreview()
@@ -958,74 +718,10 @@ bool FileSharingBlock::drag()
 
 void FileSharingBlock::onDownloadingFailed(const int64_t requestId)
 {
-    if (!isSnap())
-    {
-        if (CtrlButton_)
-        {
-            CtrlButton_->stopAnimation();
-        }
-
-        return;
-    }
-
-    if (SnapMetainfoRequestId_ != requestId)
-    {
-        return;
-    }
-
-    SnapMetainfoRequestId_ = -1;
-
-    markSnapExpired();
-}
-
-void FileSharingBlock::markSnapExpired()
-{
-    assert(isSnap());
-    
-    if (IsFailedSnap_)
-    {
-        // the temporary workaround
-        return;
-    }
-
-    assert(isPreviewable());
-    assert(!SnapExpiredImage_);
-    assert(!IsFailedSnap_);
-
-    IsFailedSnap_ = true;
-    SnapExpiredImage_ = Themes::GetPixmap(Themes::PixmapResourceId::FileSharingSnapExpired);
-
     if (CtrlButton_)
     {
-        CtrlButton_->setVisible(false);
+        CtrlButton_->stopAnimation();
     }
-
-    if (SnapAuthorNickCtrl_)
-    {
-        SnapAuthorNickCtrl_->setVisible(false);
-    }
-
-    notifyBlockContentsChanged();
-}
-
-
-void FileSharingBlock::loadSnapAuthorAvatar(const QString &_uin, const QString &_nick)
-{
-    assert(isSnap());
-    assert(!_uin.isEmpty());
-    assert(!_nick.isEmpty());
-
-    auto isDefault = false;
-
-    SnapAuthorAvatar_ = Logic::GetAvatarStorage()->GetRounded(
-        _uin,
-        _nick,
-        Style::Snaps::getAuthorAvatarSize(),
-        QString(),
-        true,
-        Out isDefault,
-        false,
-        false);
 }
 
 void FileSharingBlock::onDownloadingStarted()
@@ -1085,31 +781,6 @@ void FileSharingBlock::onLeftMouseClick(const QPoint &globalPos)
 {
     Q_UNUSED(globalPos);
 
-    assert(!IsFailedSnap_);
-
-    const auto clickOnSnapAuthorName = (
-        isSnap() &&
-        getFileSharingLayout()->
-            getAuthorNickRect().contains(
-            mapFromGlobal(globalPos)));
-    const auto clickOnSnapAuthorAvatar = (
-        isSnap() &&
-        getFileSharingLayout()->
-            getAuthorAvatarRect().contains(
-                mapFromGlobal(globalPos)));
-    if (clickOnSnapAuthorName || clickOnSnapAuthorAvatar)
-    {
-        emit Utils::InterConnector::instance().profileSettingsShow(SnapAuthorUin_);
-        GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::profile_avatar);
-        return;
-    }
-
-    const auto hasSnapId = (SnapId_ > 0);
-    if (hasSnapId)
-    {
-        GetDispatcher()->read_snap(getSenderAimid(), SnapId_, false);
-    }
-
     const auto isGifImageLoaded = (isGifImage() && isFileDownloaded());
     if (isGifImageLoaded)
     {
@@ -1134,15 +805,15 @@ void FileSharingBlock::onLeftMouseClick(const QPoint &globalPos)
         else
         {
             OpenPreviewer_ = true;
-            startDownloading(true, isSnap());
+            startDownloading(true);
         }
 
         return;
     }
 
-    if (isVideo())
+    if (isVideo() || isGifImage())
     {
-        startDownloading(true, isSnap());
+        startDownloading(true);
     }
 
     if (isPlainFile())
@@ -1247,24 +918,23 @@ void FileSharingBlock::playMedia(const QString &localPath)
 
         changeGifPlaybackStatus(true);
 
-        const auto gifSize = Utils::unscale_value(previewRect.size());
         videoplayer_->setLoadingState(true);
         videoplayer_->start(IsVisible_);
 
         return;
     }
-    
+
     bool player_exist = videoplayer_ != nullptr;
 
     if (!IsInPreloadDistance_)
         return;
 
-    load_task_ = std::unique_ptr<Utils::LoadMovieToFFMpegPlayerFromFileTask>(new Utils::LoadMovieToFFMpegPlayerFromFileTask(localPath, isGifImage(), this));
+    load_task_ = std::make_unique<Utils::LoadMovieToFFMpegPlayerFromFileTask>(localPath, isGifImage(), this);
 
     QObject::connect(
-        load_task_.get(), 
-        &Utils::LoadMovieToFFMpegPlayerFromFileTask::loadedSignal, 
-        this, 
+        load_task_.get(),
+        &Utils::LoadMovieToFFMpegPlayerFromFileTask::loadedSignal,
+        this,
         [this, player_exist, localPath](QSharedPointer<Ui::DialogPlayer> _movie)
     {
         if (!IsInPreloadDistance_)
@@ -1278,9 +948,9 @@ void FileSharingBlock::playMedia(const QString &localPath)
         videoplayer_ = _movie;
 
         QObject::connect(
-            videoplayer_.data(), 
-            &Ui::DialogPlayer::paused, 
-            this, &FileSharingBlock::onPaused, 
+            videoplayer_.data(),
+            &Ui::DialogPlayer::paused,
+            this, &FileSharingBlock::onPaused,
             (Qt::ConnectionType)(Qt::QueuedConnection | Qt::UniqueConnection));
 
         Ui::GetSoundsManager();
@@ -1336,13 +1006,11 @@ void FileSharingBlock::requestPreview(const QString &uri)
     assert(isPreviewable());
     assert(PreviewRequestId_ == -1);
 
-    PreviewRequestId_ = GetDispatcher()->downloadImage(uri, getChatAimid(), QString(), false, 0, 0);
+    PreviewRequestId_ = GetDispatcher()->downloadImage(uri, getChatAimid(), QString(), false, 0, 0, false);
 }
 
 void FileSharingBlock::sendGenericMetainfoRequests()
 {
-    assert(!isSnap() || (SnapId_ > 0));
-
     if (isPreviewable())
     {
         connectImageSignals(true);
@@ -1358,8 +1026,8 @@ void FileSharingBlock::showFileInDir()
 #ifdef _WIN32
     assert(QFile::exists(getFileLocalPath()));
 
-    const auto param = ("/select," + QDir::toNativeSeparators(getFileLocalPath()));
-    const auto command = "explorer " + param;
+    const QString param = ql1s("/select,") + QDir::toNativeSeparators(getFileLocalPath());
+    const QString command = ql1s("explorer ") + param;
     QProcess::startDetached(command);
 #else
 #ifdef __APPLE__
@@ -1379,21 +1047,6 @@ void FileSharingBlock::showImagePreviewer(const QString &localPath)
 
     Utils::InterConnector::instance().getMainWindow()->openGallery(
         getChatAimid(), Data::Image(getParentComplexMessage()->getId(), getLink(), true), localPath);
-}
-
-void FileSharingBlock::requestSnapMetainfo()
-{
-    assert(SnapMetainfoRequestId_ == -1);
-    assert(isSnap());
-
-    __TRACE(
-        "snaps",
-        "requested snap metainfo\n"
-            __LOGP(fsid, getFileSharingId())
-            __LOGP(type, getType())
-            __LOGP(contact, getChatAimid()));
-
-    SnapMetainfoRequestId_ = GetDispatcher()->download_snap_metainfo(getChatAimid(), getFileSharingId());
 }
 
 bool FileSharingBlock::shouldDisplayProgressAnimation() const
@@ -1574,84 +1227,6 @@ void FileSharingBlock::onPreviewMetainfoDownloaded(const QString &miniPreviewUri
             fullPreviewUri);
 
     requestPreview(previewUri);
-}
-
-void FileSharingBlock::onSnapAuthorAvatarChanged(QString aimId)
-{
-    assert(!aimId.isEmpty());
-
-    if (SnapAuthorUin_ != aimId)
-    {
-        return;
-    }
-
-    assert(!SnapAuthorNick_.isEmpty());
-
-    loadSnapAuthorAvatar(SnapAuthorUin_, SnapAuthorNick_);
-
-    notifyBlockContentsChanged();
-}
-
-void FileSharingBlock::onSnapMetainfoDownloaded(int64_t _seq, bool _success, uint64_t _snap_id, int64_t _expire_utc, QString _author_uin, QString _author_name)
-{
-    assert(_seq > 0);
-    assert(!_success || (_snap_id > 0));
-
-    if (SnapMetainfoRequestId_ != _seq)
-    {
-        return;
-    }
-
-    auto isExpired = false;
-
-    const auto hasExpirationDate = (_expire_utc > 0);
-    if (hasExpirationDate)
-    {
-        const auto expireUtc = QDateTime::fromTime_t(_expire_utc, Qt::UTC);
-
-        isExpired = (QDateTime::currentDateTimeUtc() >= expireUtc);
-    }
-
-    const auto isDownloadingFailed = (!_success || isExpired);
-
-    __TRACE(
-        "prefetch",
-        "snap metainfo downloaded\n"
-        "    sucess=<" << logutils::yn(_success) << ">\n"
-        "    is_expired=<" << isExpired << ">\n"
-        "    snap_id=<" << _snap_id << ">\n"
-        "    author_uin=<" << _author_uin << ">\n"
-        "    author_name=<" << _author_name << ">");
-
-    if (isDownloadingFailed)
-    {
-        onDownloadingFailed(_seq);
-        return;
-    }
-
-    assert(SnapId_ == 0);
-    SnapId_ = _snap_id;
-
-    assert(SnapAuthorUin_.isEmpty());
-    SnapAuthorUin_ = _author_uin;
-
-    assert(SnapAuthorNick_.isEmpty());
-    SnapAuthorNick_ = _author_name;
-
-    const auto contactListName = Logic::getContactListModel()->getDisplayName(_author_uin);
-    const auto hasContactListName = (contactListName != _author_uin);
-    if (hasContactListName)
-    {
-        SnapAuthorNick_ = contactListName;
-    }
-
-    loadSnapAuthorAvatar(_author_uin, SnapAuthorNick_);
-
-    createAuthorNickControl(SnapAuthorNick_);
-
-    sendGenericMetainfoRequests();
-
-    notifyBlockContentsChanged();
 }
 
 void FileSharingBlock::connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover)

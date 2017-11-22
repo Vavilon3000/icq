@@ -62,5 +62,9 @@ namespace core
 
         bool execute_request();
         void execute_request_async(http_request_simple::completion_function _completion_function);
+        double get_request_time();
+
+    private:
+        void write_log_message(const std::string& _result, std::chrono::steady_clock::time_point _start_time);
     };
 }

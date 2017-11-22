@@ -23,12 +23,16 @@ set(SUBPROJECT_ROOT "${ICQ_ROOT}/core")
 
 find_sources(SUBPROJECT_SOURCES "${SUBPROJECT_ROOT}" "cpp")
 find_sources(SUBPROJECT_HEADERS "${SUBPROJECT_ROOT}" "h")
+
 if(APPLE)
     find_sources(SUBPROJECT_MM_SOURCES "${SUBPROJECT_ROOT}" "mm")
 endif()
 
 set_source_group("sources" "${SUBPROJECT_ROOT}" ${SUBPROJECT_SOURCES} ${SUBPROJECT_MM_SOURCES} ${SUBPROJECT_HEADERS})
 
+if(MSVC)
+	find_sources(SUBPROJECT_HEADERS "${SUBPROJECT_ROOT}" "natvis")
+endif()
 
 # --------------------------   common    -------------------------
 set(COMMON_ROOT "${ICQ_ROOT}/common.shared")
@@ -72,7 +76,10 @@ add_library(${PROJECT_NAME} STATIC
     ${MINIZIP_SOURCES} ${MINIZIP_HEADERS}
     ${PCH_BIN})
 
-
+if(MSVC)
+    set (CMAKE_CXX_FLAGS "/Zc:threadSafeInit- /EHsc /bigobj")
+endif()
+	
 # --------------------------  copy voip  -------------------------
 if(MSVC)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

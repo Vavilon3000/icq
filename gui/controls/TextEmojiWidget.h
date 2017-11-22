@@ -7,62 +7,64 @@
 
 namespace Ui
 {
-	class TewLex;
-	struct paint_info;
+    class TewLex;
+    struct paint_info;
     class LabelEx;
 
-	typedef std::list<std::shared_ptr<TewLex>> TewTexText;
+    typedef std::list<std::shared_ptr<TewLex>> TewTexText;
 
-	class CompiledText
-	{
-        TewTexText	lexs_;
+    class CompiledText
+    {
+        TewTexText lexs_;
 
-		int				width_;
-        int				height_;
-        int             kerning_;
+        int width_;
+        int height_;
+        int kerning_;
 
-	public:
-		CompiledText();
+    public:
+        CompiledText();
 
-		void push_back(std::shared_ptr<TewLex> _lex);
-		int draw(QPainter& _painter, int _x, int _y, int _w);
+        void push_back(std::shared_ptr<TewLex> _lex);
+        int draw(QPainter& _painter, int _x, int _y, int _w);
         int draw(QPainter& _painter, int _x, int _y, int _w, int _h);
-		int width(const QFontMetrics& _painter);
+        int width(const QFontMetrics& _painter);
         int height(const QFontMetrics& _painter);
         void setKerning(int _kerning) { kerning_ = _kerning; }
 
         static bool compileText(const QString& _text, CompiledText& _result, bool _multiline, bool _ellipsis);
-	};
+    };
 
-	enum TextEmojiAlign
-	{
-		allign_left,
-		allign_right,
-		allign_center
-	};
+    enum TextEmojiAlign
+    {
+        allign_left,
+        allign_right,
+        allign_center
+    };
 
     class TextEmojiWidgetEvents;
-	class TextEmojiWidget : public QWidget
-	{
-		Q_OBJECT
+    class TextEmojiWidget : public QWidget
+    {
+        Q_OBJECT
 
-	protected:
-		QFont							font_;
-		QColor							color_;
-		QString							text_;
-		TextEmojiAlign					align_;
-		std::unique_ptr<CompiledText>	compiledText_;
-        QString                         sourceText_;
-		int								sizeToBaseline_;
-		int								descent_;
-        bool                            fading_;
-        bool                            ellipsis_;
-        bool                            multiline_;
-        bool                            selectable_;
+    protected:
+        QFont font_;
+        QColor color_;
+        QString text_;
+        TextEmojiAlign align_;
+        std::unique_ptr<CompiledText> compiledText_;
+        QString sourceText_;
+        int sizeToBaseline_;
+        int descent_;
+        bool fading_;
+        bool ellipsis_;
+        bool multiline_;
+        bool selectable_;
 
-        QPoint                          selection_;
+        QPoint selection_;
+        // If this flag true, we disable to use fixed size for preferred size polity.
+        bool disableFixedPreferred_;
 
-		virtual void paintEvent(QPaintEvent* _e) override;
+        virtual void paintEvent(QPaintEvent* _e) override;
         virtual void resizeEvent(QResizeEvent* _e) override;
 
         virtual void mousePressEvent(QMouseEvent *_e) override;
@@ -77,12 +79,12 @@ namespace Ui
 
     public:
         TextEmojiWidget(QWidget* _parent, const QFont& _font, const QColor& _color, int _sizeToBaseline = -1);
-		virtual ~TextEmojiWidget();
+        virtual ~TextEmojiWidget();
 
-		int ascent();
-		int descent();
+        int ascent();
+        int descent();
 
-		void setText(const QString& _text, TextEmojiAlign _align = TextEmojiAlign::allign_left);
+        void setText(const QString& _text, TextEmojiAlign _align = TextEmojiAlign::allign_left);
         void setText(const QString& _text, const QColor& _color, TextEmojiAlign _align = TextEmojiAlign::allign_left);
         inline QString text() const { return text_; }
 
@@ -101,15 +103,19 @@ namespace Ui
 
         int getCompiledWidth() const;
 
+        QSize sizeHint() const override;
+
+        void disableFixedPreferred();
+
     private:
         static TextEmojiWidgetEvents& events();
-	};
+    };
 
     class TextEmojiWidgetEvents : public QObject
     {
         Q_OBJECT
 
-    Q_SIGNALS:
+            Q_SIGNALS :
         void selected(TextEmojiWidget*);
 
     private:
@@ -125,12 +131,13 @@ namespace Ui
     class TextEmojiLabel : public LabelEx
     {
     private:
-        std::unique_ptr< CompiledText >    compiledText_;
-        int                                 sizeToBaseline_;
-        int                                 ascent_;
-        int                                 descent_;
-        int                                 leftOffset_;
-        int                                 kerning_;
+
+        std::unique_ptr< CompiledText > compiledText_;
+        int sizeToBaseline_;
+        int ascent_;
+        int descent_;
+        int leftOffset_;
+        int kerning_;
 
     protected:
         void internalDraw(QPainter& _painter, const QRect& _rc);
@@ -154,8 +161,11 @@ namespace Ui
         {
             return descent_;
         }
+
+        QSize sizeHint() const override;
+        QSize minimumSizeHint() const override;
     };
-    
+
 }
 
 

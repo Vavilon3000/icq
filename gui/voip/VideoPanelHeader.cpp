@@ -12,10 +12,10 @@
 #define COLOR_SECURE_BTN_ACTIVE   QColor("#ffffff")
 #define COLOR_SECURE_BTN_INACTIVE Qt::transparent
 
-const QString secureCallButton = 
+const QString secureCallButton =
     " QPushButton { font-size: 15dip; text-align: center; border-style: none; background-color: transparent; } ";
 
-const QString secureCallButtonClicked = 
+const QString secureCallButtonClicked =
     " QPushButton { font-size: 15dip; text-align: center; border-style: none; background-color: #ffffff; } ";
 
 #define SECURE_BTN_BORDER_W    Utils::scale_value(24)
@@ -48,8 +48,10 @@ Ui::MoveablePanel::MoveablePanel(QWidget* _parent)
     , parent_(_parent)
 {
     dragState_.isDraging = false;
+#ifndef __linux__
     setAttribute(Qt::WA_NoSystemBackground, true);
     setAttribute(Qt::WA_TranslucentBackground, true);
+#endif
 }
 
 Ui::MoveablePanel::~MoveablePanel()
@@ -65,24 +67,6 @@ void Ui::MoveablePanel::mouseReleaseEvent(QMouseEvent* /*e*/)
         grabMouse = false;
         dragState_.isDraging = false;
     }
-}
-
-void Ui::MoveablePanel::resizeEvent(QResizeEvent* _e)
-{
-    QWidget::resizeEvent(_e);
-#ifdef __APPLE__
-    const auto rc = parent_->rect();
-    if (parent_ && !parent_->isFullScreen())
-    {
-        QPainterPath path(QPointF(0, 0));
-        path.addRoundedRect(rc.x(), rc.y(), rc.width(), rc.height(), DEFAULT_WINDOW_ROUND_RECT, DEFAULT_WINDOW_ROUND_RECT);
-        setMask(path.toFillPolygon().toPolygon());
-    }
-    else
-    {
-        clearMask();
-    }
-#endif
 }
 
 void Ui::MoveablePanel::mousePressEvent(QMouseEvent* _e)
@@ -155,23 +139,32 @@ void Ui::VideoPanelHeader::_onClose()
 
 Ui::VideoPanelHeader::VideoPanelHeader(QWidget* _parent, int _items)
     : MoveablePanel(_parent)
-    , callName_(NULL)
-    , lowWidget_(NULL)
-    , callTime_(NULL)
-    , btnMin_(NULL)
-    , secureCallEnabled_(false)
-    , btnClose_(NULL)
     , itemsToShow_(_items)
+    , callName_(nullptr)
+    , callTime_(nullptr)
+    , btnMin_(nullptr)
+    , btnClose_(nullptr)
+    , lowWidget_(nullptr)
+    , secureCallEnabled_(false)
 {
-    setStyleSheet(Utils::LoadStyle(":/voip/video_panel.qss"));
+#ifdef __linux__
+    setStyleSheet(Utils::LoadStyle(":/qss/video_panel_linux"));
+#else
+    setStyleSheet(Utils::LoadStyle(":/qss/video_panel"));
+#endif
     setProperty("VideoPanelHeader", true);
     setContentsMargins(0, 0, 0, 0);
 
     QHBoxLayout* layout = Utils::emptyHLayout();
-    lowWidget_ = new QWidget(this);
+    lowWidget_ = new QFrame(this);
     { // low widget. it makes background panel coloured
         lowWidget_->setContentsMargins(DEFAULT_BORDER, 0, 0, 0);
+#ifdef __APPLE__
+        lowWidget_->setProperty("VideoPanelHeaderMac", true);
+#else
         lowWidget_->setProperty("VideoPanelHeader", true);
+#endif
+
         lowWidget_->setLayout(layout);
 
         QVBoxLayout* vLayoutParent = Utils::emptyVLayout();
@@ -188,11 +181,7 @@ Ui::VideoPanelHeader::VideoPanelHeader(QWidget* _parent, int _items)
     {
         QWidget* w = new QWidget(_parent);
         w->setContentsMargins(0, 0, 0, 0);
-        w->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        if (_parent)
-        {
-            _parent->layout()->addWidget(w);
-        }
+        w->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
         return w;
     };
 
@@ -211,6 +200,10 @@ Ui::VideoPanelHeader::VideoPanelHeader(QWidget* _parent, int _items)
     QWidget* centerWidg  = addWidget(lowWidget_);
     QWidget* rightWidg   = addWidget(lowWidget_);
 
+    layout->addWidget(leftWidg, 1);
+    layout->addWidget(centerWidg);
+    layout->addWidget(rightWidg, 1);
+
     addLayout(leftWidg,   Qt::AlignLeft | Qt::AlignVCenter);
     addLayout(centerWidg, Qt::AlignCenter);
     addLayout(rightWidg,  Qt::AlignRight | Qt::AlignVCenter);
@@ -219,10 +212,10 @@ Ui::VideoPanelHeader::VideoPanelHeader(QWidget* _parent, int _items)
     font.setStyleStrategy(QFont::PreferAntialias);
     if (itemsToShow_ & kVPH_ShowName)
     {
-        callName_ = new NameWidget(leftWidg, Utils::scale_value(15));
+        callName_ = new NameWidget(leftWidg, Utils::scale_value(18));
         callName_->setFont(font);
         callName_->layout()->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
-        callName_->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+        callName_->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding));
         callName_->setNameProperty("VideoPanelHeaderText", true);
 
         leftWidg->layout()->addWidget(callName_);
@@ -231,7 +224,7 @@ Ui::VideoPanelHeader::VideoPanelHeader(QWidget* _parent, int _items)
     if (itemsToShow_ & kVPH_ShowTime)
     {
         callTime_ = new voipTools::BoundBox<PushButton_t>(centerWidg);
-        callTime_->setPostfixColor(Ui::CommonStyle::getTextCommonColor());
+        callTime_->setPostfixColor(CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY));
         callTime_->setFont(font);
         callTime_->setEnabled(false);
         callTime_->setAlignment(Qt::AlignCenter);
@@ -259,18 +252,18 @@ Ui::VideoPanelHeader::VideoPanelHeader(QWidget* _parent, int _items)
     };
     if (itemsToShow_ & kVPH_ShowMin)
     {
-        btnMin_ = addButton(Ui::CommonStyle::getMinimizeButtonStyle(), SLOT(_onMinimize()));
+        btnMin_ = addButton(CommonStyle::getMinimizeButtonStyle(), SLOT(_onMinimize()));
     }
 
     if (itemsToShow_ & kVPH_ShowClose)
     {
-        btnClose_ = addButton(Ui::CommonStyle::getCloseButtonStyle(), SLOT(_onClose()));
+        btnClose_ = addButton(CommonStyle::getCloseButtonStyle(), SLOT(_onClose()));
     }
 }
 
 Ui::VideoPanelHeader::~VideoPanelHeader()
 {
-    
+
 }
 
 void Ui::VideoPanelHeader::enterEvent(QEvent* _e)
@@ -292,7 +285,7 @@ void Ui::VideoPanelHeader::enableSecureCall(bool _enable)
     {
         callTime_->setEnabled(_enable);
         callTime_->setOffsets(_enable ? Utils::scale_value(12) : 0);
-        callTime_->setImageForState(PushButton_t::normal, _enable ? ":/resources/video_panel/content_securecall_video_100.png" : "");
+        callTime_->setImageForState(PushButton_t::normal, _enable ? ":/voip/secure_100" : "");
         callTime_->setFixedWidth(_enable ? SECURE_BTN_W : SECURE_BTN_TEXT_W);
 
         callTime_->setColorForState(PushButton_t::normal,  COLOR_SECURE_BTN_INACTIVE);
@@ -305,7 +298,12 @@ void Ui::VideoPanelHeader::enableSecureCall(bool _enable)
 
 void Ui::VideoPanelHeader::_onSecureCallClicked()
 {
+#ifdef __linux__
+    auto rc = QRect(mapToGlobal(pos()), size());
+    emit onSecureCallClicked(rc);
+#else
     emit onSecureCallClicked(geometry());
+#endif
 }
 
 void Ui::VideoPanelHeader::setCallName(const std::string& _name)
@@ -353,7 +351,7 @@ void Ui::VideoPanelHeader::setSecureWndOpened(const bool _opened)
             callTime_->setColorForState(PushButton_t::pressed, secureCallEnabled_ ? COLOR_SECURE_BTN_ACTIVE: COLOR_SECURE_BTN_INACTIVE);
 
             callTime_->setCursor(secureCallEnabled_ ? QCursor(Qt::PointingHandCursor) : QCursor(Qt::ArrowCursor));
-            
+
 #ifdef __APPLE__
             // On mac button does not recive mouse leave event.
             // Reset state force.

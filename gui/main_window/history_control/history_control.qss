@@ -1,168 +1,162 @@
 QWidget#topWidget
 {
-    background: #ffffff;
+    background-color: #ffffff;
     border-style: solid;
-	border-width: 1dip;
-	border-color: #d7d7d7;
-	border-left: none;
-	border-right: none;
+    border-width: 1dip;
+    border-color: #d7d7d7;
+    border-left: none;
+    border-right: none;
     border-top: none;
 }
 
 QPushButton#callButton
 {
-	min-width: 40dip;
-	max-width: 40dip;
-	min-height: 40dip;
-	max-height: 40dip;
-	border-image: url(:/resources/contr_call_100.png);
+    min-width: 24dip;
+    max-width: 24dip;
+    min-height: 24dip;
+    max-height: 24dip;
+    border-image: url(:/resources/i_call_d_100.png);
 }
 
 QPushButton#callButton:hover
 {
-	border-image: url(:/resources/contr_call_100_hover.png);
+    border-image: url(:/resources/i_call_d_100_hover.png);
 }
 
 QPushButton#officialMark
 {
-	margin-left: -2dip;
-	min-width: 20dip;
-	max-width: 20dip;
-	min-height: 20dip;
-	max-height: 20dip;
-	border-image: url(:/resources/official_badge_blue_100.png);
+    margin-left: -2dip;
+    min-width: 20dip;
+    max-width: 20dip;
+    min-height: 20dip;
+    max-height: 20dip;
+    border-image: url(:/resources/official_badge_blue_100.png);
 }
 
 QPushButton#videoCallButton
 {
-	min-width: 40dip;
-	max-width: 40dip;
-	min-height: 40dip;
-	max-height: 40dip;
-	border-image: url(:/resources/contr_videocall_100.png);
+    min-width: 24dip;
+    max-width: 24dip;
+    min-height: 24dip;
+    max-height: 24dip;
+    border-image: url(:/resources/i_videocall_d_100.png);
 }
 QPushButton#videoCallButton:hover
 {
-	border-image: url(:/resources/contr_videocall_100_hover.png);
+    border-image: url(:/resources/i_videocall_d_100_hover.png);
 }
+
+QPushButton#searchButton
+{
+    min-width: 24dip;
+    max-width: 24dip;
+    min-height: 24dip;
+    max-height: 24dip;
+    border-image: url(:/resources/i_search_d_100.png);
+}
+QPushButton#searchButton:hover
+{
+    border-image: url(:/resources/i_search_d_100_hover.png);
+}
+
 
 QPushButton#addMemberButton
 {
-	min-width: 40dip;
-	max-width: 40dip;
-	min-height: 40dip;
-	max-height: 40dip;
-	border-image: url(:/resources/add_members_100.png);
+    min-width: 24dip;
+    max-width: 24dip;
+    min-height: 24dip;
+    max-height: 24dip;
+    border-image: url(:/resources/i_add_contact_d_100.png);
 }
 QPushButton#addMemberButton:hover
 {
-	border-image: url(:/resources/add_members_100_hover.png);
+    border-image: url(:/resources/i_add_contact_d_100_hover.png);
 }
 
 QPushButton#optionButton
 {
-	min-width: 40dip;
-	max-width: 40dip;
-	min-height: 40dip;
-	max-height: 40dip;
-	border-image: url(:/resources/options_round_100.png);
+    min-width: 24dip;
+    max-width: 24dip;
+    min-height: 24dip;
+    max-height: 24dip;
+    border-image: url(:/controls/more_100);
 }
 QPushButton#optionButton:hover
 {
-	border-image: url(:/resources/options_round_100_hover.png);
-}
-QPushButton#optionButton:checked
-{
-	border-image: url(:/resources/options_round_100_active.png);
-}
-
-QWidget[MessagesWidget=true]
-{
-	background: transparent;
-}
-
-QWidget[ServiceMessage="true"]
-{
-	background: transparent;
-}
-
-QWidget[ServiceMessageCommonWidget="true"]
-{
-	background: transparent;
+    border-image: url(:/controls/more_100_hover);
 }
 
 QWidget[DateWidget="true"]
 {
-	min-height: 20dip;
-	max-height: 20dip;
-	margin-top: 12dip;
-	margin-bottom: 12dip;
-	border-radius: 10dip;
+    min-height: 20dip;
+    max-height: 20dip;
+    margin-top: 12dip;
+    margin-bottom: 12dip;
+    border-radius: 10dip;
 }
 
 QLabel[DateWidgetLabel="true"]
 {
-	font-size: 12dip;
-	font-family: "%FONT_FAMILY_MEDIUM%";
-	font-weight: %FONT_WEIGHT_MEDIUM%;
-	margin-left: 12dip;
-	margin-right: 12dip;
-	margin-top: 10dip;
+    font-size: 12dip;
+    font-family: "%FONT_FAMILY_MEDIUM%";
+    font-weight: %FONT_WEIGHT_MEDIUM%;
+    margin-left: 12dip;
+    margin-right: 12dip;
+    margin-top: 10dip;
 }
 
 QWidget[ServiceMessageOverlay="true"]
 {
-	min-height: 20dip;
-	max-height: 20dip;
-	margin-top: 12dip;
-	margin-bottom: 12dip;
-	background: transparent;
+    min-height: 20dip;
+    max-height: 20dip;
+    margin-top: 12dip;
+    margin-bottom: 12dip;
 }
 
 QWidget[ServiceMessageWidgetOverlay="true"]
 {
-	min-height: 20dip;
-	max-height: 20dip;
-	margin-top: 12dip;
-	margin-bottom: 12dip;
-	border-radius: 10dip;
+    min-height: 20dip;
+    max-height: 20dip;
+    margin-top: 12dip;
+    margin-bottom: 12dip;
+    border-radius: 10dip;
 }
 
 QLabel[ServiceMessageLabelOverlay="true"]
 {
-	font-size: 12dip;
-	font-family: "%FONT_FAMILY_MEDIUM%";
-	font-weight: %FONT_WEIGHT_MEDIUM%;
-	margin-left: 12dip;
-	margin-right: 12dip;
-	margin-top: 10dip;
+    font-size: 12dip;
+    font-family: "%FONT_FAMILY_MEDIUM%";
+    font-weight: %FONT_WEIGHT_MEDIUM%;
+    margin-left: 12dip;
+    margin-right: 12dip;
+    margin-top: 10dip;
 }
 
 QWidget[NewMessagesPlateCommonWidget="true"]
 {
-	margin-top: 12dip;
-	margin-bottom: 12dip;
+    margin-top: 12dip;
+    margin-bottom: 12dip;
 }
 
 QWidget[NewMessagesPlateWidget="true"]
 {
-	min-height: 32dip;
-	max-height: 32dip;
-	margin-top: 12dip;
-	margin-bottom: 12dip;
+    min-height: 32dip;
+    max-height: 32dip;
+    margin-top: 12dip;
+    margin-bottom: 12dip;
 }
 
 QLabel[NewMessagesPlateWidgetLabel="true"]
 {
-	font-size: 16dip;
-	margin-left: 12dip;
-	margin-right: 12dip;
-	margin-top: 13dip;
+    font-size: 16dip;
+    margin-left: 12dip;
+    margin-right: 12dip;
+    margin-top: 13dip;
 }
 
 QWidget#typingWidget
 {
-	background-color: transparent;
-	min-height: 32dip;
-	max-height: 32dip;
+    background-color: transparent;
+    min-height: 32dip;
+    max-height: 32dip;
 }

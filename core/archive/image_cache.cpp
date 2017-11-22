@@ -13,6 +13,8 @@
 
 #include "image_cache.h"
 
+#include <boost/range/adaptor/map.hpp>
+
 namespace
 {
     const std::wstring tmp_to_add_extension = L".a.tmp";
@@ -46,7 +48,7 @@ core::archive::image_data::image_data(int64_t _msgid)
 
 core::archive::image_data::image_data(int64_t _msgid, std::string _url, bool _is_filesharing)
     : msgid_(_msgid)
-    , url_(_url)
+    , url_(std::move(_url))
     , is_filesharing_(_is_filesharing)
 {
 }
@@ -121,9 +123,9 @@ bool core::archive::image_data::unserialize(core::tools::binary_stream& _data)
 }
 
 core::archive::image_cache::image_cache(const std::wstring& _file_name)
-    : storage_(new storage(_file_name))
-    , tmp_to_add_storage_(new storage(_file_name + tmp_to_add_extension))
-    , tmp_to_delete_storage_(new storage(_file_name + tmp_to_delete_extension))
+    : storage_(std::make_unique<storage>(_file_name))
+    , tmp_to_add_storage_(std::make_unique<storage>(_file_name + tmp_to_add_extension))
+    , tmp_to_delete_storage_(std::make_unique<storage>(_file_name + tmp_to_delete_extension))
     , building_in_progress_(false)
     , tree_is_consistent_(false)
 {
@@ -199,7 +201,7 @@ bool core::archive::image_cache::update(const history_block& _block)
         image_vector_t to_add;
         image_vector_t to_delete;
 
-        for (auto it : _block)
+        for (const auto& it : _block)
         {
             const history_message& message = *it;
             if (message.is_patch())
@@ -220,7 +222,7 @@ bool core::archive::image_cache::update(const history_block& _block)
 
     image_vector_t to_add;
 
-    for (auto it : _block)
+    for (const auto& it : _block)
     {
         const history_message& message = *it;
         const auto msgid = message.get_msgid();
@@ -327,24 +329,39 @@ void core::archive::image_cache::cancel_build()
     cancel_build_.test_and_set();
 }
 
-bool core::archive::image_cache::serialize_block(storage& _storage, const image_vector_t& _images) const
+template<typename T>
+static core::tools::tlvpack make_block(const T& _images)
 {
-    assert(!_images.empty());
-
     core::tools::tlvpack block;
 
-    for (auto& img : _images)
+    for (const auto& img : _images)
     {
         core::tools::binary_stream img_data;
         img.serialize(img_data);
         block.push_child(core::tools::tlv(tlv_fields::tlv_img_pack, img_data));
     }
+    return block;
+}
 
+static bool serialize_block_impl(core::archive::storage& _storage, const core::tools::tlvpack& block)
+{
     core::tools::binary_stream stream;
     block.serialize(stream);
 
     int64_t offset = 0;
     return _storage.write_data_block(stream, offset);
+}
+
+bool core::archive::image_cache::serialize_block(storage& _storage, const image_vector_t& _images) const
+{
+    assert(!_images.empty());
+    return serialize_block_impl(_storage, make_block(_images));
+}
+
+bool core::archive::image_cache::serialize_block(storage& _storage, const images_map_t& _images) const
+{
+    assert(!_images.empty());
+    return serialize_block_impl(_storage, make_block(boost::adaptors::values(_images)));
 }
 
 bool core::archive::image_cache::unserialize_block(core::tools::binary_stream& _stream, images_map_t& _images) const
@@ -362,7 +379,8 @@ bool core::archive::image_cache::unserialize_block(core::tools::binary_stream& _
             if (!img.unserialize(stream))
                 return false;
 
-            _images.emplace(img.get_msgid(), img);
+            const auto id = img.get_msgid();
+            _images.emplace(id, std::move(img));
         }
     }
 
@@ -381,7 +399,7 @@ bool core::archive::image_cache::save_all() const
     core::tools::auto_scope lb([this]{ storage_->close(); });
 
     image_vector_t block;
-    for (auto& image : image_by_msgid_)
+    for (const auto& image : image_by_msgid_)
     {
         block.emplace_back(image.second);
         if (block.size() >= max_block_size)
@@ -416,9 +434,9 @@ void core::archive::image_cache::extract_images(const history_message& _message,
 
 void core::archive::image_cache::extract_images(int64_t _msgid, const std::string& _text, image_vector_t& _images) const
 {
-    auto urls = common::tools::url_parser::parse_urls(_text);
+    const auto urls = common::tools::url_parser::parse_urls(_text);
 
-    for (auto& url_info : urls)
+    for (const auto& url_info : urls)
     {
         if (url_info.is_filesharing())
         {
@@ -431,10 +449,7 @@ void core::archive::image_cache::extract_images(int64_t _msgid, const std::strin
 
             if ((content_type == file_sharing_content_type::image) ||
                 (content_type == file_sharing_content_type::gif) ||
-                (content_type == file_sharing_content_type::snap_image) ||
-                (content_type == file_sharing_content_type::snap_gif ||
-                (content_type == file_sharing_content_type::snap_video) ||
-                (content_type == file_sharing_content_type::video)))
+                (content_type == file_sharing_content_type::video))
             {
                 _images.emplace_back(_msgid, url_info.url_, url_info.is_filesharing());
             }
@@ -451,7 +466,7 @@ core::archive::image_cache::image_vector_t core::archive::image_cache::extract_i
 {
     image_vector_t images;
 
-    for (auto it : _block)
+    for (const auto& it : _block)
     {
         const history_message& message = *it;
         if (!message.is_patch())
@@ -463,14 +478,13 @@ core::archive::image_cache::image_vector_t core::archive::image_cache::extract_i
 
 void core::archive::image_cache::add_images_to_tree(const image_vector_t& _images)
 {
-    for (auto& img : _images)
+    for (const auto& img : _images)
         image_by_msgid_.emplace(img.get_msgid(), img);
 }
 
 void core::archive::image_cache::add_images_to_tree(const images_map_t& _images)
 {
-    for (auto& img : _images)
-        image_by_msgid_.emplace(img.first, img.second);
+    image_by_msgid_.insert(_images.begin(), _images.end());
 }
 
 void core::archive::image_cache::erase_deleted_from_tree(const archive_index& _index)
@@ -487,7 +501,7 @@ void core::archive::image_cache::erase_deleted_from_tree(const archive_index& _i
 
         from = headers.begin()->get_id();
 
-        for (auto& msg : headers)
+        for (const auto& msg : headers)
             msg_ids.push_back(msg.get_id());
 
         headers.clear();
@@ -496,7 +510,7 @@ void core::archive::image_cache::erase_deleted_from_tree(const archive_index& _i
     std::vector<int64_t> to_delete;
 
     int64_t prev = 0;
-    for (auto id : image_by_msgid_)
+    for (const auto& id : image_by_msgid_)
     {
         if (id.first == prev)
             continue;
@@ -533,19 +547,37 @@ bool core::archive::image_cache::read_file(storage& _storage, images_map_t& _ima
     return _storage.get_last_error() == archive::error::end_of_file;
 }
 
+static bool open_storage_for_append(core::archive::storage& _storage)
+{
+    core::archive::storage_mode mode;
+    mode.flags_.write_ = true;
+    mode.flags_.append_ = true;
+
+    return _storage.open(mode);
+}
+
 bool core::archive::image_cache::append_to_file(storage& _storage, const image_vector_t& _images) const
 {
     if (_images.empty())
         return true;
 
-    archive::storage_mode mode;
-    mode.flags_.write_ = true;
-    mode.flags_.append_ = true;
-
-    if (!_storage.open(mode))
+    if (!open_storage_for_append(_storage))
         return false;
 
-    core::tools::auto_scope lb([&_storage]{ _storage.close(); });
+    core::tools::auto_scope lb([&_storage] { _storage.close(); });
+
+    return serialize_block(_storage, _images);
+}
+
+bool core::archive::image_cache::append_to_file(storage& _storage, const images_map_t& _images) const
+{
+    if (_images.empty())
+        return true;
+
+    if (!open_storage_for_append(_storage))
+        return false;
+
+    core::tools::auto_scope lb([&_storage] { _storage.close(); });
 
     return serialize_block(_storage, _images);
 }
@@ -569,13 +601,13 @@ bool core::archive::image_cache::process_deleted(bool& _need_to_save_all)
         return false;
 
     const auto end = image_by_msgid_.end();
-    for (auto& it : to_delete)
+    for (const auto& it : to_delete)
     {
-        auto to_delete = image_by_msgid_.find(it.second.get_msgid());
-        if (to_delete != end)
+        auto to_delete_iter = image_by_msgid_.find(it.second.get_msgid());
+        if (to_delete_iter != end)
         {
             _need_to_save_all = true;
-            image_by_msgid_.erase(to_delete);
+            image_by_msgid_.erase(to_delete_iter);
         }
     }
 
@@ -591,13 +623,9 @@ bool core::archive::image_cache::update_file_from_tmp_files()
         if (!read_file(*tmp_to_add_storage_, to_add))
             return false;
 
-        image_vector_t tmp;
-        for (auto& it : to_add)
-            tmp.emplace_back(it.second);
+        add_images_to_tree(to_add);
 
-        add_images_to_tree(tmp);
-
-        if (!append_to_file(*storage_, tmp))
+        if (!append_to_file(*storage_, to_add))
             return false;
     }
 

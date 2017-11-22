@@ -13,11 +13,11 @@
 
 namespace Ui
 {
-	class BaseVideoPanel;
+    class BaseVideoPanel;
 }
 
 namespace platform_specific
-{    
+{
     class GraphicsPanel : public QWidget
     {
     public:
@@ -25,7 +25,7 @@ namespace platform_specific
 
         GraphicsPanel(QWidget* _parent) : QWidget(_parent) {}
         virtual ~GraphicsPanel() { }
-        
+
         virtual WId frameId() const;
 
         virtual void addPanels(std::vector<Ui::BaseVideoPanel*>& _panels);
@@ -36,7 +36,7 @@ namespace platform_specific
         virtual void createdTalk() {}
         virtual void startedTalk() {}
     };
-    
+
 }
 
 #endif//__WINDOW_TEST_H__

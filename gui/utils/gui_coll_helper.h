@@ -4,14 +4,14 @@
 
 namespace Ui
 {
-	class gui_coll_helper : public core::coll_helper
-	{
-	public:
+    class gui_coll_helper : public core::coll_helper
+    {
+    public:
 
-		gui_coll_helper(core::icollection* _collection, bool _autoRelease);
+        gui_coll_helper(core::icollection* _collection, bool _autoRelease);
 
-		void set_value_as_qstring(const char* _name, const QString& _value);
-	};
+        void set_value_as_qstring(const char* _name, const QString& _value);
+    };
 }
 
 namespace core
@@ -20,13 +20,13 @@ namespace core
     template<>
     inline QString coll_helper::get<QString>(const char *_name) const
     {
-        return get_value_as_string(_name);
+        return QString::fromUtf8(get_value_as_string(_name));
     }
 
     template<>
     inline QString coll_helper::get<QString>(const char *_name, const char *_def) const
     {
-        return get_value_as_string(_name, _def);
+        return QString::fromUtf8(get_value_as_string(_name, _def));
     }
 
     template<>

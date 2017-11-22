@@ -63,9 +63,9 @@ bool storage::open(storage_mode _mode)
         open_mode |= std::fstream::trunc;
 
 #ifdef _WIN32
-    active_file_stream_.reset(new std::fstream(file_name_, open_mode));
+    active_file_stream_ = std::make_unique<std::fstream>(file_name_, open_mode);
 #else
-    active_file_stream_.reset(new std::fstream(tools::from_utf16(file_name_), open_mode));
+    active_file_stream_ = std::make_unique<std::fstream>(tools::from_utf16(file_name_), open_mode);
 #endif
 
     if (!active_file_stream_->is_open())

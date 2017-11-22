@@ -34,10 +34,10 @@ namespace core
             virtual int32_t parse_response_data(const rapidjson::Value& _data) override;
             virtual int32_t on_http_client_error() override;
 
-            normalize_phone(const wim_packet_params& _params, const std::string& _country, const std::string& _phone);
+            normalize_phone(wim_packet_params _params, const std::string& _country, const std::string& _phone);
             virtual ~normalize_phone();
 
-            const std::string get_normalized_phone() const { return normalized_phone_; }
+            const std::string& get_normalized_phone() const { return normalized_phone_; }
             bool get_sms_enabled() const { return sms_enabled_; }
         };
 

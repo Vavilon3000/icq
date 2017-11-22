@@ -4,20 +4,20 @@ namespace Themes
 {
 
     enum class ThemeId : int
-	{
-		Invalid,
-		Min,
+    {
+        Invalid,
+        Min,
 
-		Standard,
-		Default = Standard,
+        Standard,
+        Default = Standard,
 
-		Max
-	};
+        Max
+    };
 
-	const QString& GetThemeNameById(const ThemeId id);
+    const QString& GetThemeNameById(const ThemeId id);
 
-	void SetCurrentThemeId(const ThemeId id);
+    void SetCurrentThemeId(const ThemeId id);
 
-	ThemeId GetCurrentThemeId();
+    ThemeId GetCurrentThemeId();
 
 }

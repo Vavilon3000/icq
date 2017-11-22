@@ -18,11 +18,11 @@ namespace core
             first_referer	= 133
         };
 
-        const int32_t send_period = 24;
+        const auto send_period = std::chrono::hours(24);
         const int32_t blowfish_key_length = 56;
 
         imstat::imstat()
-            :	last_start_time_(std::chrono::system_clock::now() - std::chrono::hours(send_period))
+            :	last_start_time_(std::chrono::system_clock::now() - send_period)
 
         {
         }
@@ -33,7 +33,7 @@ namespace core
 
         bool imstat::need_send()
         {
-            return ((std::chrono::system_clock::now() - last_start_time_) > std::chrono::hours(send_period));
+            return ((std::chrono::system_clock::now() - last_start_time_) > send_period);
         }
 
         std::string get_referer()
@@ -170,7 +170,7 @@ namespace core
                             node_a.add_child("l", node_l);
                         }
                         node_stats.add_child("a", node_a);
-                    }				
+                    }
                     xml.add_child("stats", node_stats);
                 }
 

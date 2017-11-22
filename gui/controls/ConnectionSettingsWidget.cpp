@@ -17,12 +17,11 @@ namespace Ui
     int text_edit_width = -1; // take from showPasswordCheckbox_
     const int SPACER_HEIGHT = 56;
     const int PORT_EDIT_WIDTH = 100;
-    const int BOTTOM_OFFSET = 25;
 
     ConnectionSettingsWidget::ConnectionSettingsWidget(QWidget* _parent)
         : QWidget(_parent)
-        , selectedProxyIndex_(0)
         , mainWidget_(new QWidget(this))
+        , selectedProxyIndex_(0)
     {
         mainWidget_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
 
@@ -31,10 +30,10 @@ namespace Ui
         usernameEdit_ = new LineEditEx(mainWidget_);
         passwordEdit_ = new LineEditEx(mainWidget_);
         showPasswordCheckbox_ = new QCheckBox(mainWidget_);
-        showPasswordCheckbox_->setObjectName("greenCheckBox");
+        showPasswordCheckbox_->setObjectName(qsl("greenCheckBox"));
 
         auto layout = new QVBoxLayout(mainWidget_);
-        layout->setContentsMargins(Utils::scale_value(24), 0, Utils::scale_value(24), 0);
+        layout->setContentsMargins(Utils::scale_value(16), 0, Utils::scale_value(16), 0);
         mainWidget_->setLayout(layout);
 
         {
@@ -59,7 +58,7 @@ namespace Ui
                 updateVisibleParams(ix);
                 addressEdit_->setFocus();
             },
-                [](bool) -> QString { return ""; });
+                [](bool) -> QString { return QString(); });
         }
 
         {
@@ -70,7 +69,7 @@ namespace Ui
             addressEdit_->setSizePolicy(QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Minimum);
             addressEdit_->setAttribute(Qt::WA_MacShowFocusRect, false);
             addressEdit_->setFont(Fonts::appFontScaled(18));
-            Utils::ApplyStyle(addressEdit_, Ui::CommonStyle::getLineEditStyle());
+            Utils::ApplyStyle(addressEdit_, CommonStyle::getLineEditStyle());
             proxyLayout->addWidget(addressEdit_);
 
             horizontalSpacer_ = new QSpacerItem(0, Utils::scale_value(SPACER_HEIGHT), QSizePolicy::Preferred, QSizePolicy::Minimum);
@@ -82,7 +81,7 @@ namespace Ui
             portEdit_->setSizePolicy(QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Minimum);
             portEdit_->setAttribute(Qt::WA_MacShowFocusRect, false);
             portEdit_->setFont(Fonts::appFontScaled(18));
-            Utils::ApplyStyle(portEdit_, Ui::CommonStyle::getLineEditStyle());
+            Utils::ApplyStyle(portEdit_, CommonStyle::getLineEditStyle());
             portEdit_->setValidator(new QIntValidator(0, 65535));
             proxyLayout->addWidget(portEdit_);
 
@@ -98,7 +97,7 @@ namespace Ui
             usernameEdit_->setSizePolicy(QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Preferred);
             usernameEdit_->setAttribute(Qt::WA_MacShowFocusRect, false);
             usernameEdit_->setFont(Fonts::appFontScaled(18));
-            Utils::ApplyStyle(usernameEdit_, Ui::CommonStyle::getLineEditStyle());
+            Utils::ApplyStyle(usernameEdit_, CommonStyle::getLineEditStyle());
             layout->addWidget(usernameEdit_);
 
             passwordEdit_->setPlaceholderText(QT_TRANSLATE_NOOP("connection_settings", "Password"));
@@ -107,14 +106,14 @@ namespace Ui
             passwordEdit_->setSizePolicy(QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Preferred);
             passwordEdit_->setAttribute(Qt::WA_MacShowFocusRect, false);
             passwordEdit_->setFont(Fonts::appFontScaled(18));
-            Utils::ApplyStyle(passwordEdit_, Ui::CommonStyle::getLineEditStyle());
+            Utils::ApplyStyle(passwordEdit_, CommonStyle::getLineEditStyle());
             passwordEdit_->setEchoMode(QLineEdit::Password);
             layout->addWidget(passwordEdit_);
         }
 
         generalDialog_ = new GeneralDialog(mainWidget_, Utils::InterConnector::instance().getMainWindow());
         generalDialog_->setKeepCenter(true);
-        mainWidget_->setStyleSheet(Utils::LoadStyle(":/main_window/settings/general_settings.qss"));
+        mainWidget_->setStyleSheet(Utils::LoadStyle(qsl(":/qss/general_settings")));
 
         connect(showPasswordCheckbox_, &QCheckBox::toggled, [this](bool _isVisible)
         {
@@ -132,7 +131,7 @@ namespace Ui
 
         generalDialog_->addHead();
         generalDialog_->addLabel(QT_TRANSLATE_NOOP("connection_settings", "Connection settings"));
-        generalDialog_->addAcceptButton(QT_TRANSLATE_NOOP("connection_settings", "Done"), Utils::scale_value(BOTTOM_OFFSET), true);
+        generalDialog_->addButtonsPair(QT_TRANSLATE_NOOP("popup_window", "CANCEL"), QT_TRANSLATE_NOOP("popup_window", "DONE"), true);
     }
 
     void ConnectionSettingsWidget::show()
@@ -218,7 +217,7 @@ namespace Ui
 
         usernameEdit_->setText(userProxy->username_);
         addressEdit_->setText(userProxy->proxyServer_);
-        portEdit_->setText(userProxy->port_ == Utils::ProxySettings::invalidPort ? "" : QString::number(userProxy->port_));
+        portEdit_->setText(userProxy->port_ == Utils::ProxySettings::invalidPort ? QString() : QString::number(userProxy->port_));
         passwordEdit_->setText(userProxy->password_);
         showPasswordCheckbox_->setChecked(userProxy->needAuth_);
 

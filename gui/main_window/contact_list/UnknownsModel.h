@@ -21,20 +21,20 @@ namespace Logic
     {
         Q_OBJECT
 
-            Q_SIGNALS:
+    Q_SIGNALS:
         void orderChanged();
         void updated();
-        void readStateChanged(QString);
-        void selectContact(QString);
-        void dlgStatesHandled(std::shared_ptr<QList<Data::DlgState>>);
-        
+        void readStateChanged(const QString&);
+        void selectContact(const QString&);
+        void dlgStatesHandled(const QVector<Data::DlgState>&);
+
     public Q_SLOTS:
         void refresh();
-        
+
     private Q_SLOTS:
-        void activeDialogHide(QString);
-        void contactChanged(QString);
-        void dlgStates(std::shared_ptr<QList<Data::DlgState>>);
+        void activeDialogHide(const QString&);
+        void contactChanged(const QString&);
+        void dlgStates(const QVector<Data::DlgState>&);
         void sortDialogs();
 
     public:
@@ -48,24 +48,24 @@ namespace Logic
         int itemsCount() const;
 
         void add(const QString& _aimId);
-        
+
         Data::DlgState getDlgState(const QString& _aimId = QString(), bool _fromDialog = false);
 
         void sendLastRead(const QString& _aimId = QString());
         void markAllRead();
         void hideChat(const QString& _aimId);
 
-        QModelIndex contactIndex(const QString& _aimId);
+        QModelIndex contactIndex(const QString& _aimId) const;
 
         bool isServiceItem(const QModelIndex& _i) const;
 
         int unreads(size_t _i) const;
         int totalUnreads() const;
-        
-        QString firstContact();
-        QString nextUnreadAimId();
-        QString nextAimId(QString _aimId);
-        QString prevAimId(QString _aimId);
+
+        QString firstContact() const;
+        QString nextUnreadAimId() const;
+        QString nextAimId(const QString& _aimId) const;
+        QString prevAimId(const QString& _aimId) const;
         void setDeleteAllVisible(bool _isVisible);
 
     private:

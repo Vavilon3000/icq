@@ -11,6 +11,13 @@ using namespace voip;
 #define PREVIEW_RENDER_NAME     "@preview"
 #define MASKARAD_USER           "@maskarad"
 
+enum AccountType {
+    AccountType_Wim,
+    AccountType_Mrim,
+    AccountType_Native,
+    AccountType_Oscar,
+};
+
 enum LayoutType {       // -= remote =-         -= camera =-
     LayoutType_One,     // equally spaced       detached
     LayoutType_Two,     // equally spaced       as remote
@@ -88,16 +95,15 @@ enum VoipIncomingMsg {
     MRIM_Incoming_UdpMediaAck,
 
     OSCAR_Incoming_Allocated         = 20,
-    OSCAR_Incoming_WebRtc
+    OSCAR_Incoming_WebRtc,
+
+    Native_Incoming_msg              = 30,
 };
 
 enum VoipOutgoingMsg {
     WIM_Outgoing_allocate            = 0,
-    WIM_Outgoing_invite,
-    WIM_Outgoing_accept,
-    WIM_Outgoing_decline,
-    WIM_Outgoing_json,
-    WIM_Outgoing_keepalive,
+    WIM_Outgoing_webrtc,
+    WIM_Outgoing_vchat,
 
     MRIM_Outgoing_SessionAllocate    = 10,
     MRIM_Outgoing_UdpMedia,
@@ -105,7 +111,9 @@ enum VoipOutgoingMsg {
 
     OSCAR_Outgoing_SessionAllocate   = 20,
     OSCAR_Outgoing_SessionAllocatePstn,
-    OSCAR_Outgoing_WebRtc
+    OSCAR_Outgoing_WebRtc,
+
+    Native_Outgoing_msg              = 30,
 };
 
 /*
@@ -205,12 +213,12 @@ struct WindowSettings {
     } conference;
     
     
-    ButtonContext        buttonContext;
+    ButtonContext        buttonContext[ButtonType_Total];
 
     unsigned headerOffset;
     unsigned header_height_pix;
 
-    FocusEffectContext focusEffect; // Required previewSelfieMode = true
+    FocusEffectContext focusEffect; // Required previewSolo = true && layout = LayoutType_Two
 
     // Avatar bounce animation
     // TODO: make context
@@ -390,6 +398,7 @@ enum DeviceStatus {
 };
 
 struct VideoDeviceCapability {
+    
     bool canFlash;
     struct {
         bool On;
@@ -401,6 +410,8 @@ struct VideoDeviceCapability {
         bool On;
         bool Auto;
     } TorchModes;
+
+    VideoDeviceCapability() : canFlash(false), FlashModes{false, false}, canTorch(false), TorchModes{false, false}  {}
 };
 
 enum VideoDeviceFlashFlags {
@@ -449,13 +460,13 @@ public:
     virtual void AudioDeviceSpeakerphoneChanged(bool speakerphoneOn) = 0;
     virtual void VideoDeviceCapabilityChanged(const char* camera_uid, VideoDeviceCapability caps) {}
 
-    virtual void RenderMouseTap     (const char* account_uid, const char* user_id, voip::hwnd_t hwnd, voip2::MouseTap mouseTap, voip2::ViewArea viewArea) = 0;
-    virtual void ButtonPressed      (const char* account_uid, const char* user_id, voip::hwnd_t hwnd, voip::ButtonType type) = 0;
+    virtual void RenderMouseTap     (const char* user_id, voip::hwnd_t hwnd, voip2::MouseTap mouseTap, voip2::ViewArea viewArea) = 0;
+    virtual void ButtonPressed      (const char* user_id, voip::hwnd_t hwnd, voip::ButtonType type) = 0;
     virtual void MissedCall         (const char* account_uid, const char* user_id, unsigned timestamp) = 0;
     virtual void SessionEvent       (const char* account_uid, const char* user_id, voip2::SessionEvent sessionEvent) = 0;
     virtual void LayoutTypeChanged  (voip::hwnd_t hwnd, voip2::LayoutType layoutType) = 0;
     virtual void FrameSizeChanged   (voip::hwnd_t hwnd, float aspectRatio) = 0;
-    virtual void VideoStreamChanged (const char* account_uid, const char* user_id, voip::hwnd_t hwnd, bool havePicture) = 0;
+    virtual void VideoStreamChanged (const char* user_id, voip::hwnd_t hwnd, bool havePicture) = 0;
 
     virtual void InterruptByGsmCall(bool gsmCallStarted) = 0;
 
@@ -504,7 +515,6 @@ public:
         const char* client_name_and_version,        // Short client identification string, e.g. "ICQ 1.2.1234", "MyPhone 1.2.111", etc.
         const char* app_data_folder_utf8,           // Path to folder where call_stat will store backup file
         const char* stat_servers_override = NULL,   // Format: "host1:port1;host2:port2;host3" (80 assumed for host3)
-        bool useOscarAsIcqProtocol = false,
         voip::SystemObjects *platformSystemObject = NULL, 
         const char *paramDB_json = NULL, 
         CreatePrms* createPrms = NULL               // internal use only
@@ -512,14 +522,18 @@ public:
     static void  DestroyVoip2(Voip2*);
 
     virtual bool Init(bool iosCallKitSupport = false, CreatePrms* createPrms = NULL) = 0;
+
+    virtual void SetAccount(const char* account_uid, AccountType accountType) = 0; // default: AccountType_Wim
     virtual void EnableMsgQueue() = 0;
     virtual void StartSignaling() = 0;
+    virtual void DisableIceConfigurationRequest() = 0;
 
     virtual void EnableMinimalBandwithMode(bool enable) = 0;
     virtual void EnableRtpDump(bool enable) = 0;
 
     virtual unsigned GetDevicesNumber(DeviceType deviceType) = 0;
     virtual bool     GetDevice       (DeviceType deviceType, unsigned index, char deviceName[MAX_DEVICE_NAME_LEN], char deviceUid[MAX_DEVICE_GUID_LEN]) = 0;
+    virtual bool     GetVideoDeviceType (const char *deviceUid, voip::VideoCaptureType& videoDeviceType) = 0;
     virtual void     SetDevice       (DeviceType deviceType, const char *deviceUid) = 0;
     virtual void     SetDeviceMute   (DeviceType deviceType, bool mute) = 0;
     virtual bool     GetDeviceMute   (DeviceType deviceType) = 0;
@@ -534,15 +548,15 @@ public:
 
     virtual void SetLoudspeakerMode  (bool enable)  = 0;
 
-    virtual void ReadVoipMsg (const char *account_uid, VoipIncomingMsg voipIncomingMsg, const char *data, unsigned len, const char *phonenum = NULL) = 0;
-    virtual void ReadVoipPush(const char *account_uid, const char *data, unsigned len, const char *phonenum = NULL) = 0;
-    virtual void ReadVoipAck (const char *account_uid, unsigned msg_idx, bool success) = 0;
+    virtual void ReadVoipMsg (VoipIncomingMsg voipIncomingMsg, const char *data, unsigned len, const char *phonenum = NULL) = 0;
+    virtual void ReadVoipPush(const char *data, unsigned len, const char *phonenum = NULL) = 0;
+    virtual void ReadVoipAck (unsigned msg_idx, bool success) = 0;
 
     virtual void EnableOutgoingAudio(bool enable) = 0;
     virtual void EnableOutgoingVideo(bool enable) = 0;
 
-    virtual void CallStart  (const char* account_uid, const char* user_id) = 0;
-    virtual void CallAccept (const char* account_uid, const char* user_id) = 0;
+    virtual void CallStart  (const char* user_id) = 0;
+    virtual void CallAccept (const char* user_id) = 0;
     virtual void CallDecline(const char* user_id, bool busy = false) = 0;
     virtual void CallStop   () = 0; // Does not affect incoming calls
 
@@ -552,12 +566,16 @@ public:
     virtual void StopSnapRecording(const char* filename = NULL, bool deleteRecordedFile = false) = 0; // empty names means "current" file
 
     virtual void CaptureStillImage() = 0;
-    virtual void SetVideoDeviceParams(VideoDeviceFlashFlags flash, VideoDeviceTorchFlags torch, bool enableManualFocus, bool enableManualExposure) = 0;
+    // VideoDeviceFlashFlags - used on photo take
+    // VideoDeviceTorchFlags - used on video recording
+    // enablePOI             - enable "Point Of Interest" on user single touch. Focus & Exposure correction
+    // enableManualExposure  - turn On internal voip algorithm for exposure instead hw auto-mode
+    virtual void SetVideoDeviceParams(VideoDeviceFlashFlags flash, VideoDeviceTorchFlags torch, bool enablePOI, bool enableManualExposure) = 0;
 
     virtual void ShowIncomingConferenceParticipants(const char* user_id, ConferenceParticipants& conferenceParticipants) = 0;
     virtual void SendAndPlayOobDTMF(const char* user_id, int code, int play_ms=200, int play_Db=10) = 0;
 
-    virtual bool GetCipherSAS(const char* account_uid, const char* user_id, char SAS_utf8[MAX_SAS_LENGTH]) = 0;  // valid after receiving SE_CIPHER_ENABLED
+    virtual bool GetCipherSAS(const char* user_id, char SAS_utf8[MAX_SAS_LENGTH]) = 0;  // valid after receiving SE_CIPHER_ENABLED
 
     // Layout controls
     virtual void WindowAdd                  (hwnd_t wnd, const WindowSettings& windowSettings) = 0;
@@ -566,12 +584,14 @@ public:
     virtual void WindowSetAvatar            (const char* user_id, hbmp_t hbmp,  AvatarType avatarType, WindowThemeType theme = WindowTheme_One,
                                                 int radiusPix = 0, // negative value set radius to min(width/2, height/2)
                                                 unsigned smoothingBorderPx = 0, unsigned attenuation_from_0_to_100 = 0) = 0;
+    virtual void WindowSetAvatar2           (const char* user_id, const void* rgba_pixels, int width, int height, AvatarType avatarType, WindowThemeType theme = WindowTheme_One,
+                                                int radiusPix = 0, unsigned smoothingBorderPx = 0, unsigned attenuation_from_0_to_100 = 0) = 0; // Platform independent version of WindowSetAvatar
     virtual void WindowChangeOrientation    (OrientationMode mode) = 0;
     virtual void WindowSetLayoutType        (hwnd_t wnd, LayoutType layoutType, bool animated=true) = 0;
     virtual void WindowSwitchAspectMode     (hwnd_t wnd, const char* user_id, bool animated=true) = 0;
     virtual void WindowSetPrimary           (hwnd_t wnd, const char* user_id, bool animated=true) = 0;
     virtual void WindowSetControlsStatus    (hwnd_t wnd, bool visible, unsigned off_left, unsigned off_top, unsigned off_right, unsigned off_bottom, bool animated, bool enableOverlap) = 0;
-    virtual void WindowAddButton            (ButtonType type, ButtonPosition position) = 0;
+    virtual void WindowAddButton            (ButtonType type, ButtonPosition position, int xOffset = 0, int yOffset = 0) = 0;
 	virtual void WindowShowButton			(ButtonType type, bool visible) = 0;
     virtual void WindowSetTheme             (hwnd_t wnd, voip2::WindowThemeType theme) = 0;
 
@@ -593,9 +613,13 @@ public:
     virtual void GetVoipInfo(voip2::CallInfo& callInfo) = 0;
 #endif
 
-    virtual void UserRateLastCall(const char* account_uid, const char* user_id, int score) = 0; // use after call complete (SE_CLOSED_BY_* received)
-    static void DisableStatistics();// internal use only
+    virtual void UserRateLastCall(const char* user_id, int score) = 0; // use after call complete (SE_CLOSED_BY_* received)
+
+    // internal use only
+    static void DisableStatistics();
+    static void EnableTrace();
 };
+
 }
 
 #if (__PLATFORM_WINPHONE || WINDOWS_PHONE) && defined(__cplusplus_winrt)

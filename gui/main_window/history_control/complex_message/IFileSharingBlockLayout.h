@@ -13,10 +13,6 @@ public:
 
     virtual ~IFileSharingBlockLayout() override;
 
-    virtual QRect getAuthorAvatarRect() const = 0;
-
-    virtual QRect getAuthorNickRect() const = 0;
-
     virtual const QRect& getContentRect() const = 0;
 
     virtual const QRect& getFilenameRect() const = 0;

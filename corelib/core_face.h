@@ -76,8 +76,8 @@ namespace core
 		virtual void push_back(hheader*) = 0;
 		virtual hheader* first() = 0;
 		virtual hheader* next() = 0;
-		virtual int32_t count() = 0;
-		virtual bool empty() = 0;
+		virtual int32_t count() const = 0;
+		virtual bool empty() const = 0;
 	};
 
     struct icollection : ibase
@@ -94,8 +94,8 @@ namespace core
         virtual ivalue* get_value(const char* name) const = 0;
         virtual ivalue* first() = 0;
         virtual ivalue* next() = 0;
-        virtual int32_t count() = 0;
-        virtual bool empty() = 0;
+        virtual int32_t count() const = 0;
+        virtual bool empty() const = 0;
 
         virtual const char* log() const = 0;
 

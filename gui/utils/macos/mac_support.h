@@ -24,18 +24,18 @@ private:
 public:
     MacSupport(Ui::MainWindow * mainWindow);
     virtual ~MacSupport();
-    
+
     void enableMacUpdater();
     void enableMacCrashReport();
     void enableMacPreview(WId wid);
-    
+
     MacToolbar* toolbar();
-    
+
     void listenSleepAwakeEvents();
-    
+
     void runMacUpdater();
     void cleanMacUpdater();
-    
+
     void forceEnglishInputSource();
 
     static void minimizeWindow(WId wid);
@@ -48,36 +48,36 @@ public:
     static bool previewIsShown();
     static void openFinder(QString previewPath);
     static void openLink(QString link);
-    
+
     static QString currentRegion();
-    
+
     static QString currentTheme();
-    
+
     static QString settingsPath();
-    
+
     static QString bundleName();
-    
+
     static QString defaultDownloadsPath();
-    
+
     static void log(QString logString);
-    
+
     static void getPossibleStrings(const QString& text, std::vector<QStringList> & result, unsigned& _count);
-    
+
     static bool nativeEventFilter(const QByteArray &data, void *message, long *result);
-    
+
     static void replacePasteboard(const QString & text);
 
     void createMenuBar(bool simple);
     void updateMainMenu();
-    
+
     void activateWindow(unsigned long long view = 0);
-    
+
     void registerAppDelegate();
-    
+
     static void showEmojiPanel();
-    
-    static void saveFileName(const QString &caption, const QString &dir, const QString &filter, std::function<void (QString& _filename, QString& _directory)> _callback, const QString& _ext, QString& lastDirectory, std::function<void ()> _cancel_callback = std::function<void ()>());
-    
+
+    static void saveFileName(const QString &caption, const QString &dir, const QString &filter, std::function<void (QString& _filename, QString& _directory)> _callback, const QStringRef& _ext, QString& lastDirectory, std::function<void ()> _cancel_callback = std::function<void ()>());
+
 private:
     void setupDockClickHandler();
 };

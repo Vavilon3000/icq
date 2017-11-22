@@ -6,6 +6,7 @@
 
 UI_NS_BEGIN
 
+class LabelEx;
 class TextEmojiWidget;
 class PictureWidget;
 class ContactAvatarWidget;
@@ -98,19 +99,19 @@ public:
     virtual void onDistanceToViewportChanged(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect) override;
 
     virtual QRect setBlockGeometry(const QRect &ltr) override;
-    
+
     virtual void onActivityChanged(const bool isActive) override;
-    
+
     virtual bool replaceBlockWithSourceText(IItemBlock *block) override;
-    
+
     virtual bool isSharingEnabled() const override;
 
     virtual bool containSharingBlock() const override;
-    
+
     virtual QString getSourceText() const override;
-    
+
     virtual QString formatRecentsText() const override;
-    
+
     virtual bool standaloneText() const override;
 
     virtual bool isSimple() const override { return false; }
@@ -119,7 +120,7 @@ public:
 
     virtual bool needFormatQuote() const override { return false; }
 
-    virtual IItemBlock* findBlockUnder(const QPoint &pos) const;
+    virtual IItemBlock* findBlockUnder(const QPoint &pos) const override;
 
     void addBlock(GenericBlock* block);
 
@@ -127,14 +128,14 @@ public:
 
     void setReplyBlock(GenericBlock* block);
 
-    virtual ContentType getContentType() const { return IItemBlock::Quote; }
+    virtual ContentType getContentType() const override { return IItemBlock::Quote; }
 
 	void createQuoteHover(ComplexMessage::ComplexMessageItem* complex_item);
 
 	void setMessagesCountAndIndex(int count, int index);
 
 protected:
-    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_color) override;
+    virtual void drawBlock(QPainter &p, const QRect& _rect, const QColor& _quoteColor) override;
 
     virtual void initialize() override;
 
@@ -155,16 +156,16 @@ private:
 
     std::vector<GenericBlock*> Blocks_;
 
-    QLabel* ForwardLabel_;
+    LabelEx* forwardLabel_;
 
     TextEmojiWidget *TextCtrl_;
 
     ContactAvatarWidget* Avatar_;
-    
+
     QRect Geometry_;
 
     BlockSelectionType Selection_;
-    
+
     ComplexMessageItem* Parent_;
 
     GenericBlock* ReplyBlock_;

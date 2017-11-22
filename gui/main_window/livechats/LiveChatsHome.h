@@ -14,12 +14,12 @@ namespace Ui
         virtual ~LiveChatHomeWidget();
 
     protected:
-        virtual void paintEvent(QPaintEvent* _e);
+        void paintEvent(QPaintEvent* _e) override;
 
     private Q_SLOTS:
         void joinButtonClicked();
-        void chatJoined(QString);
-        void chatRemoved(QString);
+        void chatJoined(const QString&);
+        void chatRemoved(const QString&);
 
     private:
         void initButtonText();
@@ -39,10 +39,11 @@ namespace Ui
         virtual ~LiveChatHome();
 
     protected:
-        virtual void paintEvent(QPaintEvent* _e);
+        void paintEvent(QPaintEvent* _e) override;
 
     private Q_SLOTS:
-        void liveChatSelected(Data::ChatInfo);
+        void liveChatSelected(const Data::ChatInfo&);
+        void onLiveChatSelected(const std::shared_ptr<Data::ChatInfo>&);
 
     private:
         QVBoxLayout* layout_;

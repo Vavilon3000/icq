@@ -1,0 +1,21 @@
+QScrollArea
+{
+    background-color: #ffffff;
+    border: none;
+}
+
+Ui--Stickers--Store
+{
+    background-color: #ffffff;
+}
+
+
+QWidget#RootWidget
+{
+    background-color: #ffffff;  
+}
+
+Ui--Stickers--PacksView
+{
+    background-color: #ffffff;
+}

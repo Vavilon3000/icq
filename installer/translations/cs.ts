@@ -24,20 +24,20 @@
         <translation>ICQ</translation>
     </message>
     <message>
-        <source>Back</source>
-        <translation>Zpět</translation>
-    </message>
-    <message>
-        <source>Next</source>
-        <translation>Další</translation>
-    </message>
-    <message>
         <source>Choose ICQ account</source>
         <translation>Zvolit účet ICQ</translation>
     </message>
     <message>
         <source>Skip step</source>
         <translation>Přeskočit krok</translation>
+    </message>
+    <message>
+        <source>BACK</source>
+        <translation>ZPĚT</translation>
+    </message>
+    <message>
+        <source>NEXT</source>
+        <translation>DALŠÍ</translation>
     </message>
 </context>
 <context>
@@ -110,17 +110,16 @@
         <translation>zásady o ochraně osobních údajů</translation>
     </message>
     <message>
-        <source>Install</source>
-        <translatorcomment>To intall ICQ app</translatorcomment>
-        <translation>Instalovat</translation>
-    </message>
-    <message>
         <source>Welcome to Mail.Ru Agent</source>
         <translation>Vítejte do agenta Mail.Ru</translation>
     </message>
     <message>
         <source>This will install Mail.Ru Agent on your computer</source>
         <translation>Tímto nainstalujete agenta Mail.Ru do svého počítače</translation>
+    </message>
+    <message>
+        <source>INSTALL</source>
+        <translation>INSTALOVAT</translation>
     </message>
 </context>
 <context>

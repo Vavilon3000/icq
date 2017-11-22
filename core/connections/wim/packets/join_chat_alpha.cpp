@@ -7,8 +7,8 @@ using namespace core;
 using namespace wim;
 
 
-join_chat_alpha::join_chat_alpha(const wim_packet_params& _params, const std::string& _stamp, const int _age)
-    : robusto_packet(_params), stamp_(_stamp), age_(_age)
+join_chat_alpha::join_chat_alpha(wim_packet_params _params, const std::string& _stamp, const int _age)
+    : robusto_packet(std::move(_params)), stamp_(_stamp), age_(_age)
 {
 }
 
@@ -35,13 +35,20 @@ int32_t join_chat_alpha::init_request(std::shared_ptr<core::http_request_simple>
     node_params.AddMember("stamp", stamp_, a);
     if (age_ > 0)
         node_params.AddMember("age", age_, a);
-    doc.AddMember("params", node_params, a);
+    doc.AddMember("params", std::move(node_params), a);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
 
-    _request->push_post_parameter(buffer.GetString(), "");
+    _request->push_post_parameter(buffer.GetString(), std::string());
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_json_marker("authToken");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

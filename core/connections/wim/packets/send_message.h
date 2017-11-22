@@ -16,6 +16,7 @@ namespace core
     {
         class quote;
         typedef std::vector<quote> quotes_vec;
+        typedef std::map<std::string, std::string> mentions_map;
     }
 }
 
@@ -49,16 +50,15 @@ namespace core
             bool duplicate_;
 
             core::archive::quotes_vec quotes_;
-
-            void set_replace_log_function(bool _is_sticker, std::shared_ptr<core::http_request_simple> _request, const std::string& _message_text);
+            core::archive::mentions_map mentions_;
 
         public:
 
             uint32_t get_sms_error() const { return sms_error_; }
             uint32_t get_sms_count() const { return sms_count_; }
 
-            std::string get_wim_msg_id() const { return wim_msg_id_; }
-            std::string get_internal_id() const { return internal_id_; }
+            const std::string& get_wim_msg_id() const { return wim_msg_id_; }
+            const std::string& get_internal_id() const { return internal_id_; }
 
             int64_t get_hist_msg_id() const { return hist_msg_id_; }
             int64_t get_before_hist_msg_id() const { return before_hist_msg_id; }
@@ -66,12 +66,13 @@ namespace core
             bool is_duplicate() const { return duplicate_; }
 
             send_message(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const message_type _type,
                 const std::string& _internal_id,
                 const std::string& _aimid,
                 const std::string& _message_text,
-                const core::archive::quotes_vec& _quotes);
+                const core::archive::quotes_vec& _quotes,
+                const core::archive::mentions_map& _mentions);
 
             virtual ~send_message();
         };

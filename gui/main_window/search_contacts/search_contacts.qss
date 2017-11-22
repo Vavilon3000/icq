@@ -1,75 +1,52 @@
 Ui--SearchContactsWidget
 {
-	background-color: #ffffff;
-	border-style: none;
+    background-color: #ffffff;
+    border-style: none;
 }
-
 
 QLineEdit#caption
 {
-	font-family: "%FONT_FAMILY_MEDIUM%";
-	font-size: 20dip;
-	font-weight: %FONT_WEIGHT_MEDIUM%;
-	margin: 0;
-	padding: 0;
-	max-height: 56dip;
-	min-height: 56dip;
-	border: none;
-	qproperty-alignment: AlignBottom;
-	qproperty-readOnly: true;
-	qproperty-enabled: false;
+    font-family: "%FONT_FAMILY_MEDIUM%";
+    font-size: 20dip;
+    font-weight: %FONT_WEIGHT_MEDIUM%;
+    margin: 0;
+    padding: 0;
+    max-height: 56dip;
+    min-height: 56dip;
+    border: none;
+    qproperty-alignment: AlignBottom;
+    qproperty-readOnly: true;
+    qproperty-enabled: false;
 }
 
 Ui--SearchFilters
 {
-	margin: 0;
-	padding: 0;
-	max-width: 460dip;
-}
-
-Ui--ComboButton
-{
-	font-size: 14dip;
-	color: #579e1c;
-	background: transparent;
-	padding: 0;
-	border: none;
-	max-height: 40dip;
-	min-height: 40dip;
-	margin: 0;
-	margin-right: 16dip;
-}
-
-QCheckBox#online_check
-{
-	font-size: 14dip;
-	color: #579e1c;
-	background: transparent;
-	max-height: 40dip;
-	min-height: 40dip;
+    margin: 0;
+    padding: 0;
+    max-width: 460dip;
 }
 
 Ui--SearchResults
 {
-	background: transparent;
-	border: none;
+    background: transparent;
+    border: none;
 }
 
 QScrollArea#results_scroll_area
 {
-	background: transparent;
-	border: none;
+    background: transparent;
+    border: none;
 }
 
 QWidget#results_scroll_area_widget
 {
-	background: transparent;
-	border: none;
+    background: transparent;
+    border: none;
 }
 
 Ui--ContactWidget
 {
-	
+
 }
 
 Ui--TextEmojiWidget#contact_name
@@ -79,66 +56,61 @@ Ui--TextEmojiWidget#contact_name
 
 Ui--TextEmojiWidget#contact_info
 {
-	
+
 }
 
 QPushButton#add_contact_button
 {
-	border-image: url(:/resources/basic_elements/cl_addcontact_100.png);
-	max-width: 32dip;
-	min-width: 32dip;
-	max-height: 32dip;
-	min-height: 32dip;
+	border-image: url(:/resources/i_plus_100.png);
+	max-width: 20dip;
+	min-width: 20dip;
+	max-height: 20dip;
+	min-height: 20dip;
 	margin: 0;
 	padding: 0;
 	margin-top: 8dip;
-}
-
-QPushButton#add_contact_button:hover
-{
-	border-image: url(:/resources/basic_elements/cl_addcontact_100_hover.png);
 }
 
 QPushButton#call_contact_button
 {
-	border-image: url(:/resources/contr_call_mini_100.png);
-	max-width: 32dip;
-	min-width: 32dip;
-	max-height: 32dip;
-	min-height: 32dip;
-	margin: 0;
-	padding: 0;
-	margin-top: 8dip;
+    border-image: url(:/resources/call_mini_100.png);
+    max-width: 32dip;
+    min-width: 32dip;
+    max-height: 32dip;
+    min-height: 32dip;
+    margin: 0;
+    padding: 0;
+    margin-top: 8dip;
 }
 
 QPushButton#call_contact_button:hover
 {
-	border-image: url(:/resources/contr_call_mini_100_hover.png);
+    border-image: url(:/resources/call_mini_100_hover.png);
 }
 
 QPushButton#msg_contact_button
 {
-	border-image: url(:/resources/contr_writemsg_mini_100.png);
-	max-width: 32dip;
-	min-width: 32dip;
-	max-height: 32dip;
-	min-height: 32dip;
-	margin: 0;
-	padding: 0;
-	margin-top: 8dip;
+    border-image: url(:/resources/writemsg_mini_100.png);
+    max-width: 32dip;
+    min-width: 32dip;
+    max-height: 32dip;
+    min-height: 32dip;
+    margin: 0;
+    padding: 0;
+    margin-top: 8dip;
 }
 
 QPushButton#msg_contact_button:hover
 {
-	border-image: url(:/resources/contr_writemsg_mini_100_hover.png);
+    border-image: url(:/resources/writemsg_mini_100_hover.png);
 }
 
 Ui--NoResultsWidget
 {
-	
+
 }
 
 QWidget#no_result_label
 {
-	font-size: 18dip;
+    font-size: 18dip;
 }

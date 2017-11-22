@@ -29,10 +29,10 @@ namespace core
             imstate();
 
             const std::string& get_request_id() const;
-            void set_request_id(const std::string& _request_id);
+            void set_request_id(std::string _request_id);
 
             const std::string& get_msg_id() const;
-            void set_msg_id(const std::string& _msg_id);
+            void set_msg_id(std::string _msg_id);
 
             const int64_t& get_hist_msg_id() const;
             void set_hist_msg_id(const int64_t& _hist_msg_id);

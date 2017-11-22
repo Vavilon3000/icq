@@ -8,10 +8,10 @@ using namespace core;
 using namespace wim;
 
 add_chat::add_chat(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _m_chat_name,
     const std::vector<std::string>& _m_chat_members)
-    :	wim_packet(_params),
+    :	wim_packet(std::move(_params)),
     m_chat_name(_m_chat_name),
     m_chat_members(_m_chat_members)
 {
@@ -35,6 +35,13 @@ int32_t add_chat::init_request(std::shared_ptr<core::http_request_simple> _reque
     std::for_each(++m_chat_members.begin(), m_chat_members.end(), [&ss_url](const std::string item){ ss_url << ";" << item; });
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

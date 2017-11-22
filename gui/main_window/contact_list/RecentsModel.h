@@ -19,20 +19,20 @@ namespace Logic
 	Q_SIGNALS:
 		void orderChanged();
 		void updated();
-        void readStateChanged(QString);
-        void selectContact(QString);
-        void dlgStatesHandled(std::shared_ptr<QList<Data::DlgState>>);
-        void favoriteChanged(QString);
+        void readStateChanged(const QString&);
+        void selectContact(const QString&);
+        void dlgStatesHandled(const QVector<Data::DlgState>&);
+        void favoriteChanged(const QString&);
 
     public Q_SLOTS:
         void refresh();
-        
+
 	private Q_SLOTS:
-		void activeDialogHide(QString);
-		void contactChanged(QString);
-		void dlgStates(std::shared_ptr<QList<Data::DlgState>>);
+		void activeDialogHide(const QString&);
+		void contactChanged(const QString&);
+		void dlgStates(const QVector<Data::DlgState>&);
 		void sortDialogs();
-        void contactRemoved(QString);
+        void contactRemoved(const QString&);
 
 	public:
 		explicit RecentsModel(QObject *parent);
@@ -41,11 +41,11 @@ namespace Logic
 		QVariant data(const QModelIndex &index, int role) const;
 		Qt::ItemFlags flags(const QModelIndex &index) const;
 
-		Data::DlgState getDlgState(const QString& aimId = QString(), bool fronDialog = false);
-        void unknownToRecents(Data::DlgState);
+		Data::DlgState getDlgState(const QString& aimId = QString(), bool fromDialog = false);
+        void unknownToRecents(const Data::DlgState&);
 
         void toggleFavoritesVisible();
-        
+
         void unknownAppearance();
 
 		void sendLastRead(const QString& aimId = QString());
@@ -57,34 +57,33 @@ namespace Logic
         bool isServiceItem(const QModelIndex& i) const;
         bool isFavoritesGroupButton(const QModelIndex& i) const;
         bool isFavoritesVisible() const;
+        quint16 getFavoritesCount() const;
         bool isUnknownsButton(const QModelIndex& i) const;
+        bool isRecentsHeader(const QModelIndex& i) const;
         void setFavoritesHeadVisible(bool _isVisible);
 
-        bool isServiceAimId(const QString& _aimId);
+        bool isServiceAimId(const QString& _aimId) const;
 
-		QModelIndex contactIndex(const QString& aimId);
+		QModelIndex contactIndex(const QString& aimId) const;
 
 		int totalUnreads() const;
         int recentsUnreads() const;
         int favoritesUnreads() const;
-        
-        QString firstContact();
-        QString nextUnreadAimId();
-        QString nextAimId(QString aimId);
-        QString prevAimId(QString aimId);
+
+        QString firstContact() const;
+        QString nextUnreadAimId() const;
+        QString nextAimId(const QString& aimId) const;
+        QString prevAimId(const QString& aimId) const;
 
         bool lessRecents(const QString& _aimid1, const QString& _aimid2);
 
         std::vector<QString> getSortedRecentsContacts() const;
 
-        void setSnapsVisible(bool _visible);
-        bool isSnapsVisible() const { return SnapsVisible_; }
-
 	private:
         int correctIndex(int i) const;
         int visibleContactsInFavorites() const;
-        
-        int getUnknownHeaderIndex() const;
+
+        int getUnknownsButtonIndex() const;
         int getSizeOfUnknownBlock() const;
 
         int getFavoritesHeaderIndex() const;
@@ -97,7 +96,6 @@ namespace Logic
         quint16 FavoritesCount_;
         bool FavoritesVisible_;
         bool FavoritesHeadVisible_;
-        bool SnapsVisible_;
 	};
 
 	RecentsModel* getRecentsModel();

@@ -9,7 +9,7 @@ extern "C"
 
 namespace Ui
 {
-    class BaseMpegLoader 
+    class BaseMpegLoader
     {
     public:
 
@@ -19,7 +19,7 @@ namespace Ui
         bool open();
         qint64 duration();
         qint32 frequency();
-        
+
     private:
         bool open_file();
         static int read_rc(void* opaque, uint8_t* buf, int buf_size);
@@ -40,7 +40,7 @@ namespace Ui
         AVIOContext* RcContext_;
     };
 
-    class MpegLoader : public BaseMpegLoader 
+    class MpegLoader : public BaseMpegLoader
     {
     public:
 

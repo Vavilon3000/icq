@@ -46,15 +46,15 @@ namespace core
             loader_errors open_file();
             loader_errors send_next_range();
 
-            std::string get_file_url() const;
+            const std::string& get_file_url() const;
 
             void set_handler(std::shared_ptr<upload_progress_handler> _handler);
-            std::shared_ptr<upload_progress_handler> get_handler();
+            std::shared_ptr<upload_progress_handler> get_handler() const;
 
             virtual void on_result(int32_t _error) override;
             virtual void on_progress() override;
 
-            std::shared_ptr<web_file_info> make_info();
+            std::shared_ptr<web_file_info> make_info() const;
         };
 
     }

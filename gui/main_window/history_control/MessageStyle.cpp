@@ -4,6 +4,7 @@
 
 #include "../../cache/themes/themes.h"
 #include "../../fonts.h"
+#include "../../controls/CommonStyle.h"
 #include "../../theme_settings.h"
 #include "../../utils/utils.h"
 
@@ -11,7 +12,7 @@ UI_MESSAGE_STYLE_NS_BEGIN
 
 QFont getTextFont(int size)
 {
-    const int defaultFontSize = platform::is_linux() ? 16 : 15;
+    const int defaultFontSize = (platform::is_windows_vista_or_late() || platform::is_linux()) ? 15 : 14;
 
     const int fontSize = size == -1 ? defaultFontSize : size;
 
@@ -20,29 +21,29 @@ QFont getTextFont(int size)
 
 QColor getTextColor(double opacity)
 {
-    QColor textColor("#000000");
+    QColor textColor(CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY));
     textColor.setAlphaF(opacity);
     return textColor;
 }
 
 QColor getTimeColor()
 {
-    return QColor("#999999");
+    return CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT);
 }
 
 QColor getChatEventColor()
 {
-    return QColor("#999999");
+    return CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT);
 }
 
 QColor getTypingColor()
 {
-    return QColor("#454545");
+    return QColor(ql1s("#454545"));
 }
 
 QColor getSenderColor()
 {
-    return QColor("#454545");
+    return QColor(ql1s("#454545"));
 }
 
 QFont getSenderFont()
@@ -52,7 +53,7 @@ QFont getSenderFont()
 
 QFont getTimeFont()
 {
-    return Fonts::appFontScaled(10, platform::is_apple() ? Fonts::FontWeight::Normal : Fonts::FontWeight::Medium);
+    return Fonts::appFontScaled(10, Fonts::FontWeight::Normal);
 }
 
 int32_t getTimeMarginX()
@@ -69,45 +70,24 @@ int32_t getTimeMaxWidth()
     return Utils::scale_value(32);
 }
 
-QColor getIncomingBodyColorA()
+QColor getIncomingBodyColor()
 {
-    return QColor("#ffffff");
+    return QColor(ql1s("#ffffff"));
 }
 
-QColor getOutgoingBodyColorA()
+QColor getOutgoingBodyColor()
 {
-    QColor outgoingBodyColorA("#d8d4ce");
-    outgoingBodyColorA.setAlphaF(0.9);
-    return outgoingBodyColorA;
-}
-
-QColor getIncomingBodyColorB()
-{
-    QColor incomingBodyColorB("#ffffff");
-    incomingBodyColorB.setAlphaF(0.72);
-    return incomingBodyColorB;
-}
-
-QColor getOutgoingBodyColorB()
-{
-    QColor outgoingBodyColorB("#d5d2ce");
-    outgoingBodyColorB.setAlphaF(0.72);
-    return outgoingBodyColorB;
+    return QColor(ql1s("#d8d4ce"));
 }
 
 QString getLinkColorS()
 {
-    return "#579e1c";
-}
-
-QColor getLinkColor()
-{
-    return QColor(getLinkColorS());
+    return (CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT).name());
 }
 
 QString getMessageStyle()
 {
-    return QString("a {text-decoration:none;color:") + MessageStyle::getLinkColorS() + ";}";
+    return ql1s("a {text-decoration:none;color:") % MessageStyle::getLinkColorS() % ql1s(";}");
 }
 
 QBrush getBodyBrush(
@@ -117,38 +97,21 @@ QBrush getBodyBrush(
 {
     auto _theme = get_qt_theme_settings()->themeForId(_theme_id);
 
-    QLinearGradient grad(0, 0, 1, 0);
+    QColor bodyColor;
 
-    grad.setCoordinateMode(QGradient::ObjectBoundingMode);
-
-    QColor selectionColor("#579e1c");
-    auto leftOpacity = isOutgoing ? 0.9 : 1.0;
-    auto rightOpacity = 0.72;
-
-    QColor selectedColor0 = selectionColor;
-    selectedColor0.setAlphaF(leftOpacity);
-    QColor selectedColor1 = selectionColor;
-    selectedColor1.setAlphaF(rightOpacity);
+    QColor selectionColor(CommonStyle::getColor(CommonStyle::Color::GREEN_FILL));
 
     if (isSelected)
     {
-        const auto color0 = selectedColor0;
-        grad.setColorAt(0, color0);
-
-        const auto color1 = selectedColor1;
-        grad.setColorAt(1, color1);
+        bodyColor = selectionColor;
     }
     else
     {
-        const auto color0 = isOutgoing ? _theme->outgoing_bubble_.bg1_color_ : _theme->incoming_bubble_.bg1_color_;
-        grad.setColorAt(0, color0);
-
-        const auto color1 = isOutgoing ? _theme->outgoing_bubble_.bg2_color_ : _theme->incoming_bubble_.bg2_color_;
-        grad.setColorAt(1, color1);
+        const auto color = isOutgoing ? _theme->outgoing_bubble_.bg_color_ : _theme->incoming_bubble_.bg_color_;
+        bodyColor = color;
     }
 
-    QBrush result(grad);
-    result.setColor(Qt::transparent);
+    QBrush result(bodyColor);
 
     return result;
 }
@@ -160,27 +123,27 @@ int32_t getMinBubbleHeight()
 
 int32_t getBorderRadius()
 {
-    return Utils::scale_value(8);
+    return Utils::scale_value(12);
 }
 
 int32_t getTopMargin(const bool hasTopMargin)
 {
     return Utils::scale_value(
-        hasTopMargin ? 12 : 2
+        hasTopMargin ? 12 : 4
     );
 }
 
 int32_t getLeftMargin(const bool isOutgoing)
 {
     return Utils::scale_value(
-        isOutgoing ? 118 : 24
+        isOutgoing ? 90 : 28
     );
 }
 
 int32_t getRightMargin(const bool isOutgoing)
 {
     return Utils::scale_value(
-        isOutgoing ? 8 : 72
+        isOutgoing ? 36 : 64
     );
 }
 
@@ -204,9 +167,24 @@ int32_t getLastReadAvatarSize()
     return Utils::scale_value(16);
 }
 
+QSize getLastStatusIconSize()
+{
+    return QSize(Utils::scale_value(16), Utils::scale_value(12));
+}
+
+QSize getLastStatusCheckMarkSize()
+{
+    return { Utils::scale_value(8), Utils::scale_value(6) };
+}
+
 int32_t getLastReadAvatarMargin()
 {
-    return Utils::scale_value(4);
+    return Utils::scale_value(16);
+}
+
+int32_t getLastStatusIconMargin()
+{
+    return Utils::scale_value(20);
 }
 
 int32_t getHistoryWidgetMaxWidth()
@@ -228,7 +206,7 @@ QFont getRotatingProgressBarTextFont()
 
 QPen getRotatingProgressBarTextPen()
 {
-    return QPen(QColor("#ffffff"));
+    return QPen(QColor(ql1s("#ffffff")));
 }
 
 int32_t getRotatingProgressBarTextTopMargin()
@@ -244,7 +222,7 @@ int32_t getRotatingProgressBarPenWidth()
 QPen getRotatingProgressBarPen()
 {
     return QPen(
-        QColor("#579e1c"),
+        CommonStyle::getColor(CommonStyle::Color::GREEN_FILL),
         getRotatingProgressBarPenWidth());
 }
 
@@ -268,6 +246,16 @@ int32_t roundTextWidthDown(const int32_t width)
 int32_t getSnippetMaxWidth()
 {
     return Utils::scale_value(420);
+}
+
+int32_t getImagePreviewLinkFontSize()
+{
+    return 14;
+}
+
+bool isShowLinksInImagePreview()
+{
+    return false;
 }
 
 UI_MESSAGE_STYLE_NS_END

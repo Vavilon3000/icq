@@ -22,7 +22,7 @@ namespace common
             typedef boost::variant<std::string, url> data_t;
 
             message_token();
-            explicit message_token(std::string&& _text);
+            explicit message_token(std::string&& _text, type _type = type::text);
             explicit message_token(const url& _url);
 
             type type_;
@@ -35,7 +35,7 @@ namespace common
             explicit message_tokenizer(const std::string& _message);
 
             bool has_token() const;
-            message_token current() const;
+            const message_token& current() const;
 
             void next();
 

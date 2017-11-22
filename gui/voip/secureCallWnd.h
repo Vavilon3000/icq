@@ -31,7 +31,7 @@ namespace Ui
         QSize imageDrawSize_;
     };
 
-    class SecureCallWnd : public QMenu 
+    class SecureCallWnd : public QMenu
     {
         Q_OBJECT
 

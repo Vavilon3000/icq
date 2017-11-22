@@ -28,10 +28,10 @@ namespace HistoryControl
     }
 
     VoipEventInfo::VoipEventInfo(const int32_t timestamp)
-        : Type_(voip_event_type::invalid)
+        : Timestamp_(timestamp)
+        , Type_(voip_event_type::invalid)
         , DurationSec_(-1)
         , IsIncomingCall_(false)
-        , Timestamp_(timestamp)
     {
         assert(timestamp > 0);
     }
@@ -126,7 +126,7 @@ namespace HistoryControl
             return result;
         }
 
-        result += " - ";
+        result += ql1s(" - ");
 
         QTime duration(0, 0);
         duration = duration.addSecs(DurationSec_);
@@ -134,17 +134,17 @@ namespace HistoryControl
         if (duration.hour() > 0)
         {
             result +=
-                QString("%1:%2:%3")
-                    .arg(duration.hour(), 2, 10, QChar('0'))
-                    .arg(duration.minute(), 2, 10, QChar('0'))
-                    .arg(duration.second(), 2, 10, QChar('0'));
+                qsl("%1:%2:%3")
+                    .arg(duration.hour(), 2, 10, ql1c('0'))
+                    .arg(duration.minute(), 2, 10, ql1c('0'))
+                    .arg(duration.second(), 2, 10, ql1c('0'));
         }
         else
         {
             result +=
-                QString("%1:%2")
-                .arg(duration.minute(), 2, 10, QChar('0'))
-                .arg(duration.second(), 2, 10, QChar('0'));
+                qsl("%1:%2")
+                .arg(duration.minute(), 2, 10, ql1c('0'))
+                .arg(duration.second(), 2, 10, ql1c('0'));
         }
 
         return result;

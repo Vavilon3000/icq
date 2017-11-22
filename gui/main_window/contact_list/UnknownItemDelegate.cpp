@@ -55,20 +55,20 @@ namespace Logic
 
     void UnknownItemDelegate::paint(QPainter* _painter, const QStyleOptionViewItem& _option, const Data::DlgState& _dlg, bool _fromAlert, bool _dragOverlay) const
     {
-        if (_dlg.AimId_ == "delete_all")
+        if (_dlg.AimId_ == ql1s("~delete_all~"))
         {
             _painter->save();
             _painter->setRenderHint(QPainter::Antialiasing);
             _painter->setRenderHint(QPainter::TextAntialiasing);
             _painter->setRenderHint(QPainter::SmoothPixmapTransform);
             _painter->translate(_option.rect.topLeft());
-            
+
             const bool hasMouseOver = (platform::is_apple() ? Logic::getUnknownsModel()->customFlagIsSet(Logic::CustomAbstractListModelFlags::HasMouseOver) : true);
             const bool isSelected_ = (_option.state & QStyle::State_Selected) && !stateBlocked_;
             const bool isHovered_ = (_option.state & QStyle::State_MouseOver) && !stateBlocked_ && !isSelected_ && hasMouseOver;
 
             ContactList::RenderDeleteAllItem(* _painter, QT_TRANSLATE_NOOP("contact_list", "Close All"), isHovered_, viewParams_);
-            
+
             _painter->restore();
             return;
         }
@@ -76,15 +76,13 @@ namespace Logic
         const auto isMultichat = Logic::getContactListModel()->isChat(_dlg.AimId_);
         const auto state = isMultichat ? QString() : Logic::getContactListModel()->getState(_dlg.AimId_);
 
-        const auto isFilled = !isMultichat;
         bool isDefault = false;
 
         const auto avatar = *GetAvatarStorage()->GetRounded(
             _dlg.AimId_,
             QString(),
-            Utils::scale_bitmap(ContactList::GetRecentsParams(viewParams_.regim_).avatarSize()),
+            Utils::scale_bitmap(ContactList::GetRecentsParams(viewParams_.regim_).getAvatarSize()),
             state,
-            isFilled,
             isDefault,
             false,
             ContactList::GetRecentsParams(viewParams_.regim_).isCL()
@@ -109,8 +107,10 @@ namespace Logic
 
         if (!isMultichat && isOutgoing && isLastRead && !Logic::GetMessagesModel()->hasPending(_dlg.AimId_))
         {
-            lastReadAvatar = *GetAvatarStorage()->GetRounded(_dlg.AimId_, QString(), Utils::scale_bitmap(ContactList::GetRecentsParams(viewParams_.regim_).getLastReadAvatarSize())
-                , QString(), isFilled, isDefault, false, ContactList::GetRecentsParams(viewParams_.regim_).isCL());
+            lastReadAvatar = *GetAvatarStorage()->GetRounded(
+                _dlg.AimId_, QString(),
+                Utils::scale_bitmap(ContactList::GetRecentsParams(viewParams_.regim_).getLastReadAvatarSize()),
+                QString(), isDefault, false, ContactList::GetRecentsParams(viewParams_.regim_).isCL());
             isDrawLastRead = true;
         }
 
@@ -124,7 +124,7 @@ namespace Logic
             displayName.isEmpty() ? _dlg.AimId_ : displayName,
             true /* hasLastSeen */,
             QDateTime::fromTime_t(_dlg.Time_),
-            (int)_dlg.UnreadCount_, 
+            (int)_dlg.UnreadCount_,
             Logic::getContactListModel()->isMuted(_dlg.AimId_),
             _dlg.senderNick_,
             isOfficial,
@@ -138,7 +138,7 @@ namespace Logic
         _painter->setRenderHint(QPainter::SmoothPixmapTransform);
         _painter->translate(_option.rect.topLeft());
 
-        ContactList::RenderRecentsItem(*_painter, visData, viewParams_);
+        ContactList::RenderRecentsItem(*_painter, visData, viewParams_, _option.rect);
 
         if (_dragOverlay)
             ContactList::RenderRecentsDragOverlay(*_painter, viewParams_);
@@ -157,7 +157,7 @@ namespace Logic
         auto f = ContactList::GetRecentsParams(viewParams_.regim_).addContactFrame();
         return f.contains(_p);
     }
-    
+
     bool UnknownItemDelegate::isInRemoveContactFrame(const QPoint& _p) const
     {
         auto f = ContactList::GetRecentsParams(viewParams_.regim_).removeContactFrame();
@@ -188,22 +188,22 @@ namespace Logic
     {
         stateBlocked_ = _value;
     }
-    
+
     void UnknownItemDelegate::setDragIndex(const QModelIndex& _index)
     {
         dragIndex_ = _index;
     }
-    
+
     void UnknownItemDelegate::setPictOnlyView(bool _pictOnlyView)
     {
         viewParams_.pictOnly_ = _pictOnlyView;
     }
-    
+
     bool UnknownItemDelegate::getPictOnlyView() const
     {
         return viewParams_.pictOnly_;
     }
-    
+
     void UnknownItemDelegate::setFixedWidth(int _newWidth)
     {
         viewParams_.fixedWidth_ = _newWidth;

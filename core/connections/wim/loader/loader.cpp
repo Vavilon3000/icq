@@ -7,7 +7,6 @@
 #include "loader_handlers.h"
 #include "loader_helpers.h"
 #include "preview_proxy.h"
-#include "snap_metainfo.h"
 #include "web_file_info.h"
 #include "../../../http_request.h"
 #include "../../../tools/md5.h"
@@ -30,11 +29,25 @@ using namespace wim;
 namespace
 {
     bool is_suspendable_error(const loader_errors _error);
+
+    template<typename T>
+    T find_task_by_id(T first, T last, const std::string &_id)
+    {
+        return std::find_if(
+            first,
+            last,
+            [&_id]
+        (const auto &_item)
+        {
+            assert(_item);
+            return (_item->get_id() == _id);
+        });
+    }
 }
 
 loader::loader(const std::wstring &_cache_dir)
-    : cache_(disk_cache::disk_cache::make(_cache_dir))
-    , file_sharing_threads_(new async_executer(1))
+    : file_sharing_threads_(std::make_unique<async_executer>(1))
+    , cache_(disk_cache::disk_cache::make(_cache_dir))
 {
     initialize_tasks_runners();
 }
@@ -50,8 +63,8 @@ void loader::add_file_sharing_task(std::shared_ptr<fs_loader_task> _task)
     const auto &task_id = _task->get_id();
     assert(!task_id.empty());
 
-    auto iter_task = find_task_by_id(file_sharing_tasks_, task_id);
-    if (iter_task != file_sharing_tasks_.end())
+    const auto iter_task = find_task_by_id(file_sharing_tasks_.cbegin(), file_sharing_tasks_.cend(), task_id);
+    if (iter_task != file_sharing_tasks_.cend())
     {
         assert(!"task with the same id already exist");
         return;
@@ -64,28 +77,13 @@ void loader::remove_file_sharing_task(const std::string &_id)
 {
     assert(!_id.empty());
 
-    auto iter_task = find_task_by_id(file_sharing_tasks_, _id);
-    if (iter_task == file_sharing_tasks_.end())
+    const auto iter_task = find_task_by_id(file_sharing_tasks_.cbegin(), file_sharing_tasks_.cend(), _id);
+    if (iter_task == file_sharing_tasks_.cend())
     {
         return;
     }
 
     file_sharing_tasks_.erase(iter_task);
-}
-
-loader::const_fs_tasks_iter loader::find_task_by_id(const fs_tasks_queue &_tasks, const std::string &_id)
-{
-    auto task_iter = std::find_if(
-        _tasks.cbegin(),
-        _tasks.cend(),
-        [&_id]
-        (const fs_task_sptr &_item)
-        {
-            assert(_item);
-            return (_item->get_id() == _id);
-        });
-
-    return task_iter;
 }
 
 void loader::on_file_sharing_task_result(std::shared_ptr<fs_loader_task> _task, int32_t _error)
@@ -104,7 +102,7 @@ bool loader::has_file_sharing_task(const std::string &_id)
 {
     assert(!_id.empty());
 
-    return (find_task_by_id(file_sharing_tasks_, _id) != file_sharing_tasks_.cend());
+    return find_task_by_id(file_sharing_tasks_.cbegin(), file_sharing_tasks_.cend(), _id) != file_sharing_tasks_.cend();
 }
 
 void loader::resume_file_sharing_tasks()
@@ -389,7 +387,7 @@ void cleanup_cache(const std::wstring& _cache_folder)
         }
     }
 
-    for (auto _file_path : files_to_delete)
+    for (const auto& _file_path : files_to_delete)
     {
         boost::filesystem::remove(_file_path, error);
 
@@ -588,9 +586,9 @@ std::shared_ptr<download_progress_handler> loader::download_file_sharing(
 
 
 std::shared_ptr<get_file_direct_uri_handler> loader::get_file_direct_uri(
-    const int64_t _seq, 
-    const std::string& _file_url, 
-    const std::wstring& _cache_dir, 
+    const int64_t _seq,
+    const std::string& _file_url,
+    const std::wstring& _cache_dir,
     const wim_packet_params& _params)
 {
     auto handler = std::make_shared<get_file_direct_uri_handler>();
@@ -601,7 +599,7 @@ std::shared_ptr<get_file_direct_uri_handler> loader::get_file_direct_uri(
     {
         loader_errors error = loader_errors::success;
 
-        download_task task(tools::system::generate_guid(), _params, _file_url, L"", _cache_dir, L"");
+        download_task task(tools::system::generate_guid(), _params, _file_url, std::wstring(), _cache_dir, std::wstring());
         error = task.download_metainfo();
 
         if (error == loader_errors::success)

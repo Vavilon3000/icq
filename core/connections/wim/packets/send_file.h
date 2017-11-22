@@ -47,14 +47,14 @@ namespace core
         public:
 
             send_file(
-                const wim_packet_params& _params, 
-                const send_file_params& _chunk, 
-                const std::string& _host, 
+                wim_packet_params _params,
+                const send_file_params& _chunk,
+                const std::string& _host,
                 const std::string& _url);
 
             virtual ~send_file();
 
-            std::string get_file_url() const; 
+            const std::string& get_file_url() const;
         };
     }
 }

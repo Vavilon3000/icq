@@ -48,11 +48,11 @@ class ComplexMessageItem final : public MessageItemBase
 Q_SIGNALS:
     void copy(QString text);
 
-    void quote(QList<Data::Quote>);
+    void quote(const QVector<Data::Quote>&);
 
-    void forward(QList<Data::Quote>);
+    void forward(const QVector<Data::Quote>&);
 
-    void adminMenuRequest(QString);
+    void avatarMenuRequest(QString);
 
     void eventFilterRequest(QWidget*);
 
@@ -69,6 +69,7 @@ public:
         const QString &senderAimid,
         const QString &senderFriendly,
         const QString &sourceText,
+        const Data::MentionMap& _mentions,
         const bool isOutgoing);
 
     virtual void clearSelection() override;
@@ -121,7 +122,7 @@ public:
 
     void setMchatSender(const QString& sender);
 
-    virtual bool setLastRead(const bool isLastRead) final override;
+    void setLastStatus(LastStatus _lastStatus) final override;
 
     void setTime(const int32_t time);
 
@@ -133,15 +134,15 @@ public:
 
     bool isSelected() const override;
 
-    QList<Data::Quote> getQuotes(bool force = false) const;
+    QVector<Data::Quote> getQuotes(bool force = false) const;
 
-    void setSourceText(const QString& text);
-    
+    void setSourceText(QString text);
+
     void forwardRoutine();
 
-	virtual void setQuoteSelection() override;
+    virtual void setQuoteSelection() override;
 
-    void setDeliveredToServer(const bool _isDeliveredToServer, const bool _init = false);
+    void setDeliveredToServer(const bool _isDeliveredToServer) override;
 
     bool isQuoteAnimation() const;
 
@@ -149,6 +150,8 @@ public:
     bool isObserveToSize() const;
 
     virtual int getMaxWidth() const;
+
+    const Data::MentionMap& getMentions() const;
 
 protected:
 
@@ -161,6 +164,7 @@ protected:
     virtual void mouseReleaseEvent(QMouseEvent *event) override;
 
     virtual void paintEvent(QPaintEvent *event) override;
+    virtual void hideEvent(QHideEvent*) override;
 
 private Q_SLOTS:
     void onAvatarChanged(QString aimId);
@@ -170,7 +174,9 @@ private Q_SLOTS:
     void contextMenuShow();
 
     void contextMenuHide();
-
+    void showHiddenControls();
+    void hideHiddenControls();
+    void setTimestampHoverEnabled(const bool _enabled);
 
 public Q_SLOTS:
     void trackMenu(const QPoint &globalPos);
@@ -179,7 +185,6 @@ public Q_SLOTS:
     void onObserveToSize();
 
 private:
-    void addBlockMenuItems(const QPoint &pos);
 
     void cleanupMenu();
 
@@ -196,8 +201,6 @@ private:
     QString getBlocksText(const IItemBlocksVec &items, const bool isSelected, const bool isQuote) const;
 
     void drawGrid(QPainter &p);
-
-    void drawLastRead(QPainter &p);
 
     IItemBlock* findBlockUnder(const QPoint &pos) const;
 
@@ -244,15 +247,11 @@ private:
 
     bool Initialized_;
 
-    bool IsLastRead_;
-
     bool IsOutgoing_;
 
     bool IsDeliveredToServer_;
 
     ComplexMessageItemLayout *Layout_;
-
-    ContextMenu *Menu_;
 
     IItemBlock *MenuBlock_;
 
@@ -276,6 +275,10 @@ private:
 
     bool bQuoteAnimation_;
     bool bObserveToSize_;
+    bool timestampHoverEnabled_;
+    bool bubbleHovered_;
+
+    Data::MentionMap mentions_;
 };
 
 UI_COMPLEX_MESSAGE_NS_END

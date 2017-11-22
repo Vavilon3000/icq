@@ -67,7 +67,7 @@ public:
     virtual void connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover) override;
 
 protected:
-    virtual void drawBlock(QPainter &_p, const QRect& _rect, const QColor& quate_color) override;
+    virtual void drawBlock(QPainter &_p, const QRect& _rect, const QColor& _quoteColor) override;
 
     virtual void initializeFileSharingBlock() override;
 

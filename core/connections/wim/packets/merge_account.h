@@ -27,10 +27,10 @@ namespace core
             wim_packet_params from_params_;
 
         public:
-            
+
             merge_account(
-                const wim_packet_params& _from_params, 
-                const wim_packet_params& _to_params);
+                wim_packet_params _from_params,
+                wim_packet_params _to_params);
 
             virtual ~merge_account();
         };

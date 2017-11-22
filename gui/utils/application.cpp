@@ -5,9 +5,11 @@
 #include "launch.h"
 #include "utils.h"
 #include "log/log.h"
+#include "animation/animation.h"
 #include "../core_dispatcher.h"
 #include "../gui_settings.h"
 #include "../cache/emoji/Emoji.h"
+#include "../cache/stickers/stickers.h"
 #include "../themes/Themes.h"
 #include "../main_window/MainWindow.h"
 #include "../main_window/contact_list/ContactListModel.h"
@@ -17,6 +19,10 @@
 
 #include "../main_window/mplayer/FFMpegPlayer.h"
 #include "../main_window/sounds/SoundsManager.h"
+
+#ifdef __linux__
+#include <sys/file.h>
+#endif //__linux__
 
 
 namespace
@@ -46,23 +52,23 @@ namespace Utils
         return !Exist_;
     }
 
-	/**
-	 * To fix crash in voip on shutting down PC,
-	 * We process WM_QUERYENDSESSION/WM_ENDSESSION and Windows will wait our deinitialization.
-	 */
-	class WindowsEventFilter : public QAbstractNativeEventFilter
-	{
-	public:
-		WindowsEventFilter() {}
+    /**
+     * To fix crash in voip on shutting down PC,
+     * We process WM_QUERYENDSESSION/WM_ENDSESSION and Windows will wait our deinitialization.
+     */
+    class WindowsEventFilter : public QAbstractNativeEventFilter
+    {
+    public:
+        WindowsEventFilter() {}
 
-		virtual bool nativeEventFilter(const QByteArray& eventType, void* message, long* result) override
-		{
-			MSG* msg = reinterpret_cast<MSG*>(message);
-			if (msg->message == WM_QUERYENDSESSION || msg->message == WM_ENDSESSION)
-			{
-				if (!Ui::GetDispatcher()->getVoipController().isVoipKilled())
-				{
-					Ui::GetDispatcher()->getVoipController().voipReset();
+        virtual bool nativeEventFilter(const QByteArray& eventType, void* message, long* result) override
+        {
+            MSG* msg = reinterpret_cast<MSG*>(message);
+            if (msg->message == WM_QUERYENDSESSION || msg->message == WM_ENDSESSION)
+            {
+                if (!Ui::GetDispatcher()->getVoipController().isVoipKilled())
+                {
+                    Ui::GetDispatcher()->getVoipController().voipReset();
 
                     // Under XP we can stop shutting down PC, if we return true.
                     if (QSysInfo().windowsVersion() != QSysInfo::WV_XP)
@@ -71,12 +77,12 @@ namespace Utils
                         *result = 0;
                         return true;
                     }
-				}
-			}
+                }
+            }
 
-			return false;
-		}
-	};
+            return false;
+        }
+    };
 #endif //_WIN32
 
     Application::Application(int& _argc, char* _argv[])
@@ -88,7 +94,7 @@ namespace Utils
             QDir dir(_argv[0]);
             dir.cdUp();
             dir.cdUp();
-            dir.cd("PlugIns");
+            dir.cd(qsl("PlugIns"));
             QCoreApplication::setLibraryPaths(QStringList(dir.absolutePath()));
         #endif
     #else // linux
@@ -99,7 +105,8 @@ namespace Utils
     #endif //__APPLE__
 #endif //_WIN32
 
-        app_.reset(new QApplication(_argc, _argv));
+        app_ = std::make_unique<QApplication>(_argc, _argv);
+        app_->setProperty("startupTime", QDateTime::currentMSecsSinceEpoch());
 
 #ifdef __APPLE__
         // Fix float separator: force use . (dot).
@@ -109,29 +116,31 @@ namespace Utils
         makeBuild();
 
 #ifdef _WIN32
-        guard_.reset(new AppGuard());
+        guard_ = std::make_unique<Utils::AppGuard>();
 #endif //_WIN32
 
 
-        peer_.reset(new LocalPeer(0, !isMainInstance()));
+        peer_ = std::make_unique<LocalPeer>(nullptr, !isMainInstance());
         if (isMainInstance())
         {
             peer_->listen();
         }
 
-        QObject::connect(&Utils::InterConnector::instance(), SIGNAL(schemeUrlClicked(QString)), this, SLOT(receiveUrlCommand(QString)), Qt::DirectConnection);
+        QObject::connect(&Utils::InterConnector::instance(), &Utils::InterConnector::schemeUrlClicked, this, &Application::receiveUrlCommand, Qt::DirectConnection);
         QObject::connect(app_.get(), &QGuiApplication::applicationStateChanged, this, &Application::applicationStateChanged, Qt::DirectConnection);
     }
 
     Application::~Application()
     {
+        mainWindow_.reset();
+        anim::AnimationManager::stopManager();
+
         Emoji::Cleanup();
 #ifndef INTERNAL_RESOURCES
-        QResource::unregisterResource(QApplication::applicationDirPath() + "/qresource");
+        QResource::unregisterResource(QApplication::applicationDirPath() + ql1s("/qresource"));
 #endif
-        Ui::ResetMediaContainer();
 
-        mainWindow_.reset();
+        Ui::ResetMediaContainer();
 
         Logic::ResetRecentsModel();
         Logic::ResetUnknownsModel();
@@ -142,29 +151,27 @@ namespace Utils
 
     void Application::makeBuild()
     {
-        build::is_build_icq = true;
-        auto path = QFileInfo(QCoreApplication::applicationFilePath()).fileName();
-        if (path.contains("agent", Qt::CaseInsensitive))
-            build::is_build_icq = false;
-
-        auto params = QCoreApplication::arguments();
-        for (const auto& _param : params)
+        const auto path = QFileInfo(QCoreApplication::applicationFilePath()).fileName();
+        if (path.contains(ql1s("agent"), Qt::CaseInsensitive))
         {
-            if (_param == "/agent")
-                build::is_build_icq = false;
+            build::is_build_icq = false;
+            return;
         }
+
+        const auto params = QCoreApplication::arguments();
+        build::is_build_icq = std::none_of(params.begin(), params.end(), [](const auto& param) { return param == ql1s("/agent"); });
     }
 
     int Application::exec()
     {
 #ifdef _WIN32
-		WindowsEventFilter eventFilter;
-		qApp->installNativeEventFilter(&eventFilter);
+        WindowsEventFilter eventFilter;
+        qApp->installNativeEventFilter(&eventFilter);
 #endif
 
         int res = app_->exec();
 #ifdef _WIN32
-		qApp->removeNativeEventFilter(&eventFilter);
+        qApp->removeNativeEventFilter(&eventFilter);
 #endif
 
         Ui::destroyDispatcher();
@@ -175,12 +182,12 @@ namespace Utils
     bool Application::init()
     {
         Ui::createDispatcher();
-        
+
         init_win7_features();
 
         app_->setAttribute(Qt::AA_SynthesizeMouseForUnhandledTouchEvents, false);
 #ifndef INTERNAL_RESOURCES
-        QResource::registerResource(app_->applicationDirPath() + "/qresource");
+        QResource::registerResource(app_->applicationDirPath() + ql1s("/qresource"));
 #endif
 
         QPixmapCache::setCacheLimit(0);
@@ -198,8 +205,31 @@ namespace Utils
 
     bool Application::isMainInstance()
     {
-#ifdef _WIN32
+#if defined _WIN32
         return guard_->succeeded();
+#elif defined __linux__
+        int fd;
+        struct flock fl;
+        fd = open(qsl("/tmp/%1.pid").arg(build::is_icq() ? qsl("icq") : qsl("magent")).toStdString().c_str(), O_CREAT | O_RDWR, 0666);
+        if(fd == -1)
+        {
+            return true;
+        }
+
+        fl.l_type   = F_WRLCK;
+        fl.l_whence = SEEK_SET;
+        fl.l_start  = 0;
+        fl.l_len    = 0;
+        fl.l_pid    = QCoreApplication::applicationPid();
+
+        if( fcntl(fd, F_SETLK, &fl) == -1)
+        {
+            if( errno == EACCES || errno == EAGAIN)
+            {
+                 return false;
+            }
+        }
+        return true;
 #else
         return true;
 #endif //_WIN32
@@ -213,14 +243,15 @@ namespace Utils
         {
             peer_->send_url_command(_cmdParser.getUrlCommand());
         }
-
+#endif //_WIN32
         unsigned int hwnd = peer_->get_hwnd_and_activate();
 
         if (hwnd)
         {
+#ifdef _WIN32
             ::SetForegroundWindow((HWND) hwnd);
-        }
 #endif //_WIN32
+        }
     }
 
     void Application::coreLogins(const bool _has_valid_login)
@@ -237,69 +268,29 @@ namespace Utils
 
     void Application::initMainWindow(const bool _has_valid_login)
     {
+        anim::AnimationManager::startManager();
+
         double dpi = app_->primaryScreen()->logicalDotsPerInchX();
-#ifdef __APPLE__
-        if (QSysInfo().macVersion() >= QSysInfo().MV_10_11)
-        {            
-            if (QSysInfo().macVersion() > QSysInfo().MV_10_11)
-            {
-                QFontDatabase().addApplicationFont("/System/Library/Fonts/SFCompactDisplay-Medium.otf");
-                QFontDatabase().addApplicationFont("/System/Library/Fonts/SFCompactDisplay-Regular.otf");
-                QFontDatabase().addApplicationFont("/System/Library/Fonts/SFCompactDisplay-Light.otf");
-                QFontDatabase().addApplicationFont("/System/Library/Fonts/SFCompactDisplay-Thin.otf");
-                QFontDatabase().addApplicationFont("/System/Library/Fonts/SFCompactDisplay-Ultralight.otf");
-                
-                QFontDatabase().addApplicationFont("/System/Library/Fonts/HelveticaNeueDeskInterface.ttc");
-            }
-            else
-            {
-                QFontDatabase().addApplicationFont("/System/Library/Fonts/SFNSDisplay-Medium.otf");
-                QFontDatabase().addApplicationFont("/System/Library/Fonts/SFNSDisplay-Regular.otf");
-                QFontDatabase().addApplicationFont("/System/Library/Fonts/SFNSDisplay-Light.otf");
-                QFontDatabase().addApplicationFont("/System/Library/Fonts/SFNSDisplay-Thin.otf");
-                QFontDatabase().addApplicationFont("/System/Library/Fonts/SFNSDisplay-Ultralight.otf");
-            }
 
-            QFontDatabase().addApplicationFont(":/resources/fonts/OpenSans-Semibold.ttf");
-            QFontDatabase().addApplicationFont(":/resources/fonts/OpenSans-Bold.ttf");
-            QFontDatabase().addApplicationFont(":/resources/fonts/OpenSans-Light.ttf");
-            QFontDatabase().addApplicationFont(":/resources/fonts/OpenSans-Regular.ttf");
-            
-#ifdef DEBUG
-            qDebug() << "Installed fonts:";
-            
-            QStringList families = QFontDatabase().families();
-            for (QStringList::iterator i = families.begin(); i != families.end(); i++)
-            {
-                qDebug() << (*i);
-            }
-
-            qDebug() << "Available styles for font " << Fonts::defaultAppFontQssName();
-            
-            QStringList list = QFontDatabase().styles(Fonts::defaultAppFontQssName());
-            for (QStringList::iterator i = list.begin(); i != list.end(); i++)
-            {
-                qDebug() << (*i);
-            }
-#endif
-        }
-        
-        dpi = 96;
-        Utils::set_mac_retina(app_->primaryScreen()->devicePixelRatio() == 2);
-        if (Utils::is_mac_retina())
+        if (platform::is_apple())
         {
-            app_->setAttribute(Qt::AA_UseHighDpiPixmaps);
+            dpi = 96;
+            Utils::set_mac_retina(app_->primaryScreen()->devicePixelRatio() == 2);
+            if (Utils::is_mac_retina())
+                app_->setAttribute(Qt::AA_UseHighDpiPixmaps);
         }
-#endif
 
-        Utils::InterConnector::instance().setUrlHandler();
+        QFontDatabase::addApplicationFont(qsl(":/fonts/openSans_bold"));
+        QFontDatabase::addApplicationFont(qsl(":/fonts/openSans_light"));
+        QFontDatabase::addApplicationFont(qsl(":/fonts/openSans_medium"));
+        QFontDatabase::addApplicationFont(qsl(":/fonts/openSans_regular"));
 
         const auto guiScaleCoefficient = std::min(dpi / 96.0, 2.0);
 
         Utils::initBasicScaleCoefficient(guiScaleCoefficient);
-        
+
         Utils::setScaleCoefficient(Ui::get_gui_settings()->get_value<double>(settings_scale_coefficient, Utils::getBasicScaleCoefficient()));
-        app_->setStyleSheet(Utils::LoadStyle(":/utils/common_style.qss"));
+        app_->setStyleSheet(Utils::LoadStyle(qsl(":/qss/common_style")));
         app_->setFont(Fonts::appFontFamilyNameQss(Fonts::defaultAppFontFamily(), Fonts::FontWeight::Normal));
 
         Themes::SetCurrentThemeId(Themes::ThemeId::Default);
@@ -308,13 +299,14 @@ namespace Utils
         Ui::get_gui_settings()->set_shadow_width(Utils::scale_value(SHADOW_WIDTH));
 
         Utils::GetTranslator()->init();
-        mainWindow_.reset(new Ui::MainWindow(app_.get(), _has_valid_login));
+        mainWindow_ = std::make_unique<Ui::MainWindow>(app_.get(), _has_valid_login);
 
         bool needToShow = true;
 #ifdef _WIN32
-        for (int i = 0; i < app_->arguments().size(); ++i)
+        const auto arguments = app_->arguments();
+        for (const auto& argument : arguments)
         {
-            if (app_->arguments().at(i) == "/startup" && Ui::get_gui_settings()->get_value<bool>(settings_start_minimazed, false))
+            if (argument == ql1s("/startup") && Ui::get_gui_settings()->get_value<bool>(settings_start_minimazed, false))
             {
                 needToShow = false;
                 mainWindow_->hide();
@@ -326,9 +318,7 @@ namespace Utils
             mainWindow_->show();
 
         mainWindow_->activateWindow();
-#ifdef _WIN32
         peer_->set_main_window(mainWindow_.get());
-#endif //_WIN32
     }
 
     void Application::parseUrlCommand(const QString& _urlCommand)
@@ -343,7 +333,7 @@ namespace Utils
 
         const QString path = url.path();
 
-        if (host == QString(url_command_join_livechat))
+        if (host == ql1s(url_command_join_livechat))
         {
             if (path.isEmpty())
                 return;
@@ -352,18 +342,12 @@ namespace Utils
             if (stamp.isEmpty())
                 return;
 
-            if (stamp[stamp.length() - 1] == '/')
-                stamp = stamp.mid(0, stamp.length() - 1);
+            if (stamp.endsWith(ql1c('/')))
+                stamp.chop(1);
 
-            bool silent = false;
-
-            for (const auto& queryParam : items)
-            {
-                if (queryParam.first == "join" && queryParam.second == "1")
-                {
-                    silent = true;
-                }
-            }
+            const bool silent = std::any_of(items.cbegin(), items.cend(), [](const auto& param) {
+                return param.first == ql1s("join") && param.second == ql1s("1");
+            });
 
             if (mainWindow_)
             {
@@ -374,7 +358,7 @@ namespace Utils
             Logic::getContactListModel()->joinLiveChat(stamp, silent);
 
         }
-        else if (host == QString(url_command_open_profile))
+        else if (host == ql1s(url_command_open_profile))
         {
             const QString aimId = path.mid(1);
             if (aimId.isEmpty())
@@ -389,15 +373,29 @@ namespace Utils
 
             emit Utils::InterConnector::instance().profileSettingsShow(aimId);
         }
-        else if (host == QString(url_command_app))
+        else if (host == ql1s(url_command_app))
         {
-            const QString command = path.mid(1);
-            if (command == QString(url_command_livechats_home))
+            const QStringRef command = path.midRef(1);
+            if (command == ql1s(url_command_livechats_home))
                 emit Utils::InterConnector::instance().liveChatsShow();
+        }
+        else if (host == ql1s(url_command_stickerpack_info))
+        {
+            if (path.isEmpty())
+                return;
+
+            QString storeId = path.mid(1);
+            if (storeId.isEmpty())
+                return;
+
+            if (storeId.endsWith(ql1c('/')))
+                storeId.chop(1);
+
+            Ui::Stickers::showStickersPack(storeId);
         }
     }
 
-    void Application::receiveUrlCommand(QString _urlCommand)
+    void Application::receiveUrlCommand(const QString& _urlCommand)
     {
         parseUrlCommand(_urlCommand);
     }
@@ -411,7 +409,7 @@ namespace Utils
         CHandle mutex(::CreateSemaphore(NULL, 0, 1, updater_singlton_mutex_name.c_str()));
         if (ERROR_ALREADY_EXISTS == ::GetLastError())
             return true;
-        
+
         CRegKey keySoftware;
 
         if (ERROR_SUCCESS != keySoftware.Open(HKEY_CURRENT_USER, L"Software"))
@@ -442,19 +440,19 @@ namespace Utils
             if (!dir.cdUp())
                 return false;
 
-            QString updateFolder = dir.absolutePath() + "/" + updates_folder_short  + "/" + versionUpdate;
+            const QString updateFolder = dir.absolutePath() % ql1c('/') % updates_folder_short  % ql1c('/') % versionUpdate;
 
             QDir updateDir(updateFolder);
             if (updateDir.exists())
             {
-                QString setupName = updateFolder + "/" + Utils::getInstallerName();
+                const QString setupName = updateFolder % ql1c('/') % Utils::getInstallerName();
                 QFileInfo setupInfo(setupName);
                 if (!setupInfo.exists())
                     return false;
 
                 mutex.Close();
 
-                const auto command = QString("\"") + QDir::toNativeSeparators(setupName) + "\"" + " " + update_final_command;
+                const QString command = ql1c('"') % QDir::toNativeSeparators(setupName) % ql1s("\" ") % update_final_command;
                 QProcess::startDetached(command);
 
                 return true;

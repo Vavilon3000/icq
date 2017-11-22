@@ -16,11 +16,11 @@ using namespace core;
 using namespace wim;
 
 client_login::client_login(
-    const wim_packet_params& params,
+    wim_packet_params params,
     const std::string& login,
     const std::string& password)
     :
-wim_packet(params),
+wim_packet(std::move(params)),
     login_(login),
     password_(password),
     expired_in_(0),
@@ -49,7 +49,7 @@ int32_t client_login::parse_response_data(const rapidjson::Value& _data)
         if (iter_session_secret == _data.MemberEnd() || !iter_session_secret->value.IsString())
             return wpie_http_parse_response;
 
-        session_secret_ = iter_session_secret->value.GetString();
+        session_secret_ = rapidjson_get_string(iter_session_secret->value);
 
         std::vector<uint8_t> data(session_secret_.size());
         std::vector<uint8_t> password(password_.size());
@@ -69,12 +69,12 @@ int32_t client_login::parse_response_data(const rapidjson::Value& _data)
 
         auto iter_expired_in = iter_token->value.FindMember("expiresIn");
         auto iter_a = iter_token->value.FindMember("a");
-        if (iter_expired_in == iter_token->value.MemberEnd() || iter_a == iter_token->value.MemberEnd() || 
+        if (iter_expired_in == iter_token->value.MemberEnd() || iter_a == iter_token->value.MemberEnd() ||
             !iter_expired_in->value.IsUint() || !iter_a->value.IsString())
             return wpie_http_parse_response;
 
         expired_in_ = iter_expired_in->value.GetUint();
-        a_token_ = iter_a->value.GetString();
+        a_token_ = rapidjson_get_string(iter_a->value);
 
         time_offset_ = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) - host_time_;
     }
@@ -112,7 +112,7 @@ int32_t client_login::init_request(std::shared_ptr<core::http_request_simple> _r
     _request->push_post_parameter("r", core::tools::system::generate_guid());
 
     _request->set_keep_alive();
-    
+
     _request->set_replace_log_function([password](tools::binary_stream& _bs)
     {
         uint32_t sz = _bs.available();
@@ -129,7 +129,6 @@ int32_t client_login::init_request(std::shared_ptr<core::http_request_simple> _r
 
         if (cursor >= logdata + sz)
         {
-           // assert(false);
             return;
         }
 

@@ -8,9 +8,9 @@
 using namespace core;
 using namespace wim;
 
-set_state::set_state(const wim_packet_params& _params, const profile_state _state)
+set_state::set_state(wim_packet_params _params, const profile_state _state)
     :
-    wim_packet(_params),
+    wim_packet(std::move(_params)),
     state_(_state)
 {
 }
@@ -44,6 +44,13 @@ int32_t set_state::init_request(std::shared_ptr<core::http_request_simple> _requ
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
     _request->set_priority(highest_priority);
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

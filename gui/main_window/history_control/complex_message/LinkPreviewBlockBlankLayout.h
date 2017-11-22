@@ -5,7 +5,7 @@
 
 UI_COMPLEX_MESSAGE_NS_BEGIN
 
-class LinkPreviewBlockBlankLayout final 
+class LinkPreviewBlockBlankLayout final
     : public GenericBlockLayout
     , public ILinkPreviewBlockLayout
 {
@@ -29,8 +29,6 @@ public:
     virtual QRect getSiteNameRect() const override;
 
     virtual QFont getTitleFont() const override;
-
-    virtual bool isAnnotationVisible() const override;
 
 protected:
     virtual QSize setBlockGeometryInternal(const QRect &geometry) override;

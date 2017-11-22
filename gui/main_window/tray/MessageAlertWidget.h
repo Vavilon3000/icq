@@ -6,40 +6,40 @@ class QPainter;
 
 namespace Logic
 {
-	class RecentItemDelegate;
+ class RecentItemDelegate;
 }
 
 namespace Ui
 {
-	class MessageAlertWidget : public QWidget
-	{
-		Q_OBJECT
+    class MessageAlertWidget : public QWidget
+    {
+        Q_OBJECT
+            Q_SIGNALS:
 
-	Q_SIGNALS:
-		void clicked(QString, QString);
+        void clicked(const QString&, const QString&, qint64);
+        void closed(const QString&, const QString&, qint64);
 
-	public:
-		MessageAlertWidget(const Data::DlgState& state, Logic::RecentItemDelegate* delegate, QWidget* parent);
-		~MessageAlertWidget();
+    public:
+        MessageAlertWidget(const Data::DlgState& state, Logic::RecentItemDelegate* delegate, QWidget* parent);
 
-		QString id() const;
+        QString id() const;
         QString mailId() const;
+        qint64 mentionId() const;
 
-	protected:
-		virtual void paintEvent(QPaintEvent*);
-		virtual void resizeEvent(QResizeEvent*);
-		virtual void enterEvent(QEvent*);
-		virtual void leaveEvent(QEvent*);
-        virtual void mousePressEvent(QMouseEvent *);
-		virtual void mouseReleaseEvent(QMouseEvent *);
+    protected:
+        void paintEvent(QPaintEvent*) override;
+        void resizeEvent(QResizeEvent*) override;
+        void enterEvent(QEvent*) override;
+        void leaveEvent(QEvent*) override;
+        void mousePressEvent(QMouseEvent *) override;
+        void mouseReleaseEvent(QMouseEvent *) override;
 
     private Q_SLOTS:
-        void avatarChanged(QString);
+        void avatarChanged(const QString&);
 
-	private:
-		Data::DlgState State_;
-		Logic::RecentItemDelegate* Delegate_;
-		QPainter* Painter_;
-		QStyleOptionViewItem Options_;
-	};
+    private:
+        Data::DlgState State_;
+        Logic::RecentItemDelegate* Delegate_;
+        QStyleOptionViewItem Options_;
+    };
 }

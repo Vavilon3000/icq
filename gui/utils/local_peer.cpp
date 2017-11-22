@@ -8,8 +8,8 @@
 
 LocalPeer::LocalPeer(QObject* parent, bool other)
     : QObject(parent)
+    , wnd_(nullptr)
     , other_(other)
-    , wnd_(0)
 {
     socket_name_ = Utils::get_crossprocess_pipe_name();
     if (!other_)
@@ -19,7 +19,7 @@ LocalPeer::LocalPeer(QObject* parent, bool other)
 void LocalPeer::listen()
 {
     server_->listen(socket_name_);
-    QObject::connect(server_, SIGNAL(newConnection()), SLOT(receiveConnection()), Qt::QueuedConnection);
+    QObject::connect(server_, &QLocalServer::newConnection, this, &LocalPeer::receiveConnection, Qt::QueuedConnection);
 }
 
 void LocalPeer::wait()
@@ -31,19 +31,20 @@ unsigned int LocalPeer::get_hwnd_and_activate()
 {
     unsigned int hwnd = 0;
 
-#ifdef _WIN32
     QLocalSocket socket;
     bool connOk = false;
     int timeout = 5000;
 
-    for (int i = 0; i < 2; ++i) 
+    for (int i = 0; i < 2; ++i)
     {
         socket.connectToServer(socket_name_);
         connOk = socket.waitForConnected(timeout/2);
         if (connOk || i)
             break;
+#ifdef _WIN32
         int ms = 250;
         Sleep(DWORD(ms));
+#endif //_WIN32
     }
 
     if (!connOk)
@@ -64,7 +65,6 @@ unsigned int LocalPeer::get_hwnd_and_activate()
             }
         }
     }
-#endif //_WIN32
 
     return hwnd;
 }
@@ -76,7 +76,7 @@ void LocalPeer::send_url_command(const QString& _url_command)
     bool connOk = false;
     int timeout = 5000;
 
-    for (int i = 0; i < 2; ++i) 
+    for (int i = 0; i < 2; ++i)
     {
         socket.connectToServer(socket_name_);
 
@@ -108,8 +108,7 @@ void LocalPeer::set_main_window(Ui::MainWindow* _wnd)
 
 void LocalPeer::receiveConnection()
 {
-#ifdef _WIN32
-    std::auto_ptr<QLocalSocket> socket(server_->nextPendingConnection());
+    std::unique_ptr<QLocalSocket> socket(server_->nextPendingConnection());
     if (!socket.get())
         return;
 
@@ -126,25 +125,27 @@ void LocalPeer::receiveConnection()
 
     char* uMsgBuf = uMsg.data();
 
-    do 
+    do
     {
         got = ds.readRawData(uMsgBuf, remaining);
         remaining -= got;
         uMsgBuf += got;
-    } 
+    }
     while (remaining && got >= 0 && socket->waitForReadyRead(2000));
 
-    if (got < 0) 
+    if (got < 0)
         return;
-    
+
     QString message_execute_url_command(crossprocess_message_execute_url_command ":");
 
     QString message(QString::fromUtf8(uMsg));
 
     if (message == crossprocess_message_get_process_id)
     {
+#ifdef _WIN32
         unsigned int process_id = ::GetCurrentProcessId();
         socket->write((const char*) &process_id, sizeof(process_id));
+#endif //_WIN32
     }
     else if (message == crossprocess_message_get_hwnd_activate)
     {
@@ -156,8 +157,8 @@ void LocalPeer::receiveConnection()
         }
         socket->write((const char*) &hwnd, sizeof(hwnd));
     }
-    else if (message.length() > message_execute_url_command.length() && 
-        message.mid(0, message_execute_url_command.length()) == message_execute_url_command)
+    else if (message.length() > message_execute_url_command.length() &&
+        message.midRef(0, message_execute_url_command.length()) == message_execute_url_command)
     {
         QString command = message.mid(message_execute_url_command.length());
 
@@ -170,11 +171,10 @@ void LocalPeer::receiveConnection()
 
     socket->waitForBytesWritten(1000);
     socket->waitForDisconnected(1000);
-       
+
 
     if (message == crossprocess_message_shutdown_process)
     {
         QApplication::exit(0);
     }
-#endif //_WIN32
 }

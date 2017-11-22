@@ -12,7 +12,7 @@ public:
     virtual ~QuoteBlockLayout() override;
 
     const IItemBlockLayout::IBoxModel& getBlockBoxModel() const override;
-    
+
     virtual QRect getBlockGeometry() const override;
 
 protected:

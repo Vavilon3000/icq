@@ -35,19 +35,19 @@ int32_t fetch_event_imstate::parse(const rapidjson::Value& _node_event_data)
         if (iter_request_id == iter_state->MemberEnd() || !iter_request_id->value.IsString())
             continue;
 
-        ustate.set_request_id(iter_request_id->value.GetString());
+        ustate.set_request_id(rapidjson_get_string(iter_request_id->value));
 
         auto iter_msg_id = iter_state->FindMember("msgId");
         if (iter_msg_id == iter_state->MemberEnd() || !iter_msg_id->value.IsString())
             continue;
 
-        ustate.set_msg_id(iter_msg_id->value.GetString());
+        ustate.set_msg_id(rapidjson_get_string(iter_msg_id->value));
 
         auto iter_state_state = iter_state->FindMember("state");
         if (iter_state_state == iter_state->MemberEnd() || !iter_state_state->value.IsString())
             continue;
 
-        std::string state = iter_state_state->value.GetString();
+        const std::string state = rapidjson_get_string(iter_state_state->value);
 
         if (state == "failed")
             ustate.set_state(imstate_sent_state::failed);

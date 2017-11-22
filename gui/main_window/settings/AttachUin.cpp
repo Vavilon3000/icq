@@ -19,12 +19,12 @@ void GeneralSettingsWidget::Creator::initAttachUin(QWidget* _parent, std::map<st
 
     auto mainLayout = Utils::emptyVLayout(mainWidget);
     mainLayout->setAlignment(Qt::AlignTop);
-    mainLayout->setContentsMargins(Utils::scale_value(36), 0, Utils::scale_value(36), Utils::scale_value(36));
+    mainLayout->setContentsMargins(Utils::scale_value(16), 0, Utils::scale_value(16), Utils::scale_value(36));
 
     scrollArea->setWidget(mainWidget);
 
     auto layout = Utils::emptyHLayout(_parent);
-    
+
     LoginPage* page = new LoginPage(scrollArea, false /* is_login */);
     page->switchLoginType();
 
@@ -32,7 +32,7 @@ void GeneralSettingsWidget::Creator::initAttachUin(QWidget* _parent, std::map<st
     {
         page->prevPage();
         page->switchLoginType();
-        emit Utils::InterConnector::instance().attachUinBack(); 
+        emit Utils::InterConnector::instance().attachUinBack();
     });
     layout->addWidget(scrollArea);
 
@@ -40,13 +40,13 @@ void GeneralSettingsWidget::Creator::initAttachUin(QWidget* _parent, std::map<st
 
     mainLayout->addWidget(page);
 
-    connect(page, &LoginPage::attached, [page]() 
+    connect(page, &LoginPage::attached, [page]()
     {
         if (!page->isVisible())
             return;
 
         core::coll_helper helper(GetDispatcher()->create_collection(), true);
-        GetDispatcher()->post_message_to_core("load_flags", helper.get());
+        GetDispatcher()->post_message_to_core(qsl("load_flags"), helper.get());
         emit Utils::InterConnector::instance().attachUinBack();
         emit Utils::InterConnector::instance().profileSettingsUpdateInterface();
     });

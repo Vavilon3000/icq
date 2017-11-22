@@ -7,10 +7,12 @@
 #include "../../core_dispatcher.h"
 #include "../../controls/ContactAvatarWidget.h"
 #include "../../controls/CommonStyle.h"
+#include "../../controls/LabelEx.h"
 #include "../../controls/GeneralDialog.h"
 #include "../../controls/PictureWidget.h"
 #include "../../controls/TextEditEx.h"
 #include "../../fonts.h"
+#include "../../utils/InterConnector.h"
 #include "../../utils/gui_coll_helper.h"
 #include "../../utils/utils.h"
 
@@ -24,11 +26,11 @@ namespace Ui
 
     LiveChats::LiveChats(QWidget* _parent)
         :   parent_(_parent),
-            seq_(-1),
             connected_(false),
-            activeDialog_(nullptr)
+            activeDialog_(nullptr),
+            seq_(-1)
     {
-        connect(Logic::getContactListModel(), SIGNAL(needJoinLiveChat(QString)), this, SLOT(needJoinLiveChat(QString)), Qt::QueuedConnection);
+        connect(Logic::getContactListModel(), &Logic::ContactListModel::needJoinLiveChat, this, &LiveChats::needJoinLiveChat, Qt::QueuedConnection);
     }
 
     LiveChats::~LiveChats()
@@ -36,13 +38,13 @@ namespace Ui
 
     }
 
-    void LiveChats::needJoinLiveChat(QString _stamp)
+    void LiveChats::needJoinLiveChat(const QString& _stamp)
     {
         if (!connected_)
         {
-            connect(Ui::GetDispatcher(), SIGNAL(chatInfo(qint64, std::shared_ptr<Data::ChatInfo>)), this, SLOT(chatInfo(qint64, std::shared_ptr<Data::ChatInfo>)), Qt::UniqueConnection);
-            connect(Ui::GetDispatcher(), SIGNAL(chatInfoFailed(qint64, core::group_chat_info_errors)), this, SLOT(chatInfoFailed(qint64, core::group_chat_info_errors)), Qt::UniqueConnection);
-            connect(Logic::getContactListModel(), SIGNAL(liveChatJoined(QString)), this, SLOT(liveChatJoined(QString)), Qt::QueuedConnection);
+            connect(Ui::GetDispatcher(), &Ui::core_dispatcher::chatInfo, this, &LiveChats::chatInfo, Qt::UniqueConnection);
+            connect(Ui::GetDispatcher(), &Ui::core_dispatcher::chatInfoFailed, this, &LiveChats::chatInfoFailed, Qt::UniqueConnection);
+            connect(Logic::getContactListModel(), &Logic::ContactListModel::liveChatJoined, this, &LiveChats::liveChatJoined, Qt::QueuedConnection);
         }
 
         connected_ = true;
@@ -51,7 +53,7 @@ namespace Ui
         collection.set_value_as_qstring("stamp", _stamp);
         collection.set_value_as_int("limit", Logic::ChatMembersModel::get_limit(membersLimit));
 
-        seq_ = Ui::GetDispatcher()->post_message_to_core("chats/info/get", collection.get());
+        seq_ = Ui::GetDispatcher()->post_message_to_core(qsl("chats/info/get"), collection.get());
 
         if (activeDialog_)
         {
@@ -60,25 +62,27 @@ namespace Ui
         }
     }
 
-    void LiveChats::liveChatJoined(QString _aimId)
+    void LiveChats::liveChatJoined(const QString& _aimId)
     {
         if (joinedLiveChat_ == _aimId)
         {
+            emit Utils::InterConnector::instance().addPageToDialogHistory(Logic::getContactListModel()->selectedContact());
             Logic::getContactListModel()->setCurrent(_aimId, -1, true);
 
             joinedLiveChat_.clear();
         }
     }
 
-    void LiveChats::chatInfo(qint64 _seq, std::shared_ptr<Data::ChatInfo> _info)
+    void LiveChats::chatInfo(qint64 _seq, const std::shared_ptr<Data::ChatInfo>& _info)
     {
         if (_seq != seq_)
             return;
 
         joinedLiveChat_.clear();
 
-        if (Logic::getContactListModel()->getContactItem(_info->AimId_) && _info->YouMember_)
+        if (Logic::getContactListModel()->contains(_info->AimId_) && _info->YouMember_)
         {
+            emit Utils::InterConnector::instance().addPageToDialogHistory(Logic::getContactListModel()->selectedContact());
             Logic::getContactListModel()->setCurrent(_info->AimId_, -1, true);
             return;
         }
@@ -92,11 +96,14 @@ namespace Ui
 
         containerDialog.addHead();
         bool pending = _info->YouPending_;
-        auto pendingText = QT_TRANSLATE_NOOP("livechats", "Waiting for approval");
-        containerDialog.addAcceptButton(pending ? pendingText : QT_TRANSLATE_NOOP("livechats", "Join"), Utils::scale_value(20), !pending);
+        auto pendingText = QT_TRANSLATE_NOOP("popup_window", "WAITING");
+        containerDialog.addButtonsPair(
+            pending ? QT_TRANSLATE_NOOP("popup_window", "CLOSE") : QT_TRANSLATE_NOOP("popup_window", "CANCEL"),
+            pending ? pendingText : QT_TRANSLATE_NOOP("popup_window", "JOIN"),
+            !pending);
         containerDialog.setKeepCenter(true);
 
-        QString stamp = _info->Stamp_;
+        const auto stamp = _info->Stamp_;
 
         QMetaObject::Connection con;
         QMetaObject::Connection joinedCon;
@@ -106,17 +113,17 @@ namespace Ui
             QMetaObject::Connection clickCon = connect(button, &QPushButton::clicked, [button, pendingText, stamp]()
             {
                 Logic::getContactListModel()->joinLiveChat(stamp, true);
-                Utils::ApplyStyle(button, Ui::CommonStyle::getDisabledButtonStyle());
+                Utils::ApplyStyle(button, CommonStyle::getDisabledButtonStyle());
                 button->setText(pendingText);
                 button->setEnabled(false);
             });
             QString id = _info->AimId_;
-            joinedCon = connect(Logic::getContactListModel(), &Logic::ContactListModel::liveChatJoined, [id, button, this, clickCon] (QString aimId)
+            joinedCon = connect(Logic::getContactListModel(), &Logic::ContactListModel::liveChatJoined, [id, button, this, clickCon] (const QString& aimId)
             {
                 if (id == aimId)
                 {
-                    Utils::ApplyStyle(button, Ui::CommonStyle::getGreenButtonStyle());
-                    button->setText(QT_TRANSLATE_NOOP("livechats", "Open"));
+                    Utils::ApplyStyle(button, CommonStyle::getGreenButtonStyle());
+                    button->setText(QT_TRANSLATE_NOOP("popup_window", "OPEN"));
                     button->setEnabled(true);
 
                     if (clickCon)
@@ -124,7 +131,7 @@ namespace Ui
 
                     connect(button, &QPushButton::clicked, [id, this]()
                     {
-                        Logic::getContactListModel()->setCurrent(id, -1, true, true);
+                        Logic::getContactListModel()->setCurrent(id, -1, true);
                         activeDialog_->reject();
                     });
                 }
@@ -165,10 +172,10 @@ namespace Ui
         switch (_error)
         {
         case core::group_chat_info_errors::network_error:
-            errorText = QT_TRANSLATE_NOOP("livechats", "Chat information is unavailable now, please try again later");
+            errorText = QT_TRANSLATE_NOOP("groupchats", "Chat information is unavailable now, please try again later");
             break;
         default:
-            errorText = QT_TRANSLATE_NOOP("livechats", "Chat does not exist or it is hidden by privacy settings");
+            errorText = QT_TRANSLATE_NOOP("groupchats", "Chat does not exist or it is hidden by privacy settings");
             break;
         }
 
@@ -180,7 +187,7 @@ namespace Ui
         activeDialog_ = &containerDialog;
 
         containerDialog.addHead();
-        containerDialog.addAcceptButton(QT_TRANSLATE_NOOP("livechats", "Close"), Utils::scale_value(20), false);
+        containerDialog.addCancelButton(QT_TRANSLATE_NOOP("popup_window", "CLOSE"));
         containerDialog.setKeepCenter(true);
 
         if (containerDialog.showInPosition(-1, -1))
@@ -200,7 +207,7 @@ namespace Ui
             membersCount_(-1),
             initialiNameHeight_(0)
     {
-        setStyleSheet(Utils::LoadStyle(":/main_window/livechats/LiveChats.qss"));
+        setStyleSheet(Utils::LoadStyle(qsl(":/qss/livechats")));
 
         rootLayout_ = Utils::emptyVLayout();
         rootLayout_->setContentsMargins(Utils::scale_value(horMargins), 0, Utils::scale_value(horMargins), 0);
@@ -247,10 +254,10 @@ namespace Ui
 
         rootLayout_->addLayout(avatar_layout);
 
-        QString nameText = ((_info->Name_.length() > maxNameTextSize) ? (_info->Name_.mid(0, maxNameTextSize) + "...") : _info->Name_);
+        QString nameText = ((_info->Name_.length() > maxNameTextSize) ? (_info->Name_.midRef(0, maxNameTextSize) % ql1s("...")) : _info->Name_);
 
-        name_ = new TextEditEx(this, Fonts::appFontScaled(32), CommonStyle::getTextCommonColor(), false, true);
-        connect(name_, SIGNAL(setSize(int, int)), this, SLOT(nameResized(int, int)), Qt::QueuedConnection);
+        name_ = new TextEditEx(this, Fonts::appFontScaled(24), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), false, true);
+        connect(name_, &TextEditEx::setSize, this, &LiveChatProfileWidget::nameResized, Qt::QueuedConnection);
         name_->setPlainText(nameText, false, QTextCharFormat::AlignNormal);
         name_->setAlignment(Qt::AlignHCenter);
         name_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -263,9 +270,9 @@ namespace Ui
         needHeight += initialiNameHeight_;
         rootLayout_->addWidget(name_);
 
-        QString aboutText = ((_info->About_.length() > maxAboutTextSize) ? (_info->About_.mid(0, maxAboutTextSize) + "...") : _info->About_);
+        QString aboutText = ((_info->About_.length() > maxAboutTextSize) ? (_info->About_.midRef(0, maxAboutTextSize) % ql1s("...")) : _info->About_);
 
-        TextEditEx* about = new TextEditEx(this, Fonts::appFontScaled(16), QColor("#767676"), false, false);
+        TextEditEx* about = new TextEditEx(this, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY), false, false);
         about->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         about->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         about->setFrameStyle(QFrame::NoFrame);
@@ -288,7 +295,7 @@ namespace Ui
                 break;
             }
 
-            aboutText = aboutText.mid(0, newLength) + "...";
+            aboutText = aboutText.midRef(0, newLength) % ql1s("...");
         }
 
         needHeight += height;
@@ -304,21 +311,21 @@ namespace Ui
         if (_info->FriendsCount)
         {
             if (!location_string.isEmpty())
-                location_string += QString(" - ");
+                location_string += ql1s(" - ");
 
-            location_string += QString::number(_info->FriendsCount) + " " +
+            location_string += QString::number(_info->FriendsCount) % ql1c(' ') %
                 Utils::GetTranslator()->getNumberString(
                 _info->FriendsCount,
-                QT_TRANSLATE_NOOP3("livechats", "friend", "1"),
-                QT_TRANSLATE_NOOP3("livechats", "friends", "2"),
-                QT_TRANSLATE_NOOP3("livechats", "friends", "5"),
-                QT_TRANSLATE_NOOP3("livechats", "friends", "21")
+                QT_TRANSLATE_NOOP3("groupchats", "friend", "1"),
+                QT_TRANSLATE_NOOP3("groupchats", "friends", "2"),
+                QT_TRANSLATE_NOOP3("groupchats", "friends", "5"),
+                QT_TRANSLATE_NOOP3("groupchats", "friends", "21")
                 );
         }
 
         if (!location_string.isEmpty())
         {
-            TextEditEx* location = new TextEditEx(this, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), false, false);
+            TextEditEx* location = new TextEditEx(this, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), false, false);
             location->setPlainText(location_string, false);
             location->setAlignment(Qt::AlignHCenter);
             location->setFrameStyle(QFrame::NoFrame);
@@ -340,8 +347,10 @@ namespace Ui
 
         int realAvatarsCount = members_->getRealCount();
 
-        QLabel* count = new QLabel(QString("+") + QString::number(membersCount_ - realAvatarsCount));
-        count->setObjectName("LiveChatMembersCount");
+        LabelEx* count = new LabelEx(this);
+        count->setText(ql1c('+') + QString::number(membersCount_ - realAvatarsCount));
+        count->setColor(CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY));
+        count->setFont(Fonts::appFontScaled(12));
         avatarsLayout->addWidget(count);
 
         if (realAvatarsCount >= membersCount_)
@@ -386,14 +395,14 @@ namespace Ui
         int height = 0;
         int currentWidth = width() - Utils::scale_value(horMargins) * 2;
 
-        setStyleSheet(Utils::LoadStyle(":/main_window/livechats/LiveChats.qss"));
+        setStyleSheet(Utils::LoadStyle(qsl(":/qss/livechats")));
 
         QVBoxLayout* rootLayout = Utils::emptyVLayout();
         rootLayout->setContentsMargins(Utils::scale_value(horMargins), 0, Utils::scale_value(horMargins), 0);
         rootLayout->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
 
         QHBoxLayout* pictureLayout = Utils::emptyHLayout();
-        PictureWidget* picture = new PictureWidget(this, ":/resources/placeholders/content_illustration_emptylivechat_100.png");
+        PictureWidget* picture = new PictureWidget(this, qsl(":/placeholders/empty_livechat_100"));
         picture->setFixedSize(Utils::scale_value(136), Utils::scale_value(216));
         pictureLayout->addWidget(picture);
 
@@ -404,9 +413,9 @@ namespace Ui
         rootLayout->addSpacing(Utils::scale_value(26));
         height += Utils::scale_value(26);
 
-        TextEditEx* errorText = new TextEditEx(this, Fonts::appFontScaled(16), QColor("#767676"), false, false);
+        TextEditEx* errorText = new TextEditEx(this, Fonts::appFontScaled(16), CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY), false, false);
         errorText->setText(errorText_);
-        errorText->setStyleSheet("* { border: none; }");
+        errorText->setStyleSheet(qsl("* { border: none; }"));
         errorText->setAlignment(Qt::AlignHCenter);
         height += errorText->adjustHeight(currentWidth);
         rootLayout->addWidget(errorText);

@@ -26,11 +26,11 @@ inline QTextStream& operator<<(QTextStream &oss, const BlockSelectionType type)
 
     switch(type)
     {
-        case BlockSelectionType::FromBeginning: oss << "FromBeginning"; break;
-        case BlockSelectionType::Full: oss << "Full"; break;
-        case BlockSelectionType::None: oss << "None"; break;
-        case BlockSelectionType::PartialInternal: oss << "ParialInternal"; break;
-        case BlockSelectionType::TillEnd: oss << "TillEnd"; break;
+        case BlockSelectionType::FromBeginning: oss << ql1s("FromBeginning"); break;
+        case BlockSelectionType::Full: oss << ql1s("Full"); break;
+        case BlockSelectionType::None: oss << ql1s("None"); break;
+        case BlockSelectionType::PartialInternal: oss << ql1s("ParialInternal"); break;
+        case BlockSelectionType::TillEnd: oss << ql1s("TillEnd"); break;
 
         default:
             assert(!"unexpected BlockSelectionType value");

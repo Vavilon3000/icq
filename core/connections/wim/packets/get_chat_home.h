@@ -29,7 +29,7 @@ namespace core
             bool                        need_restart_;
             bool                        finished_;
 
-            get_chat_home(const wim_packet_params& _params, const std::string& _new_tag = std::string());
+            get_chat_home(wim_packet_params _params, const std::string& _new_tag = std::string());
 
             virtual ~get_chat_home();
         };

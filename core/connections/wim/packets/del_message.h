@@ -10,7 +10,7 @@ class del_message : public robusto_packet
 {
 public:
     del_message(
-        const wim_packet_params& _params,
+        wim_packet_params _params,
         const int64_t _message_id,
         const std::string &_contact_aimid,
         const bool _for_all

@@ -31,7 +31,7 @@ namespace core
 
         public:
 
-            get_hosts_config(const wim_packet_params& params, const std::string& _config_url);
+            get_hosts_config(wim_packet_params params, std::string _config_url);
             virtual ~get_hosts_config();
 
             const hosts_map& get_hosts() const;

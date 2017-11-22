@@ -20,6 +20,11 @@ namespace core
             {
             }
 
+            transferred_data(long _response_code)
+                : response_code_(_response_code)
+            {
+            }
+
             transferred_data(long _response_code, data_stream_ptr _header, data_stream_ptr _content)
                 : response_code_(_response_code)
                 , header_(_header)

@@ -26,7 +26,7 @@ namespace Ui
         bool requestInProgress_;
         bool noMoreItems_;
 
-        std::shared_ptr<bool>	ref_;
+        std::shared_ptr<bool> ref_;
 
         void onSearchResult(gui_coll_helper _coll);
         void search(const std::string& _keyword, const std::string& _phoneNumber, const std::string& _tag);
@@ -35,10 +35,10 @@ namespace Ui
 
         void onSearch(search_params _filters);
         void onNeedMoreResults(int);
-        void onAddContact(QString _contact);
-        void onMsgContact(QString _contact);
-        void onCallContact(QString _contact);
-        void onContactInfo(QString _contact);
+        void onAddContact(const QString& _contact);
+        void onMsgContact(const QString& _contact);
+        void onCallContact(const QString& _contact);
+        void onContactInfo(const QString& _contact);
 
     protected:
 
@@ -49,7 +49,7 @@ namespace Ui
 
         void onFocus();
 
-        SearchContactsWidget(QWidget* _parent);
+        explicit SearchContactsWidget(QWidget* _parent);
         virtual ~SearchContactsWidget(void);
     };
 

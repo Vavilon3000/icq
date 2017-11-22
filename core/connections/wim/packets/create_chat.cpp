@@ -9,14 +9,14 @@ using namespace core;
 using namespace wim;
 
 create_chat::create_chat(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _aimid,
     const std::string& _chatName,
     const std::vector<std::string> &_chatMembers)
-    : robusto_packet(_params)
+    : robusto_packet(std::move(_params))
     , aimid_(_aimid)
     , chat_members_(_chatMembers)
-    , chat_params_(new chat_params())
+    , chat_params_(std::make_unique<chat_params>())
 {
     chat_params_->set_name(_chatName);
 }
@@ -47,7 +47,7 @@ int32_t create_chat::init_request(std::shared_ptr<core::http_request_simple> _re
     doc.AddMember("reqId", get_req_id(), a);
     doc.AddMember("authToken", robusto_params_.robusto_token_, a);
     doc.AddMember("clientId", robusto_params_.robusto_client_id_, a);
-    
+
     rapidjson::Value node_params(rapidjson::Type::kObjectType);
     {
         node_params.AddMember("name", chat_params_->get_name().get(), a);
@@ -57,15 +57,14 @@ int32_t create_chat::init_request(std::shared_ptr<core::http_request_simple> _re
         if (!chat_members_.empty())
         {
             rapidjson::Value members_array(rapidjson::Type::kArrayType);
+            members_array.Reserve(chat_members_.size(), a);
+            for (const auto &sn: chat_members_)
             {
-                for (const auto &sn: chat_members_)
-                {
-                    rapidjson::Value member_params(rapidjson::Type::kObjectType);
-                    member_params.AddMember("sn", sn, a);
-                    members_array.PushBack(member_params, a);
-                }
+                rapidjson::Value member_params(rapidjson::Type::kObjectType);
+                member_params.AddMember("sn", sn, a);
+                members_array.PushBack(std::move(member_params), a);
             }
-            node_params.AddMember("members", members_array, a);
+            node_params.AddMember("members", std::move(members_array), a);
         }
         if (chat_params_->get_about().is_initialized())
             node_params.AddMember("about", chat_params_->get_about().get(), a);
@@ -80,13 +79,21 @@ int32_t create_chat::init_request(std::shared_ptr<core::http_request_simple> _re
         if (chat_params_->get_ageGate().is_initialized())
             node_params.AddMember("ageRestriction", chat_params_->get_ageGate().get(), a);
     }
-    doc.AddMember("params", node_params, a);
+    doc.AddMember("params", std::move(node_params), a);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
 
-    _request->push_post_parameter(buffer.GetString(), "");
+    _request->push_post_parameter(buffer.GetString(), std::string());
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_json_marker("aimSid");
+        f.add_json_marker("authToken");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

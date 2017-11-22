@@ -37,11 +37,11 @@ namespace HistoryControl
 
     PreviewContentWidget::PreviewContentWidget(QWidget *parent, const bool isOutgoing, const QString &text, const bool previewsEnabled, QString _aimId)
         : MessageContentWidget(parent, isOutgoing, _aimId)
-        , Text_(text)
-        , TextControl_(nullptr)
-        , IsTextVisible_(false)
-        , PreviewsEnabled_(previewsEnabled)
         , videoPlayer_(nullptr)
+        , PreviewsEnabled_(previewsEnabled)
+        , Text_(text)
+        , IsTextVisible_(false)
+        , TextControl_(nullptr)
     {
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
@@ -50,8 +50,10 @@ namespace HistoryControl
         updateGeometry();
     }
 
-    const QRect& PreviewContentWidget::getLastPreviewGeometry() const
+    QRect PreviewContentWidget::getLastPreviewGeometry()
     {
+        if (LastPreviewGeometry_.isNull())
+            LastPreviewGeometry_ = updateWidgetSize();
         return LastPreviewGeometry_;
     }
 
@@ -370,7 +372,7 @@ namespace HistoryControl
         assert(!Text_.isEmpty());
         assert(!TextControl_);
 
-        blockSignals(true);
+        QSignalBlocker sb(this);
         setUpdatesEnabled(false);
 
         TextControl_ = new Ui::TextEditEx(
@@ -390,22 +392,20 @@ namespace HistoryControl
         TextControl_->setOpenLinks(true);
         TextControl_->setOpenExternalLinks(true);
         TextControl_->setWordWrapMode(QTextOption::WordWrap);
-        TextControl_->setStyleSheet("background: transparent");
+        TextControl_->setStyleSheet(qsl("background: transparent"));
         TextControl_->document()->setDocumentMargin(0);
         TextControl_->setContextMenuPolicy(Qt::NoContextMenu);
         TextControl_->setReadOnly(true);
         TextControl_->setUndoRedoEnabled(false);
 
-        TextControl_->verticalScrollBar()->blockSignals(true);
-
-        Logic::Text4Edit(Text_, *TextControl_, Logic::Text2DocHtmlMode::Escape, true, true);
-
-        TextControl_->verticalScrollBar()->blockSignals(false);
+        {
+            QSignalBlocker TextControlBlocker(TextControl_->verticalScrollBar());
+            Logic::Text4Edit(Text_, *TextControl_, Logic::Text2DocHtmlMode::Escape, true, true);
+        }
 
         TextControl_->show();
 
         setUpdatesEnabled(true);
-        blockSignals(false);
     }
 
     QSizeF PreviewContentWidget::evaluatePreviewScaledSize(const int boundWidth) const

@@ -11,7 +11,7 @@
 namespace
 {
     const QString DROPDOWN_STYLE =
-        "border-width: 1dip; border-bottom-style: solid; border-color: #d7d7d7; ";
+        qsl("border-width: 1dip; border-bottom-style: solid; border-color: #d7d7d7; ");
 }
 
 namespace Ui
@@ -21,8 +21,8 @@ namespace Ui
         auto title = new TextEmojiWidget(
             _parent,
             Fonts::appFontScaled(20, Fonts::FontWeight::Medium),
-            Ui::CommonStyle::getTextCommonColor(),
-            Utils::scale_value(36));
+            CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY),
+            Utils::scale_value(40));
 
         title->setText(_text);
         _layout->addWidget(title);
@@ -39,7 +39,7 @@ namespace Ui
 
         Utils::grabTouchWidget(mainWidget);
 
-        auto text = new TextEmojiWidget(mainWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(44));
+        auto text = new TextEmojiWidget(mainWidget, Fonts::appFontScaled(15), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(36));
         switcherWidget.text_ = text;
         Utils::grabTouchWidget(text);
         text->setFixedWidth(Utils::scale_value(312));
@@ -55,7 +55,7 @@ namespace Ui
         {
             auto checkbox = new QCheckBox(checkboxWidget);
             switcherWidget.check_ = checkbox;
-            checkbox->setObjectName("greenSwitcher");
+            checkbox->setObjectName(qsl("greenSwitcher"));
             checkbox->setSizePolicy(QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed);
             checkbox->setCursor(QCursor(Qt::CursorShape::PointingHandCursor));
             checkbox->setChecked(_switched);
@@ -96,7 +96,7 @@ namespace Ui
 
         Utils::grabTouchWidget(mainWidget);
 
-        auto info = new TextEmojiWidget(mainWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(44));
+        auto info = new TextEmojiWidget(mainWidget, Fonts::appFontScaled(15), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(36));
         Utils::grabTouchWidget(info);
         info->setSizePolicy(QSizePolicy::Policy::Preferred, info->sizePolicy().verticalPolicy());
         info->setText(_info);
@@ -109,7 +109,7 @@ namespace Ui
         valueLayout->setAlignment(Qt::AlignBottom);
         valueLayout->setContentsMargins(Utils::scale_value(8), 0, 0, 0);
 
-        auto value = new TextEmojiWidget(valueWidget, Fonts::appFontScaled(16), CommonStyle::getLinkColor(), Utils::scale_value(44));
+        auto value = new TextEmojiWidget(valueWidget, Fonts::appFontScaled(15), CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT), Utils::scale_value(36));
         {
             Utils::grabTouchWidget(value);
             value->setCursor(QCursor(Qt::CursorShape::PointingHandCursor));
@@ -137,16 +137,16 @@ namespace Ui
         titleWidget->setSizePolicy(QSizePolicy::Policy::Preferred, QSizePolicy::Policy::Preferred);
         titleLayout->setAlignment(Qt::AlignLeft);
         {
-            title = new TextEmojiWidget(titleWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(44));
+            title = new TextEmojiWidget(titleWidget, Fonts::appFontScaled(15), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(36));
             Utils::grabTouchWidget(title);
             title->setSizePolicy(QSizePolicy::Policy::Preferred, title->sizePolicy().verticalPolicy());
             title->setText(_info);
             titleLayout->addWidget(title);
 
-            aw1 = new TextEmojiWidget(titleWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(44));
+            aw1 = new TextEmojiWidget(titleWidget, Fonts::appFontScaled(15), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(36));
             Utils::grabTouchWidget(aw1);
             aw1->setSizePolicy(QSizePolicy::Policy::Preferred, aw1->sizePolicy().verticalPolicy());
-            aw1->setText(" ");
+            aw1->setText(qsl(" "));
             titleLayout->addWidget(aw1);
         }
         _layout->addWidget(titleWidget);
@@ -155,24 +155,24 @@ namespace Ui
         auto selectedItemLayout = Utils::emptyHLayout(selectedItemWidget);
         Utils::grabTouchWidget(selectedItemWidget);
         selectedItemWidget->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Fixed);
-        selectedItemWidget->setFixedHeight(Utils::scale_value(48));
+        selectedItemWidget->setFixedHeight(Utils::scale_value(32));
         selectedItemLayout->setAlignment(Qt::AlignLeft);
 
         DropperInfo di;
-        di.currentSelected = NULL;
-        di.menu = NULL;
+        di.currentSelected = nullptr;
+        di.menu = nullptr;
         {
             auto selectedItemButton = new QPushButton(selectedItemWidget);
             auto dl = Utils::emptyVLayout(selectedItemButton);
             selectedItemButton->setFlat(true);
             selectedItemButton->setSizePolicy(QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed);
-            selectedItemButton->setFixedSize(QSize(Utils::scale_value(_width == -1 ? 280 : _width), Utils::scale_value(48)));
+            selectedItemButton->setFixedSize(QSize(Utils::scale_value(_width == -1 ? 280 : _width), Utils::scale_value(32)));
             selectedItemButton->setCursor(QCursor(Qt::CursorShape::PointingHandCursor));
             {
-                auto selectedItem = new TextEmojiWidget(selectedItemButton, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(28));
+                auto selectedItem = new TextEmojiWidget(selectedItemButton, Fonts::appFontScaled(15), CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY), Utils::scale_value(24));
                 Utils::grabTouchWidget(selectedItem);
 
-                selectedItem->setText(Utils::getItemSafe(_values, _selected, " "));
+                selectedItem->setText(Utils::getItemSafe(_values, _selected, qsl(" ")));
                 selectedItem->setFading(true);
                 dl->addWidget(selectedItem);
                 di.currentSelected = selectedItem;
@@ -192,12 +192,12 @@ namespace Ui
                 dl->addWidget(lp);
 
                 auto menu = new FlatMenu(selectedItemButton);
-                for (auto v : _values)
+                for (const auto& v : _values)
                     menu->addAction(v);
                 QObject::connect(menu, &QMenu::triggered, _parent, [menu, aw1, selectedItem, _slot1](QAction* a)
                 {
                     int ix = -1;
-                    QList<QAction*> allActions = menu->actions();
+                    const QList<QAction*> allActions = menu->actions();
                     for (QAction* action : allActions)
                     {
                         ix++;
@@ -230,16 +230,16 @@ namespace Ui
         mainLayout->setAlignment(Qt::AlignLeft);
         mainLayout->setSpacing(Utils::scale_value(4));
         {
-            w = new TextEmojiWidget(mainWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(44));
+            w = new TextEmojiWidget(mainWidget, Fonts::appFontScaled(15), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(36));
             Utils::grabTouchWidget(w);
             w->setSizePolicy(QSizePolicy::Policy::Preferred, w->sizePolicy().verticalPolicy());
-            w->setText(" ");
+            w->setText(qsl(" "));
             mainLayout->addWidget(w);
 
-            aw = new TextEmojiWidget(mainWidget, Fonts::appFontScaled(16), Ui::CommonStyle::getTextCommonColor(), Utils::scale_value(44));
+            aw = new TextEmojiWidget(mainWidget, Fonts::appFontScaled(15), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY), Utils::scale_value(36));
             Utils::grabTouchWidget(aw);
             aw->setSizePolicy(QSizePolicy::Policy::Preferred, aw->sizePolicy().verticalPolicy());
-            aw->setText(" ");
+            aw->setText(qsl(" "));
             mainLayout->addWidget(aw);
 
             _slot(w, aw, _selected);
@@ -263,8 +263,8 @@ namespace Ui
             slider->setMaximum((int)_values.size() - 1);
             slider->setValue(_selected);
             slider->setCursor(QCursor(Qt::CursorShape::PointingHandCursor));
-            auto SLIDER_STYLE =
-                QString("QSlider::handle:horizontal { margin: %1 0 %2 0; }")
+            const auto SLIDER_STYLE =
+                qsl("QSlider::handle:horizontal { margin: %1 0 %2 0; }")
                 .arg(Utils::scale_value(-12)).arg(Utils::scale_value(-12));
             slider->setStyleSheet(SLIDER_STYLE);
             QObject::connect(slider, &QSlider::valueChanged, [w, aw, _slot](int v)

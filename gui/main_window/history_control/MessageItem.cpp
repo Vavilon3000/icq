@@ -3,6 +3,7 @@
 
 #include "MessageItemLayout.h"
 #include "MessagesModel.h"
+#include "MessagesScrollArea.h"
 #include "MessageStatusWidget.h"
 #include "MessageStyle.h"
 #include "ContentWidgets/FileSharingWidget.h"
@@ -15,6 +16,7 @@
 #include "../../controls/TextEmojiWidget.h"
 #include "../../controls/ContextMenu.h"
 #include "../../my_info.h"
+#include "../../gui_settings.h"
 #include "../../theme_settings.h"
 #include "../../utils/InterConnector.h"
 #include "../../utils/PainterPath.h"
@@ -40,10 +42,10 @@ namespace Ui
         , SenderVisible_(false)
         , IndentBefore_(false)
         , deliveredToServer_(false)
+        , Chat_(false)
         , Id_(-1)
         , AvatarSize_(-1)
         , Time_(0)
-        , Chat_(false)
     {
         Outgoing_.Outgoing_ = false;
         Outgoing_.Set_ = false;
@@ -58,13 +60,13 @@ namespace Ui
 
     MessageItemsAvatars::MessageItemsAvatars()
     {
-        QObject::connect(Logic::GetAvatarStorage(), &Logic::AvatarStorage::avatarChanged, [this](QString _aimId)
+        QObject::connect(Logic::GetAvatarStorage(), &Logic::AvatarStorage::avatarChanged, [this](const QString& _aimId)
         {
             if (MessageItemsAvatars::instance().data_.find(_aimId) != MessageItemsAvatars::instance().data_.end())
             {
                 bool isDefault = false;
                 auto &info = MessageItemsAvatars::instance().data_[_aimId];
-                info.avatar_ = *Logic::GetAvatarStorage()->GetRounded(_aimId, info.friendlyName_, info.size_, QString(), true, isDefault, false, false).get();
+                info.avatar_ = *Logic::GetAvatarStorage()->GetRounded(_aimId, info.friendlyName_, info.size_, QString(), isDefault, false, false).get();
                 if (info.callback_)
                 {
                     info.callback_();
@@ -89,7 +91,7 @@ namespace Ui
         {
             bool isDefault = false;
             MessageItemsAvatars::Info info;
-            info.avatar_ = *Logic::GetAvatarStorage()->GetRounded(_aimId, _friendlyName, _size, QString(), true, isDefault, false, false).get();
+            info.avatar_ = *Logic::GetAvatarStorage()->GetRounded(_aimId, _friendlyName, _size, QString(), isDefault, false, false).get();
             info.aimId_ = _aimId;
             info.friendlyName_ = _friendlyName;
             info.size_ = _size;
@@ -108,54 +110,59 @@ namespace Ui
     }
 
     MessageItem::MessageItem()
-        : MessageItemBase(0)
-        , Data_(new MessageData())
+        : MessageItemBase(nullptr)
         , MessageBody_(nullptr)
         , Sender_(nullptr)
         , ContentWidget_(nullptr)
         , Direction_(SelectDirection::NONE)
-        , Menu_(0)
-        , ContentMenu_(0)
+        , Data_(std::make_shared<MessageData>())
         , ClickedOnAvatar_(false)
-        , Layout_(nullptr)
         , TimeWidget_(nullptr)
+        , Layout_(nullptr)
         , startSelectY_(0)
         , isSelection_(false)
         , isNotAuth_(false)
+        , bubbleHovered_(false)
+        , timestampHoverEnabled_(true)
     {
     }
 
-	MessageItem::MessageItem(QWidget* _parent)
-		: MessageItemBase(_parent)
-		, MessageBody_(nullptr)
-		, Sender_(nullptr)
-		, ContentWidget_(nullptr)
-		, Data_(new MessageData())
+    MessageItem::MessageItem(QWidget* _parent)
+        : MessageItemBase(_parent)
+        , MessageBody_(nullptr)
+        , Sender_(nullptr)
+        , ContentWidget_(nullptr)
         , Direction_(SelectDirection::NONE)
-		, Menu_(0)
-        , ContentMenu_(0)
+        , Data_(std::make_shared<MessageData>())
         , ClickedOnAvatar_(false)
-        , Layout_(new MessageItemLayout(this))
         , TimeWidget_(new MessageTimeWidget(this))
+        , Layout_(new MessageItemLayout(this))
         , startSelectY_(0)
         , isSelection_(false)
-        , LastRead_(false)
         , isNotAuth_(false)
+        , bubbleHovered_(false)
+        , timestampHoverEnabled_(true)
     {
-        QMetaObject::connectSlotsByName(this);
-
-		setAttribute(Qt::WA_AcceptTouchEvents);
+        setAttribute(Qt::WA_AcceptTouchEvents);
 
         setMouseTracking(true);
 
-		Utils::grabTouchWidget(this);
-		setFocusPolicy(Qt::NoFocus);
+        Utils::grabTouchWidget(this);
+        setFocusPolicy(Qt::NoFocus);
 
         assert(Layout_);
         setLayout(Layout_);
 
-        connect(parent(), SIGNAL(recreateAvatarRect()), this, SLOT(onRecreateAvatarRect()));
-	}
+        auto scrollArea = qobject_cast<MessagesScrollArea*>(parent());
+        assert(scrollArea);
+
+        connect(scrollArea, &MessagesScrollArea::recreateAvatarRect, this, &MessageItem::onRecreateAvatarRect);
+        connect(&Utils::InterConnector::instance(), &Utils::InterConnector::showMessageHiddenControls, this, &MessageItem::showHiddenControls, Qt::QueuedConnection);
+        connect(&Utils::InterConnector::instance(), &Utils::InterConnector::hideMessageHiddenControls, this, &MessageItem::hideHiddenControls, Qt::QueuedConnection);
+        connect(&Utils::InterConnector::instance(), &Utils::InterConnector::setTimestampHoverActionsEnabled, this, &MessageItem::setTimestampHoverEnabled);
+
+        TimeWidget_->hideAnimated();
+    }
 
 	MessageItem::~MessageItem()
     {
@@ -184,7 +191,10 @@ namespace Ui
 			return ContentWidget_->toRecentsString();
 		}
 
-		return Data_->Text_;
+        if (!Data_->Mentions_.empty())
+            return Utils::convertMentions(Data_->Text_, Data_->Mentions_);
+
+        return Data_->Text_;
 	}
 
 	void MessageItem::setId(qint64 _id, const QString& _aimId)
@@ -211,23 +221,8 @@ namespace Ui
 
     QSize MessageItem::sizeHint() const
     {
-        auto height = evaluateTopContentMargin();
-
-        height += evaluateDesiredContentHeight();
-
-        if (LastRead_)
-        {
-            height += MessageStyle::getLastReadAvatarSize() + 2 * MessageStyle::getLastReadAvatarMargin();
-        }
-
-        const QSize result(
-            0,
-            height
-        );
-
-        return result;
+        return QSize(0, evaluateTopContentMargin() + evaluateDesiredContentHeight());
     }
-
 
     void MessageItem::onVisibilityChanged(const bool _isVisible)
     {
@@ -248,7 +243,8 @@ namespace Ui
     Data::Quote MessageItem::getQuote(bool force) const
     {
         Data::Quote quote;
-        if (selection(true).isEmpty() && !force)
+        auto currentSelection = selection(true);
+        if (currentSelection.isEmpty() && !force)
             return quote;
 
         if (force)
@@ -266,7 +262,7 @@ namespace Ui
         }
         else
         {
-            quote.text_ = selection(true);
+            quote.text_ = std::move(currentSelection);
         }
 
         if (Data_)
@@ -275,10 +271,10 @@ namespace Ui
             quote.chatId_ = Data_->AimId_;
             quote.time_ = Data_->Time_;
             quote.msgId_ = Data_->Id_;
-            QString senderFriendly = Data_->SenderFriendly_.isEmpty() ? Logic::getContactListModel()->getDisplayName(Data_->AimId_) : Data_->SenderFriendly_;
-            if (Data_->isOutgoing())
-                senderFriendly = MyInfo()->friendlyName();
-            quote.senderFriendly_ = senderFriendly;
+            QString senderFriendly = Data_->isOutgoing() ? MyInfo()->friendlyName()
+                : (Data_->SenderFriendly_.isEmpty() ? Logic::getContactListModel()->getDisplayName(Data_->AimId_) : Data_->SenderFriendly_);
+            quote.senderFriendly_ = std::move(senderFriendly);
+            quote.mentions_ = Data_->Mentions_;
         }
         return quote;
     }
@@ -309,13 +305,18 @@ namespace Ui
     void MessageItem::leaveEvent(QEvent* _e)
     {
         ClickedOnAvatar_ = false;
+        bubbleHovered_ = false;
 
-        QWidget::leaveEvent(_e);
+        if (timestampHoverEnabled_)
+            hideHiddenControls();
+
+        MessageItemBase::leaveEvent(_e);
     }
 
     void MessageItem::mouseMoveEvent(QMouseEvent* _e)
     {
-        if (isOverAvatar(_e->pos()) && Data_->AvatarSize_ > 0)
+        const auto pos = _e->pos();
+        if (Data_->AvatarSize_ > 0 && isOverAvatar(pos))
         {
             setCursor(Qt::PointingHandCursor);
         }
@@ -323,6 +324,30 @@ namespace Ui
         {
             setCursor(Qt::ArrowCursor);
         }
+
+        const auto prevHovered = bubbleHovered_;
+        bubbleHovered_ = Bubble_.contains(pos);
+        if (bubbleHovered_)
+        {
+            if (!prevHovered)
+            {
+                QTimer::singleShot(MessageTimestamp::hoverTimestampShowDelay,
+                    Qt::CoarseTimer,
+                    this,
+                    [this]()
+                    {
+                        if (bubbleHovered_)
+                            showHiddenControls();
+                    }
+                );
+            }
+        }
+        else
+        {
+            if (timestampHoverEnabled_)
+                hideHiddenControls();
+        }
+
 
         QWidget::mouseMoveEvent(_e);
     }
@@ -343,71 +368,64 @@ namespace Ui
         QWidget::mousePressEvent(_e);
     }
 
-    void MessageItem::trackContentMenu(const QPoint& _pos)
+    void MessageItem::trackContextMenu(const QPoint& _pos)
     {
-        if (ContentMenu_)
-        {
-            delete ContentMenu_;
-            ContentMenu_ = nullptr;
-        }
+        auto contextMenu = new ContextMenu(this);
 
-        ContentMenu_ = new ContextMenu(this);
+        contextMenu->addActionWithIcon(QIcon(Utils::parse_image_name(qsl(":/context_menu/reply_100"))), QT_TRANSLATE_NOOP("context_menu", "Reply"), makeData(qsl("quote")));
+        contextMenu->addActionWithIcon(QIcon(Utils::parse_image_name(qsl(":/context_menu/link_100"))), QT_TRANSLATE_NOOP("context_menu", "Copy link"), makeData(qsl("copy_link")));
+        contextMenu->addActionWithIcon(QIcon(Utils::parse_image_name(qsl(":/context_menu/attach_100"))), QT_TRANSLATE_NOOP("context_menu", "Copy to clipboard"), makeData(qsl("copy_file")));
+        contextMenu->addActionWithIcon(QIcon(Utils::parse_image_name(qsl(":/context_menu/forward_100"))), QT_TRANSLATE_NOOP("context_menu", "Forward"), makeData(qsl("forward")));
+        contextMenu->addActionWithIcon(QIcon(Utils::parse_image_name(qsl(":/context_menu/download_100"))), QT_TRANSLATE_NOOP("context_menu", "Save as..."), makeData(qsl("save_as")));
 
         if (ContentWidget_->hasOpenInBrowserMenu())
-            ContentMenu_->addActionWithIcon(QIcon(Utils::parse_image_name(":/resources/context_menu/openbrowser_100.png")), QT_TRANSLATE_NOOP("context_menu", "Open in browser"), makeData("open_in_browser"));
+            contextMenu->addActionWithIcon(QIcon(Utils::parse_image_name(qsl(":/context_menu/browser_100"))), QT_TRANSLATE_NOOP("context_menu", "Open in browser"), makeData(qsl("open_in_browser")));
 
-        ContentMenu_->addActionWithIcon(QIcon(Utils::parse_image_name(":/resources/context_menu/link_100.png")), QT_TRANSLATE_NOOP("context_menu", "Copy link"), makeData("copy_link"));
-        ContentMenu_->addActionWithIcon(QIcon(Utils::parse_image_name(":/resources/context_menu/attach_100.png")), QT_TRANSLATE_NOOP("context_menu", "Copy file"), makeData("copy_file"));
-        ContentMenu_->addActionWithIcon(QIcon(Utils::parse_image_name(":/resources/context_menu/download_100.png")), QT_TRANSLATE_NOOP("context_menu", "Save as..."), makeData("save_as"));
-        ContentMenu_->addActionWithIcon(QIcon(Utils::parse_image_name(":/resources/context_menu/quote_100.png")), QT_TRANSLATE_NOOP("context_menu", "Quote"), makeData("quote"));
-        ContentMenu_->addActionWithIcon(QIcon(Utils::parse_image_name(":/resources/context_menu/forwardmsg_100.png")), QT_TRANSLATE_NOOP("context_menu", "Forward"), makeData("forward"));
-        ContentMenu_->addActionWithIcon(QIcon(Utils::parse_image_name(":/resources/context_menu/closechat_100.png")), QT_TRANSLATE_NOOP("context_menu", "Delete for me"), makeData("delete"));
+        contextMenu->addActionWithIcon(QIcon(Utils::parse_image_name(qsl(":/context_menu/close_100"))), QT_TRANSLATE_NOOP("context_menu", "Delete for me"), makeData(qsl("delete")));
 
-        connect(ContentMenu_, &ContextMenu::triggered, this, &MessageItem::menu, Qt::QueuedConnection);
+        connect(contextMenu, &ContextMenu::triggered, this, &MessageItem::menu, Qt::QueuedConnection);
+        connect(contextMenu, &ContextMenu::triggered, contextMenu, &ContextMenu::deleteLater, Qt::QueuedConnection);
+        connect(contextMenu, &ContextMenu::aboutToHide, contextMenu, &ContextMenu::deleteLater, Qt::QueuedConnection);
 
         const auto isOutgoing = (Data_->Outgoing_.Set_ && Data_->Outgoing_.Outgoing_);
-        const auto isChatAdmin = Logic::getContactListModel()->isYouAdmin(Data_->AimId_);
-        if (isOutgoing || isChatAdmin)
+        if (isOutgoing || Logic::getContactListModel()->isYouAdmin(Data_->AimId_))
         {
-            ContentMenu_->addActionWithIcon(QIcon(
-                Utils::parse_image_name(":/resources/context_menu/closechat_all_100.png")),
+            contextMenu->addActionWithIcon(QIcon(
+                Utils::parse_image_name(qsl(":/context_menu/closeall_100"))),
                 QT_TRANSLATE_NOOP("context_menu", "Delete for all"),
-                makeData("delete_all"));
+                makeData(qsl("delete_all")));
         }
-
-        ContentMenu_->popup(_pos);
+        contextMenu->popup(_pos);
     }
 
     void MessageItem::trackMenu(const QPoint& _pos)
     {
-        if (Menu_)
-            delete Menu_;
+        auto menu = new ContextMenu(this);
+        menu->addActionWithIcon(qsl(":/context_menu/reply_100"), QT_TRANSLATE_NOOP("context_menu", "Reply"), makeData(qsl("quote")));
+        menu->addActionWithIcon(qsl(":/context_menu/copy_100"), QT_TRANSLATE_NOOP("context_menu", "Copy text"), makeData(qsl("copy")));
+        menu->addActionWithIcon(qsl(":/context_menu/forward_100"), QT_TRANSLATE_NOOP("context_menu", "Forward"), makeData(qsl("forward")));
 
-        Menu_ = new ContextMenu(this);
-        Menu_->addActionWithIcon(":/resources/context_menu/copy_100.png", QT_TRANSLATE_NOOP("context_menu", "Copy"), makeData("copy"));
-        Menu_->addActionWithIcon(":/resources/context_menu/quote_100.png", QT_TRANSLATE_NOOP("context_menu", "Quote"), makeData("quote"));
-        Menu_->addActionWithIcon(":/resources/context_menu/forwardmsg_100.png", QT_TRANSLATE_NOOP("context_menu", "Forward"), makeData("forward"));
+        menu->addActionWithIcon(qsl(":/context_menu/close_100"), QT_TRANSLATE_NOOP("context_menu", "Delete for me"), makeData(qsl("delete")));
 
-        Menu_->addActionWithIcon(":/resources/context_menu/closechat_100.png", QT_TRANSLATE_NOOP("context_menu", "Delete for me"), makeData("delete"));
-
-        connect(Menu_, &ContextMenu::triggered, this, &MessageItem::menu, Qt::QueuedConnection);
+        connect(menu, &ContextMenu::triggered, this, &MessageItem::menu, Qt::QueuedConnection);
+        connect(menu, &ContextMenu::triggered, menu, &ContextMenu::deleteLater, Qt::QueuedConnection);
+        connect(menu, &ContextMenu::aboutToHide, menu, &ContextMenu::deleteLater, Qt::QueuedConnection);
 
         const auto isOutgoing = (Data_->Outgoing_.Set_ && Data_->Outgoing_.Outgoing_);
-        const auto isChatAdmin = Logic::getContactListModel()->isYouAdmin(Data_->AimId_);
-        if (isOutgoing || isChatAdmin)
+        if (isOutgoing || Logic::getContactListModel()->isYouAdmin(Data_->AimId_))
         {
-            Menu_->addActionWithIcon(
-                ":/resources/context_menu/closechat_all_100.png",
+            menu->addActionWithIcon(
+                qsl(":/context_menu/closeall_100"),
                 QT_TRANSLATE_NOOP("context_menu", "Delete for all"),
-                makeData("delete_all"));
+                makeData(qsl("delete_all")));
         }
 
         if (GetAppConfig().IsContextMenuFeaturesUnlocked())
         {
-            Menu_->addActionWithIcon(":/resources/copy_100.png", "Copy Message ID", makeData("dev:copy_message_id"));
+            menu->addActionWithIcon(qsl(":/context_menu/copy_100"), qsl("Copy Message ID"), makeData(qsl("dev:copy_message_id")));
         }
 
-        Menu_->popup(_pos);
+        menu->popup(_pos);
     }
 
     void MessageItem::mouseReleaseEvent(QMouseEvent* _e)
@@ -422,7 +440,7 @@ namespace Ui
         {
             if (isOverAvatar(_e->pos()))
             {
-                emit adminMenuRequest(Data_->Sender_);
+                emit avatarMenuRequest(Data_->Sender_);
                 return;
             }
             QPoint globalPos = mapToGlobal(_e->pos());
@@ -433,7 +451,7 @@ namespace Ui
             else if (ContentWidget_)
             {
                 if (ContentWidget_->hasContextMenu(globalPos))
-                    trackContentMenu(globalPos);
+                    trackContextMenu(globalPos);
                 else
                     trackMenu(globalPos);
             }
@@ -469,15 +487,14 @@ namespace Ui
         drawAvatar(p);
 
         drawMessageBubble(p);
-
-        if (LastRead_)
+        const auto lastStatus = getLastStatus();
+        if (lastStatus != LastStatus::None)
         {
-            drawLastReadAvatar(
-                p,
+            drawLastStatusIcon(p,
+                lastStatus,
                 Data_->Sender_,
                 Data_->SenderFriendly_,
-                MessageStyle::getRightMargin(isOutgoing()),
-                MessageStyle::getLastReadAvatarMargin());
+                isOutgoing() ? 0 : MessageStyle::getTimeMaxWidth());
         }
     }
 
@@ -500,6 +517,19 @@ namespace Ui
         HistoryControlPageItem::resizeEvent(_e);
     }
 
+    void MessageItem::hideEvent(QHideEvent *)
+    {
+        if (!TimeWidget_)
+            return;
+
+        if (get_gui_settings()->get_value<bool>(settings_hide_message_timestamps, true))
+        {
+            TimeWidget_->hideAnimated();
+
+            hideMessageStatus();
+        }
+    }
+
     void MessageItem::createMessageBody()
     {
         if (MessageBody_)
@@ -517,7 +547,7 @@ namespace Ui
         );
         updateMessageBodyColor();
 
-        QString styleSheet = QString("background: transparent; selection-background-color: %1;")
+        const QString styleSheet = qsl("background: transparent; selection-background-color: %1;")
             .arg(Utils::rgbaStringFromColor(Utils::getSelectionColor()));
 
         MessageBody_->document()->setDefaultStyleSheet(MessageStyle::getMessageStyle());
@@ -526,7 +556,7 @@ namespace Ui
         MessageBody_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         MessageBody_->horizontalScrollBar()->setEnabled(false);
         MessageBody_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        MessageBody_->setOpenLinks(true);
+        MessageBody_->setOpenLinks(false);
         MessageBody_->setOpenExternalLinks(true);
         MessageBody_->setWordWrapMode(QTextOption::WordWrap);
         Utils::ApplyStyle(MessageBody_, styleSheet);
@@ -573,7 +603,7 @@ namespace Ui
             return;
         }
 
-        const auto &rect = getAvatarRect();
+        const auto rect = getAvatarRect();
         if (rect.isValid())
         {
             _p.drawPixmap(rect, avatar);
@@ -605,8 +635,6 @@ namespace Ui
 
     QRect MessageItem::evaluateAvatarRect() const
     {
-        assert(!AvatarRect_.isValid());
-
         QRect result(
             MessageStyle::getLeftMargin(isOutgoing()),
             evaluateTopContentMargin(),
@@ -712,7 +740,10 @@ namespace Ui
 
     int32_t MessageItem::evaluateLeftContentMargin() const
     {
-        auto leftContentMargin = MessageStyle::getLeftMargin(isOutgoing());
+        const auto isOutgoing = this->isOutgoing();
+        auto leftContentMargin = MessageStyle::getLeftMargin(isOutgoing);
+        if (isOutgoing)
+            leftContentMargin += MessageStyle::getTimeMaxWidth();
 
         if (isAvatarVisible())
         {
@@ -725,10 +756,10 @@ namespace Ui
 
     int32_t MessageItem::evaluateRightContentMargin() const
     {
-        auto rightContentMargin =
-            MessageStyle::getRightMargin(isOutgoing()) +
-            MessageStyle::getTimeMaxWidth();
-
+        const auto isOutgoing = this->isOutgoing();
+        auto rightContentMargin = MessageStyle::getRightMargin(isOutgoing);
+        if (!isOutgoing)
+            rightContentMargin += MessageStyle::getTimeMaxWidth();
         return rightContentMargin;
     }
 
@@ -745,7 +776,7 @@ namespace Ui
         return topContentMargin;
     }
 
-    const QRect& MessageItem::getAvatarRect() const
+    QRect MessageItem::getAvatarRect() const
     {
         assert(isAvatarVisible());
 
@@ -817,7 +848,7 @@ namespace Ui
         updateContentWidgetHorGeometry(contentHorGeometry);
 
         const auto contentVertGeometry = evaluateContentVertGeometry();
-        const QRect contentGeometry(
+        QRect contentGeometry(
             contentHorGeometry.left(),
             contentVertGeometry.top(),
             contentHorGeometry.width(),
@@ -826,18 +857,29 @@ namespace Ui
         assert(!contentGeometry.isEmpty());
 
         updateMessageBodyFullGeometry(contentGeometry);
-
-        const auto bubbleGeometry = evaluateBubbleGeometry(contentGeometry);
-
-        updateBubbleGeometry(bubbleGeometry);
-
         updateSenderGeometry();
 
+        if (ContentWidget_)
+        {
+            const auto previewTopLeft = ContentWidget_->getLastPreviewGeometry().topLeft();
+            if (!previewTopLeft.isNull())
+            {
+                const auto x = ContentWidget_->mapToParent(previewTopLeft);
+                contentGeometry.setLeft(x.x());
+            }
+        }
+
+        if (!ContentWidget_)
+            updateBubbleGeometry(evaluateBubbleGeometry(contentGeometry));
+        else
+            updateBubbleGeometry(contentGeometry);
+
         updateTimeGeometry(contentGeometry);
+        if (isAvatarVisible())
+            AvatarRect_ = evaluateAvatarRect();
 
         setUpdatesEnabled(true);
     }
-
 
     QString MessageItem::contentClass() const
     {
@@ -847,20 +889,8 @@ namespace Ui
 
             const auto &text = Data_->Text_;
 
-            QString result;
-            result.reserve(64);
-
-            result.append("text(");
-            result.append(text.left(N_OF_LEFTMOST_CHARS));
-
-            if (text.length() > N_OF_LEFTMOST_CHARS)
-            {
-                result.append("...");
-            }
-
-            result.append(")");
-
-            return result;
+            const auto hellip = ql1s(text.length() > N_OF_LEFTMOST_CHARS ? "..." : "");
+            return ql1s("text(") % text.leftRef(N_OF_LEFTMOST_CHARS) % hellip % ql1c(')');
         }
 
         return ContentWidget_->metaObject()->className();
@@ -884,11 +914,8 @@ namespace Ui
         }
 
         auto left = _contenHorGeometry.left();
-
         if (ContentWidget_->isBlockElement())
-        {
             left += MessageStyle::getBubbleHorPadding();
-        }
 
         ContentWidget_->move(
             left,
@@ -932,9 +959,11 @@ namespace Ui
             return;
         }
 
+        const auto bubblePadding = MessageStyle::getBubbleHorPadding();
+
         auto messageBodyWidth = _bubbleHorGeometry.width();
-        messageBodyWidth -= MessageStyle::getBubbleHorPadding();
-        messageBodyWidth -= MessageStyle::getBubbleHorPadding();
+        messageBodyWidth -= bubblePadding;
+        messageBodyWidth -= bubblePadding;
 
         const auto widthChanged = (messageBodyWidth != MessageBody_->getTextSize().width());
         if (!widthChanged)
@@ -953,11 +982,12 @@ namespace Ui
             return;
         }
 
+        const auto textSize = MessageBody_->getTextSize();
         const QRect messageBodyGeometry(
             bubbleRect.left() + MessageStyle::getBubbleHorPadding(),
             bubbleRect.top() + getMessageTopPadding(),
-            MessageBody_->getTextSize().width(),
-            MessageBody_->getTextSize().height()
+            textSize.width(),
+            textSize.height()
         );
         assert(!messageBodyGeometry.isEmpty());
 
@@ -996,7 +1026,7 @@ namespace Ui
 
         auto timeX = 0;
 
-        if (posHint.x() > 0)
+        if (posHint.x() > 0) // dead code
         {
             timeX = posHint.x();
             timeX += evaluateLeftContentMargin();
@@ -1004,13 +1034,15 @@ namespace Ui
         }
         else
         {
-            timeX = _contentGeometry.right();
-            timeX += MessageStyle::getTimeMarginX();
+            if (isOutgoing())
+                timeX = _contentGeometry.left() - timeWidgetSize.width() - MessageStyle::getTimeMarginX();
+            else
+                timeX = _contentGeometry.right() + MessageStyle::getTimeMarginX();
         }
 
         auto timeY = 0;
 
-        if (posHint.y() > 0)
+        if (posHint.y() > 0) // dead code
         {
             timeY = posHint.y();
             timeY += evaluateTopContentMargin();
@@ -1193,18 +1225,19 @@ namespace Ui
 
         QString format = (
             _textonly ?
-                "" :
-                QString("%1 (%2):\n").arg(
+                QString() :
+                qsl("%1 (%2):\n").arg(
                     displayName,
-                    QDateTime::fromTime_t(Data_->Time_).toString("dd.MM.yyyy hh:mm")
+                    QDateTime::fromTime_t(Data_->Time_).toString(qsl("dd.MM.yyyy hh:mm"))
                 )
         );
 
         if (MessageBody_)
 		{
-            if (!MessageBody_->selection().isEmpty())
+            const auto bodySelection = MessageBody_->selection();
+            if (!bodySelection.isEmpty())
             {
-			    format += MessageBody_->selection();
+                format += bodySelection;
                 return format;
             }
             return QString();
@@ -1223,7 +1256,7 @@ namespace Ui
 
         if (!_textonly && !format.isEmpty())
         {
-            format += "\n";
+            format += ql1c('\n');
         }
 
         return format;
@@ -1242,22 +1275,20 @@ namespace Ui
 
     void MessageItem::avatarClicked()
     {
-        emit Utils::InterConnector::instance().profileSettingsShow(Data_->Sender_);
-        GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::profile_avatar);
+        Utils::openDialogOrProfile(Data_->Sender_, Data_->AimId_);
     }
 
     void MessageItem::forwardRoutine()
     {
         if (isFileSharing())
         {
-            HistoryControl::FileSharingWidget* p = qobject_cast<HistoryControl::FileSharingWidget*>(ContentWidget_);
-            p->shareRoutine();
+            auto p = qobject_cast<HistoryControl::FileSharingWidget*>(ContentWidget_);
+            if (p)
+                p->shareRoutine();
         }
         else
         {
-            QList<Data::Quote> q;
-            q.push_back(getQuote(true));
-            emit forward(q);
+            emit forward({ getQuote(true) });
         }
     }
 
@@ -1278,12 +1309,17 @@ namespace Ui
 			ContentWidget_->startQuoteAnimation();
 	}
 
+    void MessageItem::setMentions(Data::MentionMap _mentions)
+    {
+        Data_->Mentions_ = std::move(_mentions);
+    }
+
 	void MessageItem::menu(QAction* _action)
 	{
 		const auto params = _action->data().toMap();
-		const auto command = params["command"].toString();
+		const auto command = params[qsl("command")].toString();
 
-        if (command == "dev:copy_message_id")
+        if (command == ql1s("dev:copy_message_id"))
         {
             const auto idStr = QString::number(getId());
 
@@ -1305,12 +1341,13 @@ namespace Ui
             );
         }
 
+        const bool isCopyCommand = command == ql1s("copy");
         auto format = (
-            (command == "copy") ?
+            isCopyCommand ?
                 QString() :
-                QString("%1 (%2):\n").arg(
+                qsl("%1 (%2):\n").arg(
                     displayName,
-                    QDateTime::fromTime_t(Data_->Time_).toString("dd.MM.yyyy hh:mm")
+                    QDateTime::fromTime_t(Data_->Time_).toString(qsl("dd.MM.yyyy hh:mm"))
                 )
         );
 
@@ -1330,37 +1367,35 @@ namespace Ui
             }
         }
 
-		if (command == "copy")
+		if (isCopyCommand)
 		{
 			emit copy(format);
 		}
-		else if (command == "quote")
+		else if (command == ql1s("quote"))
 		{
-            QList<Data::Quote> q;
-            q.push_back(getQuote(true));
-            emit quote(q);
+            emit quote({ getQuote(true) });
 		}
-        else if (command == "forward")
+        else if (command == ql1s("forward"))
         {
             forwardRoutine();
         }
-        else if (command == "copy_link")
+        else if (command == ql1s("copy_link"))
         {
             emit copy(ContentWidget_->toLink());
         }
-        else if (command == "open_in_browser")
+        else if (command == ql1s("open_in_browser"))
         {
             QDesktopServices::openUrl(ContentWidget_->toLink());
         }
-        else if (command == "copy_file")
+        else if (command == ql1s("copy_file"))
         {
             ContentWidget_->copyFile();
         }
-        else if (command == "save_as")
+        else if (command == ql1s("save_as"))
         {
             ContentWidget_->saveAs();
         }
-        else if ((command == "delete_all") || (command == "delete"))
+        else if ((command == ql1s("delete_all")) || (command == ql1s("delete")))
         {
             const auto isPendingMessage = (Data_->Id_ <= -1);
             if (isPendingMessage)
@@ -1368,23 +1403,20 @@ namespace Ui
                 return;
             }
 
-            const auto is_shared = (command == "delete_all");
-            std::vector<int64_t> ids;
-            ids.push_back(Data_->Id_);
-
             QString text = QT_TRANSLATE_NOOP("popup_window", "Are you sure you want to delete message?");
 
             auto confirm = Utils::GetConfirmationWithTwoButtons(
-                QT_TRANSLATE_NOOP("popup_window", "Cancel"),
-                QT_TRANSLATE_NOOP("popup_window", "Yes"),
+                QT_TRANSLATE_NOOP("popup_window", "CANCEL"),
+                QT_TRANSLATE_NOOP("popup_window", "YES"),
                 text,
                 QT_TRANSLATE_NOOP("popup_window", "Delete message"),
-                NULL
+                nullptr
             );
 
             if (confirm && Data_)
             {
-                GetDispatcher()->deleteMessages(ids, Data_->AimId_, is_shared);
+                const auto is_shared = (command == ql1s("delete_all"));
+                GetDispatcher()->deleteMessages({ Data_->Id_ }, Data_->AimId_, is_shared);
             }
         }
 	}
@@ -1392,6 +1424,32 @@ namespace Ui
     void MessageItem::onRecreateAvatarRect()
     {
         AvatarRect_ = QRect();
+    }
+
+    void MessageItem::showHiddenControls()
+    {
+        if (TimeWidget_ && isVisible() && get_gui_settings()->get_value<bool>(settings_hide_message_timestamps, true))
+            TimeWidget_->showAnimated();
+
+        showMessageStatus();
+    }
+
+    void MessageItem::hideHiddenControls()
+    {
+        const bool canHide = TimeWidget_
+            && !bubbleHovered_
+            && isVisible()
+            && get_gui_settings()->get_value<bool>(settings_hide_message_timestamps, true);
+
+        if (canHide)
+            TimeWidget_->hideAnimated();
+
+        hideMessageStatus();
+    }
+
+    void MessageItem::setTimestampHoverEnabled(const bool _enabled)
+    {
+        timestampHoverEnabled_ = _enabled;
     }
 
     bool MessageItem::isMessageBubbleVisible() const
@@ -1418,15 +1476,15 @@ namespace Ui
         setUpdatesEnabled(false);
 
         createMessageBody();
+        MessageBody_->setMentions(Data_->Mentions_);
 
-		MessageBody_->verticalScrollBar()->blockSignals(true);
+        {
+            const QSignalBlocker blocker(MessageBody_->verticalScrollBar());
+            MessageBody_->document()->clear();
 
-        MessageBody_->document()->clear();
-
-        const bool showLinks = (!isNotAuth() || isOutgoing());
-		Logic::Text4Edit(_message, *MessageBody_, Logic::Text2DocHtmlMode::Escape, showLinks, true);
-
-        MessageBody_->verticalScrollBar()->blockSignals(false);
+            const bool showLinks = (!isNotAuth() || isOutgoing());
+            Logic::Text4Edit(_message, *MessageBody_, Logic::Text2DocHtmlMode::Escape, showLinks, true);
+        }
 
         MessageBody_->setVisible(true);
 
@@ -1439,22 +1497,15 @@ namespace Ui
         update();
 	}
 
-    bool MessageItem::setLastRead(const bool _isLastRead)
+    void MessageItem::setLastStatus(LastStatus _lastStatus)
     {
-        HistoryControlPageItem::setLastRead(_isLastRead);
-
-        if (_isLastRead == LastRead_)
+        if (getLastStatus() != _lastStatus)
         {
-            return false;
+            HistoryControlPageItem::setLastStatus(_lastStatus);
+            Layout_->setDirty();
+            updateGeometry();
+            update();
         }
-
-        LastRead_ = _isLastRead;
-
-        Layout_->setDirty();
-
-        updateGeometry();
-
-        return true;
     }
 
     void MessageItem::setDeliveredToServer(const bool _delivered)
@@ -1470,29 +1521,7 @@ namespace Ui
         Data_->Chat_ = _isMChat;
 
         if (_isOutgoing && (Data_->deliveredToServer_ != _isDeliveredToServer || _isInit))
-        {
             Data_->deliveredToServer_ = _isDeliveredToServer;
-
-            if (!_isDeliveredToServer)
-            {
-                QGraphicsOpacityEffect* opacityEffect = new QGraphicsOpacityEffect(this);
-                opacityEffect->setOpacity(0.5);
-                setGraphicsEffect(opacityEffect);
-
-                if (!_isInit)
-                    update();
-            }
-            else
-            {
-                auto effect = graphicsEffect();
-                if (effect)
-                {
-                    setGraphicsEffect(nullptr);
-                    if (!_isInit)
-                        update();
-                }
-            }
-        }
 	}
 
     void MessageItem::setMchatSenderAimId(const QString& _senderAimId)
@@ -1523,7 +1552,9 @@ namespace Ui
 
         TimeWidget_->setTime(_time);
 
-        TimeWidget_->show();
+        updateTimeGeometry(geometry());
+
+        TimeWidget_->showIfNeeded();
 	}
 
 	void MessageItem::setTopMargin(const bool _value)
@@ -1552,7 +1583,7 @@ namespace Ui
 
 		ContentWidget_ = _widget;
 
-        connect(ContentWidget_, SIGNAL(stateChanged()), this, SLOT(updateData()), Qt::UniqueConnection);
+        connect(ContentWidget_, &HistoryControl::MessageContentWidget::stateChanged, this, &MessageItem::updateData, Qt::UniqueConnection);
 
         if (!parent())
         {
@@ -1579,7 +1610,6 @@ namespace Ui
 		Utils::grabTouchWidget(ContentWidget_);
 
         updateGeometry();
-
         update();
 	}
 
@@ -1633,24 +1663,13 @@ namespace Ui
 
 	QString MessageItem::toLogString() const
 	{
-		QString result;
-		result.reserve(512);
-
-		QTextStream fmt(&result);
-
-		if (ContentWidget_)
-		{
-			fmt << ContentWidget_->toLogString();
-		}
-
+        const auto contentWidgetLogStr = ContentWidget_ ? ContentWidget_->toLogString() : QString();
 		if (MessageBody_)
 		{
-			auto text = MessageBody_->getPlainText();
-			text.replace("\n", "\\n");
-			fmt << "	text=<" << text << ">";
+			const auto text = MessageBody_->getPlainText().replace(ql1c('\n'), ql1s("\\n"));
+            return contentWidgetLogStr % ql1s("	text=<") % text % ql1c('>');
 		}
-
-		return result;
+        return contentWidgetLogStr;
 	}
 
     bool MessageItem::updateData()
@@ -1725,21 +1744,16 @@ namespace Ui
         setMchatSender(Data_->SenderFriendly_);
 	}
 
-	std::shared_ptr<MessageData> MessageItem::getData()
+	std::shared_ptr<MessageData> MessageItem::getData() const
 	{
 		return Data_;
 	}
 
     namespace
     {
-
         int32_t getMessageTopPadding()
         {
-#ifdef __linux__
-            return Utils::scale_value(7);
-#else
             return Utils::scale_value(4);
-#endif //__linux__
         }
 
         int32_t getMessageBottomPadding()
@@ -1750,7 +1764,7 @@ namespace Ui
         QMap<QString, QVariant> makeData(const QString& _command)
         {
             QMap<QString, QVariant> result;
-            result["command"] = _command;
+            result[qsl("command")] = _command;
             return result;
         }
     }

@@ -5,9 +5,9 @@ using namespace core;
 
 
 core::collection_value::collection_value()
-    :	ref_count_(1), 
-       type_(collection_value_type::vt_empty),
-       log_data_(0)
+    :  type_(collection_value_type::vt_empty),
+       log_data_(0),
+       ref_count_(1)
 {
 
 }
@@ -122,7 +122,7 @@ void core::collection_value::set_as_string(const char* val, int32_t len)
 {
     clear();
     type_ = collection_value_type::vt_string;
-    data__.string_value_ = new char[len+1];
+    data__.string_value_ = new char[len + 1];
     if (len)
         memcpy(data__.string_value_, val, len);
     data__.string_value_[len] = '\0';
@@ -273,7 +273,7 @@ uint32_t core::collection_value::get_as_uint()
 const char* core::collection_value::log() const
 {
     free(log_data_);
-    log_data_ = 0;
+    log_data_ = nullptr;
 
     switch (type_)
     {
@@ -442,13 +442,20 @@ ihheaders_list* core::collection::create_hheaders_list()
 
 void core::collection::set_value(const char* name, ivalue* value)
 {
+    auto iter = values_.find(name);
+    if (iter != values_.end())
+    {
+        iter->second->release();
+        values_.erase(iter);
+    }
+
     values_[name] = value;
     value->addref();
 }
 
 ivalue* core::collection::get_value(const char* name) const
 {
-    auto iter_value = values_.find(name);
+    const auto iter_value = values_.find(name);
     if (iter_value == values_.end())
     {
         assert(!"value doesn't exist");
@@ -465,8 +472,8 @@ void core::collection::clear()
 {
     free(log_data_);
 
-    for (auto iter = values_.begin(); iter != values_.end(); iter++)
-        iter->second->release();
+    for (const auto& x : values_)
+        x.second->release();
 }
 
 ivalue* core::collection::first()
@@ -481,22 +488,23 @@ ivalue* core::collection::first()
 
 ivalue* core::collection::next()
 {
-    if (cursor_ == values_.end())
+    const auto end = values_.end();
+    if (cursor_ == end)
         return nullptr;
 
-    cursor_++;
-    if (cursor_ == values_.end())
+    ++cursor_;
+    if (cursor_ == end)
         return nullptr;
 
     return cursor_->second;
 }
 
-int32_t core::collection::count()
+int32_t core::collection::count() const
 {
     return (int32_t) values_.size();
 }
 
-bool core::collection::empty()
+bool core::collection::empty() const
 {
     return values_.empty();
 }
@@ -514,21 +522,20 @@ const char* core::collection::log() const
 
     std::stringstream ss;
 
-    for (auto iter = values_.begin(); iter != values_.end(); iter++)
-    {
-        ss << iter->first << "=" << iter->second->log() << "\n";
-    }
+    for (const auto& x : values_)
+        ss << x.first << '=' << x.second->log() << '\n';
 
     std::string s = ss.str();
 
-    if (!s.length())
+    const auto text_size = s.size();
+    if (!text_size)
         return "";
 
     free(log_data_);
-    log_data_ = (char*) malloc(s.length() + 1);
+    log_data_ = (char*) malloc(text_size + 1);
 
-    memcpy(log_data_, s.c_str(), s.length());
-    log_data_[s.length()] = 0;
+    memcpy(log_data_, s.c_str(), text_size);
+    log_data_[text_size] = 0;
 
     return log_data_;
 }
@@ -547,8 +554,8 @@ core::coll_array::coll_array()
 
 core::coll_array::~coll_array()
 {
-    for (uint32_t i = 0 ; i < vec_.size(); i++)
-        vec_[i]->release();
+    for (auto x : vec_)
+        x->release();
 }
 
 int32_t core::coll_array::addref()
@@ -596,15 +603,15 @@ bool core::coll_array::empty() const
 
 
 hheaders_list::hheaders_list()
-    :	ref_count_(1), cursor_(headers_.end())
+    : cursor_(headers_.end()), ref_count_(1)
 {
 
 }
 
 hheaders_list::~hheaders_list()
 {
-    for (auto iter = headers_.begin(); iter != headers_.end(); iter++)
-        delete (*iter);
+    for (auto x : headers_)
+        delete x;
 }
 
 int32_t hheaders_list::addref()
@@ -650,12 +657,12 @@ hheader* hheaders_list::next()
     return (*cursor_);
 }
 
-int32_t hheaders_list::count()
+int32_t hheaders_list::count() const
 {
     return (int32_t) headers_.size();
 }
 
-bool hheaders_list::empty()
+bool hheaders_list::empty() const
 {
     return headers_.empty();
 }

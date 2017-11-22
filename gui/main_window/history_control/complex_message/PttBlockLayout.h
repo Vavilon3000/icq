@@ -15,10 +15,6 @@ public:
 
     virtual ~PttBlockLayout() override;
 
-    virtual QRect getAuthorAvatarRect() const override;
-
-    virtual QRect getAuthorNickRect() const override;
-
     virtual const QRect& getContentRect() const override;
 
     const QRect& getCtrlButtonRect() const;

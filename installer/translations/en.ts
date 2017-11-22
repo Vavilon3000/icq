@@ -24,20 +24,20 @@
         <translation>ICQ</translation>
     </message>
     <message>
-        <source>Back</source>
-        <translation>Back</translation>
-    </message>
-    <message>
-        <source>Next</source>
-        <translation>Next</translation>
-    </message>
-    <message>
         <source>Choose ICQ account</source>
         <translation>Choose ICQ account</translation>
     </message>
     <message>
         <source>Skip step</source>
         <translation>Skip step</translation>
+    </message>
+    <message>
+        <source>BACK</source>
+        <translation>BACK</translation>
+    </message>
+    <message>
+        <source>NEXT</source>
+        <translation>NEXT</translation>
     </message>
 </context>
 <context>
@@ -108,16 +108,16 @@
         <translation>Privacy Policy</translation>
     </message>
     <message>
-        <source>Install</source>
-        <translation>Install</translation>
-    </message>
-    <message>
         <source>Welcome to Mail.Ru Agent</source>
         <translation>Welcome to Mail.Ru Agent</translation>
     </message>
     <message>
         <source>This will install Mail.Ru Agent on your computer</source>
         <translation>This will install Mail.Ru Agent on your computer</translation>
+    </message>
+    <message>
+        <source>INSTALL</source>
+        <translation>INSTALL</translation>
     </message>
 </context>
 <context>

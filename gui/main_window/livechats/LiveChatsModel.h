@@ -4,20 +4,20 @@
 
 namespace Logic
 {
-	class LiveChatsModel : public QAbstractListModel
-	{
-		Q_OBJECT
+    class LiveChatsModel : public QAbstractListModel
+    {
+        Q_OBJECT
     Q_SIGNALS:
         void selected(Data::ChatInfo);
 
-	public:
-		explicit LiveChatsModel(QObject* _parent);
+    public:
+        explicit LiveChatsModel(QObject* _parent);
 
         void initIfNeeded();
 
-		int rowCount(const QModelIndex& _parent = QModelIndex()) const override;
-		QVariant data(const QModelIndex& _index, int _role) const override;
-		Qt::ItemFlags flags(const QModelIndex& _index) const override;
+        int rowCount(const QModelIndex& _parent = QModelIndex()) const override;
+        QVariant data(const QModelIndex& _index, int _role) const override;
+        Qt::ItemFlags flags(const QModelIndex& _index) const override;
 
         void select(const QModelIndex& _index);
 
@@ -26,21 +26,21 @@ namespace Logic
         void joined(const QString& _aimId);
 
     private Q_SLOTS:
-        void chatsHome(QList<Data::ChatInfo> _chats, QString _newTag, bool _restart, bool _finished);
+        void chatsHome(const QVector<Data::ChatInfo>& _chats, const QString& _newTag, bool _restart, bool _finished);
         void chatsHomeError(int);
-        void avatarLoaded(QString);
+        void avatarLoaded(const QString&);
 
     private:
         void requestMore() const;
 
-	private:
-        QList<Data::ChatInfo> cache_;
+    private:
+        QVector<Data::ChatInfo> cache_;
         QString tag_;
         mutable QString requestedTag_;
         bool finished_;
         bool inited_;
-	};
+    };
 
-	LiveChatsModel* GetLiveChatsModel();
+    LiveChatsModel* GetLiveChatsModel();
     void ResetLiveChatsModel();
 }

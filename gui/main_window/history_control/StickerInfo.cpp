@@ -7,18 +7,18 @@
 namespace HistoryControl
 {
 
-	StickerInfoSptr StickerInfo::Make(const core::coll_helper& _coll)
-	{
-		const auto setId = _coll.get_value_as_uint("set_id");
-		assert(setId > 0);
+    StickerInfoSptr StickerInfo::Make(const core::coll_helper& _coll)
+    {
+        const auto setId = _coll.get_value_as_uint("set_id");
+        assert(setId > 0);
 
-		const auto stickerId = _coll.get_value_as_uint("sticker_id");
-		assert(stickerId > 0);
+        const auto stickerId = _coll.get_value_as_uint("sticker_id");
+        assert(stickerId > 0);
 
-		return StickerInfoSptr(
-			new StickerInfo(setId, stickerId)
-		);
-	}
+        return StickerInfoSptr(
+            new StickerInfo(setId, stickerId)
+        );
+    }
 
     StickerInfoSptr StickerInfo::Make(const quint32 _setId, const quint32 _stickerId)
     {
@@ -30,12 +30,12 @@ namespace HistoryControl
             );
     }
 
-	StickerInfo::StickerInfo(const quint32 _setId, const quint32 _stickerId)
-		: SetId_(_setId)
-		, StickerId_(_stickerId)
-	{
-		assert(SetId_ > 0);
-		assert(StickerId_ > 0);
-	}
+    StickerInfo::StickerInfo(const quint32 _setId, const quint32 _stickerId)
+        : SetId_(_setId)
+        , StickerId_(_stickerId)
+    {
+        assert(SetId_ > 0);
+        assert(StickerId_ > 0);
+    }
 
 }

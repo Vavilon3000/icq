@@ -12,7 +12,7 @@
 namespace Ui
 {
     SearchContactsWidget::SearchContactsWidget(QWidget* _parent)
-        :	QWidget(_parent)
+        : QWidget(_parent)
         , rootLayout_(new QVBoxLayout(this))
         , filtersWidget_(new SearchFilters(this))
         , resultsWidget_(new SearchResults(this))
@@ -20,7 +20,7 @@ namespace Ui
         , noMoreItems_(false)
         , ref_(new bool(false))
     {
-        setStyleSheet(Utils::LoadStyle(":/main_window/search_contacts/search_contacts.qss"));
+        setStyleSheet(Utils::LoadStyle(qsl(":/qss/search_contacts")));
 
         rootLayout_->setContentsMargins(Utils::scale_value(36), 0, 0, 0);
         rootLayout_->setSpacing(0);
@@ -35,14 +35,14 @@ namespace Ui
 
         setLayout(rootLayout_);
 
-        connect(filtersWidget_, SIGNAL(onSearch(search_params)), this, SLOT(onSearch(search_params)));
-        connect(filtersWidget_, SIGNAL(clicked()), this, SIGNAL(active()), Qt::QueuedConnection);
+        connect(filtersWidget_, &SearchFilters::onSearch, this, &SearchContactsWidget::onSearch);
+        connect(filtersWidget_, &SearchFilters::clicked, this, &SearchContactsWidget::active, Qt::QueuedConnection);
 
-        connect(resultsWidget_, SIGNAL(needMore(int)), this, SLOT(onNeedMoreResults(int)), Qt::QueuedConnection);
-        connect(resultsWidget_, SIGNAL(addContact(QString)), this, SLOT(onAddContact(QString)), Qt::QueuedConnection);
-        connect(resultsWidget_, SIGNAL(msgContact(QString)), this, SLOT(onMsgContact(QString)), Qt::QueuedConnection);
-        connect(resultsWidget_, SIGNAL(callContact(QString)), this, SLOT(onCallContact(QString)), Qt::QueuedConnection);
-        connect(resultsWidget_, SIGNAL(contactInfo(QString)), this, SLOT(onContactInfo(QString)), Qt::QueuedConnection);
+        connect(resultsWidget_, &SearchResults::needMore, this, &SearchContactsWidget::onNeedMoreResults, Qt::QueuedConnection);
+        connect(resultsWidget_, &SearchResults::addContact, this, &SearchContactsWidget::onAddContact, Qt::QueuedConnection);
+        connect(resultsWidget_, &SearchResults::msgContact, this, &SearchContactsWidget::onMsgContact, Qt::QueuedConnection);
+        connect(resultsWidget_, &SearchResults::callContact, this, &SearchContactsWidget::onCallContact, Qt::QueuedConnection);
+        connect(resultsWidget_, &SearchResults::contactInfo, this, &SearchContactsWidget::onContactInfo, Qt::QueuedConnection);
     }
 
 
@@ -88,15 +88,15 @@ namespace Ui
 
                 if (profile->unserialize2(coll_profile))
                 {
-                    profiles.push_back(profile);
+                    profiles.push_back(std::move(profile));
                 }
             }
         }
-        
+
         activeFilters_.setNextTag(_coll.get_value_as_string("next_tag"));
         if (activeFilters_.getNextTag().isEmpty() || _coll.get_value_as_bool("finish"))
             noMoreItems_ = true;
-        
+
         resultsWidget_->insertItems(profiles);
     }
 
@@ -111,7 +111,7 @@ namespace Ui
 
         noMoreItems_ = false;
 
-        search(activeFilters_.getKeyword().toStdString(), "", "");
+        search(activeFilters_.getKeyword().toStdString(), std::string(), std::string());
 
         resultsWidget_->clear();
     }
@@ -123,8 +123,8 @@ namespace Ui
         collection.set_value_as_string("phonenumber", _phoneNumber);
         collection.set_value_as_string("tag", _tag);
         requestInProgress_ = true;
-        
-        Ui::GetDispatcher()->post_message_to_core("contacts/search", collection.get(), this, [this](core::icollection* _coll)
+
+        Ui::GetDispatcher()->post_message_to_core(qsl("contacts/search"), collection.get(), this, [this](core::icollection* _coll)
         {
             requestInProgress_ = false;
             gui_coll_helper coll(_coll, false);
@@ -139,10 +139,10 @@ namespace Ui
         if (requestInProgress_ || noMoreItems_)
             return;
 
-        search("", "", activeFilters_.getNextTag().toStdString());
+        search(std::string(), std::string(), activeFilters_.getNextTag().toStdString());
     }
 
-    void SearchContactsWidget::onAddContact(QString _contact)
+    void SearchContactsWidget::onAddContact(const QString& _contact)
     {
         emit active();
         std::weak_ptr<bool> wr_ref = ref_;
@@ -154,18 +154,18 @@ namespace Ui
 
             resultsWidget_->contactAddResult(_contact, _res);
 
-            Logic::getContactListModel()->setCurrent(_contact, -1, true);			
+            Logic::getContactListModel()->setCurrent(_contact, -1, true);
         });
         GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::add_user_search_results);
     }
 
-    void SearchContactsWidget::onMsgContact(QString _contact)
+    void SearchContactsWidget::onMsgContact(const QString& _contact)
     {
         emit active();
         Logic::getContactListModel()->setCurrent(_contact, -1, true);
     }
 
-    void SearchContactsWidget::onCallContact(QString _contact)
+    void SearchContactsWidget::onCallContact(const QString& _contact)
     {
         emit active();
         Logic::getContactListModel()->setCurrent(_contact, -1, true);
@@ -173,7 +173,7 @@ namespace Ui
         GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::call_from_search_results);
     }
 
-    void SearchContactsWidget::onContactInfo(QString _contact)
+    void SearchContactsWidget::onContactInfo(const QString& _contact)
     {
         emit active();
         emit Utils::InterConnector::instance().profileSettingsShow(_contact);

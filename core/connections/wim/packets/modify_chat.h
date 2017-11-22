@@ -29,7 +29,7 @@ namespace core
         public:
 
             modify_chat(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const std::string& _aimid_,
                 const std::string& _m_chat_name);
 

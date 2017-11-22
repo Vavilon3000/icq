@@ -17,7 +17,7 @@ namespace platform_macos {
     void setAspectRatioForWindow(QWidget& wnd, float aspectRatio);
     void unsetAspectRatioForWindow(QWidget& wnd);
     
-    bool windowIsOverlapped(QWidget* frame);
+    bool windowIsOverlapped(QWidget* frame, const std::vector<QWidget*>& _exclude);
     void setWindowPosition(QWidget& widget, const QRect& widgetRect);
     void moveAboveParentWindow(QWidget& parent, QWidget& child);
     

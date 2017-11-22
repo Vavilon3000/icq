@@ -1,336 +1,374 @@
 #include "stdafx.h"
 #include "toolbar.h"
 
+#include "../../controls/CommonStyle.h"
 #include "../../controls/CustomButton.h"
 #include "../../controls/PictureWidget.h"
 #include "../../main_window/MainWindow.h"
 #include "../../utils/utils.h"
+#include "../../utils/InterConnector.h"
 
 namespace Ui
 {
-	using namespace Smiles;
+    using namespace Smiles;
 
-	AttachedView::AttachedView(QWidget* _view, QWidget* _view_parent)
-		:	view_(_view), 
-			view_parent_(_view_parent)
-	{
+    AttachedView::AttachedView(QWidget* _view, QWidget* _viewParent)
+        : View_(_view),
+        ViewParent_(_viewParent)
+    {
 
-	}
+    }
 
-	QWidget* AttachedView::get_view()
-	{
-		return view_;
-	}
+    QWidget* AttachedView::getView()
+    {
+        return View_;
+    }
 
-	QWidget* AttachedView::get_view_parent()
-	{
-		return view_parent_;
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// TabButton class
-	//////////////////////////////////////////////////////////////////////////
-	TabButton::TabButton(QWidget* _parent)
-		:	CustomButton(_parent, nullptr)
-			, attached_view_(nullptr, nullptr)
-			
-	{
-		Init();
-	}
-
-	TabButton::TabButton(QWidget* _parent, const QString& _resource)
-		:	CustomButton(_parent, _resource)
-			, resource_(_resource)
-			, attached_view_(nullptr)
-	{
-		Init();
-	}
-
-	TabButton::~TabButton()
-	{
-
-	}
-
-	void TabButton::Init()
-	{
-		setObjectName("tab_button_Widget");
-
-		setCursor(QCursor(Qt::PointingHandCursor));
-		setCheckable(true);
-
-		setFocusPolicy(Qt::NoFocus);
-	}
-
-	void TabButton::AttachView(const AttachedView& _view)
-	{
-		attached_view_ = _view;
-	}
-
-	const AttachedView& TabButton::GetAttachedView() const
-	{
-		return attached_view_;
-	}
+    QWidget* AttachedView::getViewParent()
+    {
+        return ViewParent_;
+    }
 
 
 
-	//////////////////////////////////////////////////////////////////////////
-	// Toolbar class
-	//////////////////////////////////////////////////////////////////////////
-	Toolbar::Toolbar(QWidget* _parent, buttons_align _align)
-		:	QFrame(_parent),
-			align_(_align),
-			button_left_(0),
-			button_right_(0),
-			button_left_cap_(0),
-			button_right_cap_(0),
-			anim_scroll_(0)
-	{
-		setObjectName("toolbar_Widget");
 
-		auto root_layout = Utils::emptyHLayout();
-		setLayout(root_layout);
+    //////////////////////////////////////////////////////////////////////////
+    // AddButton
+    //////////////////////////////////////////////////////////////////////////
+    AddButton::AddButton(QWidget* _parent)
+        : QWidget(_parent)
+    {
+        setFixedSize(Utils::scale_value(52), Utils::scale_value(_parent->geometry().height()));
 
-		view_area_ = new QScrollArea(this);
-		view_area_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-		view_area_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-		QWidget* scroll_area_widget = new QWidget(view_area_);
-		scroll_area_widget->setObjectName("scroll_area_widget");
-		view_area_->setWidget(scroll_area_widget);
-		view_area_->setWidgetResizable(true);
-		view_area_->setFocusPolicy(Qt::NoFocus);
+        QHBoxLayout* layout = new QHBoxLayout(this);
+        layout->setContentsMargins(0, 0, Utils::scale_value(12), 0);
+        layout->setAlignment(Qt::AlignRight);
 
-		Utils::grabTouchWidget(view_area_->viewport(), true);
-		Utils::grabTouchWidget(scroll_area_widget);
-		connect(QScroller::scroller(view_area_->viewport()), SIGNAL(stateChanged(QScroller::State)), this, SLOT(touchScrollStateChanged(QScroller::State)), Qt::QueuedConnection);
+        auto button = new CustomButton(this, qsl(":/smiles_menu/i_add_a_100"));
+        button->setActiveImage(qsl(":/smiles_menu/i_add_a_100"));
+        button->setFillColor(CommonStyle::getFrameColor());
+        button->setFixedSize(Utils::scale_value(32), Utils::scale_value(32));
+        button->setStyleSheet(qsl("border: none;"));
+        button->setFocusPolicy(Qt::NoFocus);
+        button->setCursor(QCursor(Qt::PointingHandCursor));
 
-		button_left_cap_ = new PictureWidget(this, ":/resources/smiles_menu/picker_shadow_left_100.png");
-		button_left_cap_->setFixedSize(Utils::scale_value(32), Utils::scale_value(48));
-		button_right_cap_ = new PictureWidget(this, ":/resources/smiles_menu/picker_shadow_right_100.png");
-		button_right_cap_->setFixedSize(Utils::scale_value(32), Utils::scale_value(48));
+        QObject::connect(button, &QPushButton::clicked, this, [this](const bool)
+        {
+            emit clicked();
+        });
 
-		root_layout->addWidget(view_area_);
-		
-		hor_layout_ = Utils::emptyHLayout();
+        layout->addWidget(button);
 
-		scroll_area_widget->setLayout(hor_layout_);
+        setLayout(layout);
 
-		QSpacerItem* horizontalSpacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
-		hor_layout_->addSpacerItem(horizontalSpacer);
+    }
 
-		if (_align == buttons_align::center)
-		{
-			QSpacerItem* horizontalSpacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
-			hor_layout_->addSpacerItem(horizontalSpacer);
-		}
+    void AddButton::paintEvent(QPaintEvent* _e)
+    {
+        QStyleOption opt;
+        opt.init(this);
+        QPainter p(this);
+        style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
 
-		initScroll();
-	}
+        return QWidget::paintEvent(_e);
+    }
 
-	Toolbar::~Toolbar()
-	{
 
-	}
+    void AddButton::resizeEvent(QResizeEvent * _e)
+    {
+        QWidget::resizeEvent(_e);
 
-	void Toolbar::resizeEvent(QResizeEvent * _e)
-	{
-		QWidget::resizeEvent(_e);
+        
+    }
 
-		if (!button_left_ || !button_right_)
-			return;
-	
-		QRect this_rect = geometry();
 
-		button_left_->move(0, 0);
-		button_right_->move(this_rect.width() - button_right_->width(), 0);
-		int qtMagicConst = Utils::scale_value(5);
-		button_left_cap_->move(button_left_cap_->width() - qtMagicConst, 0);
-		button_right_cap_->move(this_rect.width() - button_right_->width() - button_left_cap_->width() + qtMagicConst, 0);
+    //////////////////////////////////////////////////////////////////////////
+    // TabButton class
+    //////////////////////////////////////////////////////////////////////////
+    TabButton::TabButton(QWidget* _parent)
+        : CustomButton(_parent, nullptr)
+        , AttachedView_(nullptr, nullptr)
+        , Fixed_(false)
 
-        updateArrowButtonsVisibility();
-	}
+    {
+        Init();
+    }
 
-	void Toolbar::wheelEvent(QWheelEvent* _e)
-	{
-		int numDegrees = _e->delta() / 8;
-		int numSteps = numDegrees / 15;
+    TabButton::TabButton(QWidget* _parent, const QString& _resource)
+        : CustomButton(_parent, _resource)
+        , resource_(_resource)
+        , AttachedView_(nullptr)
+        , Fixed_(false)
+    {
+        Init();
+    }
+
+    TabButton::~TabButton()
+    {
+
+    }
+
+    void TabButton::Init()
+    {
+        setObjectName(qsl("tab_button_Widget"));
+
+        setCursor(QCursor(Qt::PointingHandCursor));
+        setCheckable(true);
+
+        setFocusPolicy(Qt::NoFocus);
+    }
+
+    void TabButton::AttachView(const AttachedView& _view)
+    {
+        AttachedView_ = _view;
+    }
+
+    const AttachedView& TabButton::GetAttachedView() const
+    {
+        return AttachedView_;
+    }
+
+    void TabButton::setFixed(const bool _isFixed)
+    {
+        Fixed_ = _isFixed;
+    }
+
+    bool TabButton::isFixed() const
+    {
+        return Fixed_;
+    }
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // Toolbar class
+    //////////////////////////////////////////////////////////////////////////
+    Toolbar::Toolbar(QWidget* _parent, buttons_align _align)
+        : QFrame(_parent)
+        , align_(_align)
+        , buttonStore_(nullptr)
+        , AnimScroll_(nullptr)
+    {
+        setObjectName(qsl("toolbar_Widget"));
+
+        auto rootLayout = Utils::emptyHLayout();
+        setLayout(rootLayout);
+
+        viewArea_ = new QScrollArea(this);
+        viewArea_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        viewArea_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        QWidget* scrollAreaWidget = new QWidget(viewArea_);
+        scrollAreaWidget->setObjectName(qsl("scroll_area_widget"));
+        viewArea_->setWidget(scrollAreaWidget);
+        viewArea_->setWidgetResizable(true);
+        viewArea_->setFocusPolicy(Qt::NoFocus);
+
+        Utils::grabTouchWidget(viewArea_->viewport(), true);
+        Utils::grabTouchWidget(scrollAreaWidget);
+        connect(QScroller::scroller(viewArea_->viewport()), &QScroller::stateChanged, this, &Toolbar::touchScrollStateChanged, Qt::QueuedConnection);
+
+        rootLayout->addWidget(viewArea_);
+
+        horLayout_ = Utils::emptyHLayout();
+
+        scrollAreaWidget->setLayout(horLayout_);
+
+        QSpacerItem* horizontalSpacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horLayout_->addSpacerItem(horizontalSpacer);
+
+        if (_align == buttons_align::center)
+        {
+            QSpacerItem* horizontalSpacerCenter = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
+            horLayout_->addSpacerItem(horizontalSpacerCenter);
+        }
+
+        initScroll();
+    }
+
+    Toolbar::~Toolbar()
+    {
+
+    }
+
+    void Toolbar::addButtonStore()
+    {
+        buttonStore_ = new AddButton(this);
+        buttonStore_->show();
+
+        QObject::connect(buttonStore_, &AddButton::clicked, this, &Toolbar::buttonStoreClick);
+
+        horLayout_->setContentsMargins(0, 0, buttonStore_->width(), 0);
+    }
+
+    void Toolbar::buttonStoreClick()
+    {
+        emit Utils::InterConnector::instance().showStickersStore();
+    }
+
+    void Toolbar::resizeEvent(QResizeEvent * _e)
+    {
+        QWidget::resizeEvent(_e);
+
+        if (buttonStore_)
+        {
+            QRect thisRect = geometry();
+
+            buttonStore_->setFixedHeight(thisRect.height() - Utils::scale_value(1));
+            buttonStore_->move(thisRect.width() - buttonStore_->width(), 0);
+        }
+    }
+
+    void Toolbar::wheelEvent(QWheelEvent* _e)
+    {
+        int numDegrees = _e->delta() / 8;
+        int numSteps = numDegrees / 15;
 
         if (!numSteps || !numDegrees)
             return;
-        
-		if (numSteps > 0)
-			scrollStep(direction::left);
-		else
-			scrollStep(direction::right);
+
+        if (numSteps > 0)
+            scrollStep(direction::left);
+        else
+            scrollStep(direction::right);
 
         qDebug() << "Toolbar::wheelEvent" << " numDegrees=" << numDegrees << ", numSteps=" << numSteps;
-        
-		QWidget::wheelEvent(_e);
-	}
 
-	void Toolbar::initScroll()
-	{
-		button_left_ = new CustomButton(this, ":/resources/smiles_menu/picker_arrow_left_100.png");
-		button_left_->setActiveImage(":/resources/smiles_menu/picker_arrow_left_100.png");
-		button_left_->setFillColor(QColor("#ffffff"));
-		button_left_->setFixedSize(Utils::scale_value(32), Utils::scale_value(48));
-		button_left_->setStyleSheet("border: none;");
-		button_left_->setFocusPolicy(Qt::NoFocus);
-		button_left_->setCursor(QCursor(Qt::PointingHandCursor));
-
-		button_right_ = new CustomButton(this, ":/resources/smiles_menu/picker_arrow_right_100.png");
-		button_right_->setActiveImage(":/resources/smiles_menu/picker_arrow_right_100.png");
-		button_right_->setFillColor(QColor("#ffffff"));
-		button_right_->setFixedSize(Utils::scale_value(32), Utils::scale_value(48));
-		button_right_->setStyleSheet("border: none;");
-		button_right_->setFocusPolicy(Qt::NoFocus);
-		button_right_->setCursor(QCursor(Qt::PointingHandCursor));
-
-		connect(button_left_, &TabButton::clicked, [this]()
-		{
-			scrollStep(Smiles::Toolbar::direction::left);
-		});
-
-		connect(button_right_, &TabButton::clicked, [this]()
-		{
-			scrollStep(Smiles::Toolbar::direction::right);
-		});
-	}
-    
-    void Toolbar::updateArrowButtonsVisibility()
-    {
-        auto scrollbar = view_area_->horizontalScrollBar();
-        int max_val = scrollbar->maximum();
-        int min_val = scrollbar->minimum();
-        int cur_val = scrollbar->value();
-        
-        showButtons(min_val, max_val, cur_val);
+        QWidget::wheelEvent(_e);
     }
 
-	void Toolbar::showButtons(int _min, int _max, int _cur)
-	{
-		bool show_left = (_cur > _min);
-		bool show_right = (_cur < _max);
+    void Toolbar::initScroll()
+    {
+    }
 
-		button_left_->setVisible(show_left);
-		button_left_cap_->setVisible(show_left);
-		button_right_->setVisible(show_right);
-		button_right_cap_->setVisible(show_right);
-	}
+    void Toolbar::touchScrollStateChanged(QScroller::State state)
+    {
+        for (auto iter : buttons_)
+        {
+            iter->setAttribute(Qt::WA_TransparentForMouseEvents, state != QScroller::Inactive);
+        }
+    }
 
-	void Toolbar::touchScrollStateChanged(QScroller::State state)
-	{
-		for (auto iter : buttons_)
-		{
-			iter->setAttribute(Qt::WA_TransparentForMouseEvents, state != QScroller::Inactive);
-		}
-	}
+    void Toolbar::scrollStep(direction _direction)
+    {
+        QRect viewRect = viewArea_->viewport()->geometry();
+        auto scrollbar = viewArea_->horizontalScrollBar();
 
-	void Toolbar::scrollStep(direction _direction)
-	{
-		QRect view_rect = view_area_->viewport()->geometry();
-		auto scrollbar = view_area_->horizontalScrollBar();
+        int maxVal = scrollbar->maximum();
+        int minVal = scrollbar->minimum();
+        int curVal = scrollbar->value();
 
-		int max_val = scrollbar->maximum();
-		int min_val = scrollbar->minimum();
-		int cur_val = scrollbar->value();
+        int step = viewRect.width() / 2;
 
-		int step = view_rect.width()/2;
+        int to = 0;
 
-		int to = 0;
+        if (_direction == Toolbar::direction::right)
+        {
+            to = curVal + step;
+            if (to > maxVal)
+            {
+                to = maxVal;
+            }
+        }
+        else
+        {
+            to = curVal - step;
+            if (to < minVal)
+            {
+                to = minVal;
+            }
 
-		if (_direction == Toolbar::direction::right)
-		{
-			to = cur_val + step;
-			if (to > max_val)
-			{
-				to = max_val;
-			}
-		}
-		else
-		{
-			to = cur_val - step;
-			if (to < min_val)
-			{
-				to = min_val;
-			}
+        }
 
-		}
+        QEasingCurve easing_curve = QEasingCurve::InQuad;
+        int duration = 300;
 
-		showButtons(min_val, max_val, to);
+        if (!AnimScroll_)
+            AnimScroll_ = new QPropertyAnimation(scrollbar, QByteArrayLiteral("value"), this);
 
-		QEasingCurve easing_curve = QEasingCurve::InQuad;
-		int duration = 300;
+        AnimScroll_->stop();
+        AnimScroll_->setDuration(duration);
+        AnimScroll_->setStartValue(curVal);
+        AnimScroll_->setEndValue(to);
+        AnimScroll_->setEasingCurve(easing_curve);
+        AnimScroll_->start();
+    }
 
-		if (!anim_scroll_)
-			anim_scroll_ = new QPropertyAnimation(scrollbar, "value");
+    void Toolbar::addButton(TabButton* _button)
+    {
+        _button->setAutoExclusive(true);
 
-		anim_scroll_->stop();
-		anim_scroll_->setDuration(duration);
-		anim_scroll_->setStartValue(cur_val);
-		anim_scroll_->setEndValue(to);
-		anim_scroll_->setEasingCurve(easing_curve);
-		anim_scroll_->start();
-	}
-
-	void Toolbar::addButton(TabButton* _button)
-	{
-		_button->setAutoExclusive(true);
-
-		int index = 0;
-		if (align_ == buttons_align::left)
-			index = hor_layout_->count() - 1;
-		else if (align_ == buttons_align::right)
-			index = hor_layout_->count();
-		else
-			index = hor_layout_->count() - 1;
+        int index = 0;
+        if (align_ == buttons_align::left)
+            index = horLayout_->count() - 1;
+        else if (align_ == buttons_align::right)
+            index = horLayout_->count();
+        else
+            index = horLayout_->count() - 1;
 
 
-		Utils::grabTouchWidget(_button);
-		hor_layout_->insertWidget(index, _button);
+        Utils::grabTouchWidget(_button);
 
-		buttons_.push_back(_button);
-	}
+        horLayout_->insertWidget(index, _button);
 
-	TabButton* Toolbar::addButton(const QString& _resource)
-	{
-		TabButton* button = new TabButton(this, _resource);
-		
-		addButton(button);
+        buttons_.push_back(_button);
+    }
 
-		return button;
-	}
+    void Toolbar::Clear(const bool _delFixed)
+    {
+        for (auto iter = buttons_.begin(); iter != buttons_.end();)
+        {
+            auto button = *iter;
 
-	TabButton* Toolbar::addButton(const QPixmap& _icon)
-	{
-		TabButton* button = new TabButton(this);
-		
-		button->setIcon(QIcon(_icon));
-        
-        button->setIconSize(Utils::is_mac_retina()?_icon.size()/2:_icon.size());
+            if (!_delFixed && button->isFixed())
+            {
+                ++iter;
+                continue;
+            }
 
-		addButton(button);
+            horLayout_->removeWidget(button);
+            button->deleteLater();
 
-		return button;
-	}
+            iter = buttons_.erase(iter);
+        }
+    }
 
-	void Toolbar::paintEvent(QPaintEvent* _e)
-	{
-		QStyleOption opt;
-		opt.init(this);
-		QPainter p(this);
-		style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+    TabButton* Toolbar::addButton(const QString& _resource)
+    {
+        TabButton* button = new TabButton(this, _resource);
 
-		return QWidget::paintEvent(_e);
-	}
+        addButton(button);
 
-	const QList<TabButton*>& Toolbar::GetButtons() const
-	{
-		return buttons_;
-	}
+        return button;
+    }
 
-	void Toolbar::scrollToButton(TabButton* _button)
-	{
-		view_area_->ensureWidgetVisible(_button);
-        updateArrowButtonsVisibility();
-	}
+    TabButton* Toolbar::addButton(const QPixmap& _icon)
+    {
+        TabButton* button = new TabButton(this);
+
+        button->setImage(_icon);
+
+        addButton(button);
+
+        return button;
+    }
+
+    void Toolbar::paintEvent(QPaintEvent* _e)
+    {
+        QStyleOption opt;
+        opt.init(this);
+        QPainter p(this);
+        style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+
+        return QWidget::paintEvent(_e);
+    }
+
+    const std::list<TabButton*>& Toolbar::GetButtons() const
+    {
+        return buttons_;
+    }
+
+    void Toolbar::scrollToButton(TabButton* _button)
+    {
+        viewArea_->ensureWidgetVisible(_button);
+    }
 }

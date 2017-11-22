@@ -29,7 +29,7 @@ namespace core
         public:
 
             add_members(
-                const wim_packet_params& _params,
+                wim_packet_params _params,
                 const std::string& _aimid,
                 const std::string & _members_to_add);
 

@@ -73,6 +73,8 @@ namespace core
 
         private:
             bool serialize_block(storage& _storage, const image_vector_t& _images) const;
+            bool serialize_block(storage& _storage, const images_map_t& _images) const;
+
             bool unserialize_block(core::tools::binary_stream& _stream, images_map_t& _images) const;
 
             bool save_all() const;
@@ -87,6 +89,8 @@ namespace core
             void erase_deleted_from_tree(const archive_index& _index);
 
             bool read_file(storage& _storage, images_map_t& _images) const;
+
+            bool append_to_file(storage& _storage, const images_map_t& _images) const;
             bool append_to_file(storage& _storage, const image_vector_t& _images) const;
 
             bool update_tree_from_tmp_files();

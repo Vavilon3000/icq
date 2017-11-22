@@ -13,7 +13,7 @@ namespace Ui
     const int maxMembersCount = 7;
     const int avatarIntersection = 10;
     const int frameWidth = (avatarWithFrameHeight - avatarHeight)/2;
-    
+
     class LiveChatMembersControl : public QWidget
     {
         Q_OBJECT

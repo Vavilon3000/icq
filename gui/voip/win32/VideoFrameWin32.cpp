@@ -15,7 +15,7 @@ platform_win32::GraphicsPanelWin32::GraphicsPanelWin32(
 
     //    assert(panels[ix]);
     //    if (!panels[ix]) { continue; }
-    //    
+    //
     //    HWND panelView = (HWND)panels[ix]->winId();
     //    assert(panelView);
     //    if (!panelView) { continue; }
@@ -23,7 +23,7 @@ platform_win32::GraphicsPanelWin32::GraphicsPanelWin32(
     //    HWND parentView = (HWND)parent->winId();
     //    assert(parentView);
     //    if (!parentView) { continue; }
-    //    
+    //
     //    ::SetParent(panelView, parentView);
     //    DWORD style = ::GetWindowLong(panelView, GWL_STYLE);
     //    style &= ~(WS_POPUP | WS_CAPTION);

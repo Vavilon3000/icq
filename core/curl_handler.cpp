@@ -182,7 +182,7 @@ namespace core
         std::vector<connection_ptr> to_process;
 
         {
-            std::lock_guard<std::mutex> lock(handler->jobs_mutex_);
+            boost::lock_guard<boost::mutex> lock(handler->jobs_mutex_);
 
             auto transmissions = handler->connections_.size();
 
@@ -205,8 +205,7 @@ namespace core
                 const auto timeout = job.timeout_;
                 const auto easy_handle = job.handle_;
 
-                auto connection = std::unique_ptr<curl_handler::connection_context>(
-                    new curl_handler::connection_context(timeout, handler, easy_handle, completion_handler));
+                auto connection = std::make_unique<curl_handler::connection_context>(timeout, handler, easy_handle, completion_handler);
                 to_process.push_back(std::move(connection));
 
                 handler->pending_jobs_.pop();
@@ -284,7 +283,7 @@ void core::curl_handler::start()
     event_base_ = event_base_new();
     timer_event_ = evtimer_new(event_base_, event_timer_callback, this);
     start_task_event_ = event_new(event_base_, -1, EV_PERSIST, start_task_callback, this);
-
+     
     keep_working_ = true;
 
     event_loop_thread_ = std::thread([this]()
@@ -365,7 +364,7 @@ void core::curl_handler::perform_async(priority_t _priority, milliseconds_t _tim
 void core::curl_handler::add_task(priority_t _priority, milliseconds_t _timeout, CURL* _handle, const completion_handler_t& _completion_handler)
 {
     {
-        std::lock_guard<std::mutex> lock(jobs_mutex_);
+        boost::lock_guard<boost::mutex> lock(jobs_mutex_);
 
         pending_jobs_.emplace(_priority, _timeout, _handle, _completion_handler);
     }

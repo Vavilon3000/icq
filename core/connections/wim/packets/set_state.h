@@ -27,7 +27,7 @@ namespace core
             const profile_state	state_;
 
         public:
-            set_state(const wim_packet_params& _params, const profile_state _state);
+            set_state(wim_packet_params _params, const profile_state _state);
             virtual ~set_state();
         };
 

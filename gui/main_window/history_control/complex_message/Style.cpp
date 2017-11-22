@@ -3,6 +3,7 @@
 #include "../../../fonts.h"
 #include "../MessageStyle.h"
 #include "../../../utils/utils.h"
+#include "../../../controls/CommonStyle.h"
 
 #include "Style.h"
 
@@ -62,7 +63,7 @@ namespace Style
 
         QBrush getImageShadeBrush()
         {
-            QColor imageShadeColor("#000000");
+            QColor imageShadeColor(ql1s("#000000"));
             imageShadeColor.setAlphaF(0.4);
             return imageShadeColor;
         }
@@ -79,7 +80,7 @@ namespace Style
 
         QBrush getImagePlaceholderBrush()
         {
-            QColor imagePlaceholderColor("#000000");
+            QColor imagePlaceholderColor(ql1s("#000000"));
             imagePlaceholderColor.setAlphaF(0.15);
             return imagePlaceholderColor;
         }
@@ -94,7 +95,7 @@ namespace Style
     namespace Snippet
     {
         QSize getFaviconPlaceholderSize()
-        { return Utils::scale_value(QSize(12, 12)); }
+        { return QSize(12, 12); }
 
         QSize getFaviconSizeUnscaled()
         {
@@ -113,12 +114,13 @@ namespace Style
 
         QColor getSiteNameColor()
         {
-            return QColor("#999999");
+            return CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT);
         }
 
         QFont getSiteNameFont()
         {
-            return Fonts::appFontScaled(12, Fonts::FontWeight::Medium);
+            return Fonts::appFontScaled(12, platform::is_windows_vista_or_late() ?
+                Fonts::FontWeight::Medium : Fonts::FontWeight::Normal);
         }
 
         QSize getSiteNamePlaceholderSize()
@@ -132,7 +134,7 @@ namespace Style
 
         int32_t getTitleTopOffset()
         { return Utils::scale_value(12); }
-        
+
         QFont getYoutubeTitleFont()
         { return Fonts::appFontScaled(15, Fonts::FontWeight::Medium); }
 
@@ -151,11 +153,11 @@ namespace Style
             grad.setCoordinateMode(QGradient::StretchToDeviceMode);
             grad.setSpread(QGradient::ReflectSpread);
 
-            QColor colorEdge("#000000");
+            QColor colorEdge(ql1s("#000000"));
             colorEdge.setAlphaF(0.07);
             grad.setColorAt(0, colorEdge);
 
-            QColor colorCenter("#000000");
+            QColor colorCenter(ql1s("#000000"));
             colorCenter.setAlphaF(0.12);
             grad.setColorAt(0.5, colorCenter);
 
@@ -173,7 +175,7 @@ namespace Style
         const QPen& getQuoteSeparatorPen()
         {
             static const QPen separatorPen(
-                QBrush(QColor("#579e1c")),
+                QBrush(CommonStyle::getColor(CommonStyle::Color::GREEN_FILL)),
                 (qreal)Utils::scale_value(2));
 
             return separatorPen;
@@ -219,7 +221,7 @@ namespace Style
         { return Utils::scale_value(2); }
 
         int32_t getForwardLabelBottomMargin()
-        { return Utils::scale_value(8); }
+        { return Utils::scale_value(12); }
 
         int32_t getForwardIconOffset() //Forward icon correction
         { return Utils::scale_value(6); }
@@ -235,11 +237,11 @@ namespace Style
     {
         QPen getFileSharingFramePen()
         {
-            QColor color("#999999");
+            QColor color(CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT));
             const auto width = Utils::scale_value(1);
             return QPen(color, width);
         }
-                
+
         int32_t getFileBubbleHeight()
         { return Utils::scale_value(64); }
 
@@ -247,7 +249,9 @@ namespace Style
         { return Fonts::appFontScaled(16); }
 
         QColor getFileSizeColor()
-        { return QColor("#999999"); }
+        {
+            return CommonStyle::getColor(CommonStyle::Color::TEXT_LIGHT);
+        }
 
         QFont getFileSizeFont()
         { return Fonts::appFontScaled(12); }
@@ -295,14 +299,14 @@ namespace Style
         { return Utils::scale_value(16); }
 
         QColor getPttProgressColor()
-        { return QColor("#000000"); }
+        { return QColor(ql1s("#000000")); }
 
         int32_t getPttProgressWidth()
         { return Utils::scale_value(2); }
 
         QPen getDecodedTextSeparatorPen()
         {
-            QColor pttSeparatorColor("#000000");
+            QColor pttSeparatorColor(ql1s("#000000"));
             pttSeparatorColor.setAlphaF(0.15);
             return QPen(pttSeparatorColor);
         }
@@ -311,74 +315,18 @@ namespace Style
         { return Fonts::appFontScaled(15); }
 
         QPen getDurationTextPen()
-        { return QPen(QColor("#000000")); }
+        {
+            return QPen(CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY));
+        }
 
         QBrush getPlaybackProgressBrush()
         {
-            QColor playbackColor("#000000");
+            QColor playbackColor(ql1s("#000000"));
             playbackColor.setAlphaF(0.12);
 
-            QBrush result(playbackColor);
-
-            return result;
+            return QBrush(playbackColor);
         }
     }
-
-    namespace Snaps
-    {
-        int32_t getAuthorAvatarBottomMargin()
-        { return Utils::scale_value(12); }
-
-        int32_t getAuthorAvatarLeft(const bool isStandalone)
-        {
-            if (!isStandalone)
-            {
-                return 0;
-            }
-
-            return Utils::scale_value(12);
-        }
-
-        int32_t getAuthorAvatarSize()
-        { return Utils::scale_value(24); }
-
-        QSize getAuthorAvatarSizeInLayout()
-        { return Utils::scale_value(QSize(24, 24)); }
-
-        int32_t getAuthorNickBaseline()
-        { return Utils::scale_value(30); }
-
-        int32_t getAuthorNickTopMargin(const bool isStandalone)
-        {
-            return isStandalone ? Utils::scale_value(12) : Utils::scale_value(4);
-        }
-
-        QFont getAuthorNickFont()
-        { return Fonts::appFontScaled(15); }
-
-        int32_t getAuthorNickLeftMargin()
-        { return Utils::scale_value(10); }
-
-        QSize getFailedSnapSizeMax()
-        { return QSize(Utils::scale_value(240), Utils::scale_value(240)); }
-
-        QBrush getFailedSnapBrush()
-        {
-            QColor failedBrushColor("#000000");
-            failedBrushColor.setAlphaF(0.07);
-
-            QBrush result(failedBrushColor);
-
-            return result;
-        }
-
-        QColor getFailedSnapColor()
-        { return QColor("#767676"); }
-
-        QFont getFailedSnapFont()
-        { return Fonts::appFontScaled(18); }
-    }
-
 }
 
 UI_COMPLEX_MESSAGE_NS_END

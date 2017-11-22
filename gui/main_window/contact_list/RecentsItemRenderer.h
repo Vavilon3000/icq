@@ -24,13 +24,13 @@ namespace ContactList
             const bool _drawLastRead,
             const QPixmap& _lastReadAvatar,
             const bool _isTyping,
-            const QString _term = "",
+            const QString _term = QString(),
             const bool _hasLastMsg = true,
-            const qint64 _msgId = -1);
+            const qint64 _msgId = -1,
+            const bool _notInCL = false,
+            const bool _hasUnreadMentions = false);
 
-		const bool Muted_;
-
-        const bool IsTyping_;
+		const bool IsTyping_;
 
         QString senderNick_;
 
@@ -39,22 +39,18 @@ namespace ContactList
         qint64 msgId_;
 
         bool IsMailStatus_;
+        bool hasUnreadMentions_;
 	};
 
-	void RenderRecentsItem(QPainter &_painter, const RecentItemVisualData &_item, const ViewParams& _viewParams);
-
+	void RenderRecentsItem(QPainter &_painter, const RecentItemVisualData &_item, const ViewParams& _viewParams, const QRect& _itemRect);
     void RenderRecentsDragOverlay(QPainter &_painter, const ViewParams& _viewParams);
-
     void RenderUnknownsHeader(QPainter &_painter, const QString& _title, const int _count, const ViewParams& _viewParams);
-
     void RenderServiceItem(QPainter &_painter, const QString& _text, bool _renderState, bool _isFavorites, const ViewParams& _viewParams);
-
+    void RenderServiceButton(QPainter &_painter, const QString& _text, const bool _isHovered, const ViewParams& _viewParams, const int _itemHeight);
     void RenderDeleteAllItem(QPainter &_painter, const QString& _title, bool _isMouseOver, const ViewParams& _viewParams);
-
 	int RenderContactMessage(QPainter &_painter, const RecentItemVisualData &_visData, const int _rightMargin, const ViewParams& _viewParams, ContactListParams& _recentParams);
-
 	int RenderNotifications(QPainter &_painter, const int _unreads, bool _muted, const ViewParams& viewParams, ContactListParams& _recentParams, bool _isUnknownHeader, bool _isActive, bool _isHover);
-
+    int RenderMentionSign(QPainter &_painter, ContactListParams& _recentParams, const int _rightMargin, const bool _isActive);
     void RenderLastReadAvatar(QPainter &_painter, const QPixmap& _avatar, const int _xOffset, ContactListParams& _recentParams);
 
     QRect DeleteAllFrame();

@@ -42,7 +42,6 @@ namespace Ui
         void mouseMoveEvent(QMouseEvent* _e) override;
         void mouseReleaseEvent(QMouseEvent* _e) override;
         void keyReleaseEvent(QKeyEvent*) override;
-        void resizeEvent(QResizeEvent*) override;
 
     protected:
         virtual bool uiWidgetIsActive() const = 0;

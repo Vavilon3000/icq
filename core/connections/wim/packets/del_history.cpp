@@ -8,11 +8,11 @@
 CORE_WIM_NS_BEGIN
 
 del_history::del_history(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const int64_t _up_to_id,
     const std::string &_contact_aimid
 )
-    : robusto_packet(_params)
+    : robusto_packet(std::move(_params))
     , up_to_id_(_up_to_id)
     , contact_aimid_(_contact_aimid)
 {
@@ -39,7 +39,7 @@ int32_t del_history::init_request(std::shared_ptr<core::http_request_simple> _re
     node_params.AddMember("sn", contact_aimid_, a);
     node_params.AddMember("uptoMsgId", up_to_id_, a);
 
-    doc.AddMember("params", node_params, a);
+    doc.AddMember("params", std::move(node_params), a);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -53,6 +53,13 @@ int32_t del_history::init_request(std::shared_ptr<core::http_request_simple> _re
         "    contact_aimid=<%1%>\n"
         "    up_to=<%2%>",
         contact_aimid_ % up_to_id_);
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_json_marker("authToken");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

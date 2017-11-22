@@ -5,7 +5,7 @@
 namespace Ui
 {
     BackgroundWidget::BackgroundWidget(QWidget* _parent, const QString& _imageName)
-    : QStackedWidget(_parent), currentSize_(QSize()), tiling_(false)
+    : QStackedWidget(_parent), tiling_(false)
     {
         if (_imageName.length() > 0)
         {
@@ -17,15 +17,15 @@ namespace Ui
     void BackgroundWidget::paintEvent(QPaintEvent *_e)
     {
         QWidget::paintEvent(_e);
-        
+
         if (!pixmapToDraw_.isNull())
         {
             Utils::check_pixel_ratio(pixmapToDraw_);
-            
+
             QSize pixmapSize = pixmapToDraw_.size();
             pixmapSize.setWidth(pixmapSize.width() / Utils::scale_bitmap(1));
             pixmapSize.setHeight(pixmapSize.height() / Utils::scale_bitmap(1));
-            
+
             float yOffset = -(pixmapSize.height() - currentSize_.height()) / 2.0;
             float xOffset = -(pixmapSize.width() - currentSize_.width()) / 2.0;
             if (!tiling_)
@@ -82,7 +82,7 @@ namespace Ui
             }
         }
     }
-    
+
     bool BackgroundWidget::cachedPixmapParams::cacheAndCheckIfChanged(int _x, int _y, int _w, int _h)
     {
         bool changed = false;
@@ -93,7 +93,7 @@ namespace Ui
         x_ = _x; y_ = _y; w_ = _w; h_ = _h;
         return changed;
     }
-    
+
     void BackgroundWidget::drawPixmap(int x, int y, int w, int h)
     {
         QPainter painter(this);
@@ -110,14 +110,14 @@ namespace Ui
             painter.drawPixmap(x, y, w, h, cachedPixmap_);
         }
     }
-    
+
     void BackgroundWidget::resizeEvent(QResizeEvent *_event)
     {
         QWidget::resizeEvent(_event);
         QSize size = _event->size();
         currentSize_ = size;
     }
-    
+
     void BackgroundWidget::setImage(const QPixmap& _pixmap, const bool _tiling)
     {
         if (!_pixmap.isNull())

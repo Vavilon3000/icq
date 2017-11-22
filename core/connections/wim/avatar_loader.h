@@ -28,13 +28,13 @@ namespace core
             core::tools::binary_stream avatar_data_;
             bool avatar_exist_;
             bool force_;
-            
-            avatar_context(int32_t _avatar_size, std::string _contact, std::wstring _im_data_path) 
+
+            avatar_context(int32_t _avatar_size, std::string _contact, std::wstring _im_data_path)
                 :
-                avatar_size_(_avatar_size), 
-                contact_(_contact),
-                im_data_path_(_im_data_path),
+                avatar_size_(_avatar_size),
+                contact_(std::move(_contact)),
                 write_time_(0),
+                im_data_path_(std::move(_im_data_path)),
                 avatar_exist_(false),
                 force_(false){}
         };
@@ -44,13 +44,6 @@ namespace core
             std::function<void(std::shared_ptr<avatar_context>)> completed_;
             std::function<void(std::shared_ptr<avatar_context>)> updated_;
             std::function<void(std::shared_ptr<avatar_context>, int32_t)> failed_;
-
-            avatar_load_handlers() : 
-                completed_(nullptr), 
-                updated_(nullptr), 
-                failed_(nullptr)
-            {
-            }
         };
 
         class avatar_task
@@ -69,7 +62,7 @@ namespace core
 
             avatar_task(
                 int64_t task_id_,
-                std::shared_ptr<avatar_context> _context, 
+                std::shared_ptr<avatar_context> _context,
                 std::shared_ptr<avatar_load_handlers> _handlers);
         };
 
@@ -95,10 +88,10 @@ namespace core
             void execute_task(std::shared_ptr<avatar_task> _task, std::function<void(int32_t)> _on_complete);
             void run_tasks_loop();
 
-            const std::wstring get_avatar_path(const std::wstring& _im_data_path, const std::string& _contact, const std::string _avatar_type);
-            const std::string get_avatar_type_by_size(int32_t _size) const;
+            std::wstring get_avatar_path(const std::wstring& _im_data_path, const std::string& _contact, const std::string& _avatar_type) const;
+            std::string get_avatar_type_by_size(int32_t _size) const;
 
-            
+
             void load_avatar_from_server(std::shared_ptr<avatar_context> _context, std::shared_ptr<avatar_load_handlers> _handlers);
 
         public:

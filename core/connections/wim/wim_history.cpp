@@ -14,15 +14,9 @@ namespace
     void apply_persons(InOut archive::history_message_sptr &_message, const archive::persons_map &_persons);
 }
 
-bool core::wim::parse_history_messages_json(
-    const rapidjson::Value &_node,
-    const int64_t _older_msg_id,
-    const std::string &_sender_aimid,
-    Out archive::history_block &_block,
-    Out archive::persons_map& _persons)
+archive::persons_map core::wim::parse_persons(const rapidjson::Value &_node)
 {
-    assert(!_sender_aimid.empty());
-
+    archive::persons_map persons;
     auto iter_persons = _node.FindMember("persons");
     if (iter_persons != _node.MemberEnd() && iter_persons->value.IsArray() && !iter_persons->value.Empty())
     {
@@ -34,50 +28,56 @@ bool core::wim::parse_history_messages_json(
 
             if (iter_sn == iter_person->MemberEnd() || !iter_sn->value.IsString() || iter_friendly == iter_person->MemberEnd() || !iter_friendly->value.IsString())
             {
-                assert("invalid person");
+                //assert(!"invalid person");
                 continue;
             }
 
             archive::person p;
-            p.friendly_ = iter_friendly->value.GetString();
+            p.friendly_ = rapidjson_get_string(iter_friendly->value);
             if (iter_official != iter_person->MemberEnd() && iter_official->value.IsUint())
                 p.official_ = iter_official->value.GetUint() == 1;
 
-            std::string sn = iter_sn->value.GetString();
+            std::string sn = rapidjson_get_string(iter_sn->value);
             boost::replace_last(sn, "@uin.icq", std::string());
 
-            _persons.emplace(sn, p);
+            persons.emplace(std::move(sn), std::move(p));
         }
     }
+    return persons;
+}
+
+bool core::wim::parse_history_messages_json(
+    const rapidjson::Value &_node,
+    const int64_t _older_msg_id,
+    const std::string &_sender_aimid,
+    Out archive::history_block &_block,
+    const archive::persons_map& _persons,
+    message_order _order)
+{
+    assert(!_sender_aimid.empty());
 
     auto iter_messages = _node.FindMember("messages");
     if (iter_messages == _node.MemberEnd())
-    {
         return true;
-    }
 
     if (!iter_messages->value.IsArray())
-    {
         return false;
-    }
 
     if (iter_messages->value.Empty())
-    {
         return true;
-    }
-
-    if (!iter_messages->value.IsArray())
-        return false;
 
     auto prev_msg_id = _older_msg_id;
 
     _block.reserve(iter_messages->value.Size());
 
-    auto iter_message = iter_messages->value.End();
+    const bool is_reverse = message_order::reverse == _order;
 
+    auto iter_message = is_reverse ? iter_messages->value.End() : iter_messages->value.Begin();
+    const auto end = is_reverse ? iter_messages->value.Begin() : iter_messages->value.End();
     do
     {
-        --iter_message;
+        if (is_reverse)
+            --iter_message;
 
         auto msg = std::make_shared<archive::history_message>();
 
@@ -115,8 +115,10 @@ bool core::wim::parse_history_messages_json(
         }
 
         apply_persons(msg, _persons);
+        if (!is_reverse)
+            ++iter_message;
     }
-    while (iter_message != iter_messages->value.Begin());
+    while (iter_message != end);
 
     return true;
 }
@@ -149,7 +151,8 @@ namespace
         {
             voip->apply_persons(_persons);
         }
-        
+
         _message->apply_persons_to_quotes(_persons);
+        _message->apply_persons_to_mentions(_persons);
     }
 }

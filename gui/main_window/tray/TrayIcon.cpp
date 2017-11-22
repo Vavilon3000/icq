@@ -17,10 +17,11 @@
 #include "../../utils/InterConnector.h"
 #include "../../utils/utils.h"
 #include "../../utils/log/log.h"
+#include "../history_control/MessagesModel.h"
 
 
 #ifdef _WIN32
-#   include "toast_notifications/win32/ToastManager.h"
+//#   include "toast_notifications/win32/ToastManager.h"
 typedef HRESULT (__stdcall *QueryUserNotificationState)(QUERY_USER_NOTIFICATION_STATE *pquns);
 typedef BOOL (__stdcall *QuerySystemParametersInfo)(__in UINT uiAction, __in UINT uiParam, __inout_opt PVOID pvParam, __in UINT fWinIni);
 #else
@@ -35,7 +36,7 @@ typedef BOOL (__stdcall *QuerySystemParametersInfo)(__in UINT uiAction, __in UIN
 #ifdef _WIN32
 #   include <Shobjidl.h>
 extern HICON qt_pixmapToWinHICON(const QPixmap &p);
-QString pinPath = "\\Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\TaskBar\\ICQ.lnk";
+const QString pinPath = qsl("\\Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\TaskBar\\ICQ.lnk");
 #endif // _WIN32
 
 namespace
@@ -59,36 +60,39 @@ namespace Ui
 {
     TrayIcon::TrayIcon(MainWindow* parent)
         : QObject(parent)
-        , MainWindow_(parent)
         , systemTrayIcon_(new QSystemTrayIcon(this))
         , emailSystemTrayIcon_(nullptr)
-        , Menu_(new ContextMenu(0))
-        , MessageAlert_(new RecentMessagesAlert(new Logic::RecentItemDelegate(this), false))
-        , MailAlert_(new  RecentMessagesAlert(new Logic::RecentItemDelegate(this), true))
+        , Menu_(new ContextMenu(parent))
+        , MessageAlert_(new RecentMessagesAlert(new Logic::RecentItemDelegate(this), AlertType::alertTypeMessage))
+        , MentionAlert_(new RecentMessagesAlert(new Logic::RecentItemDelegate(this), AlertType::alertTypeMentionMe))
+        , MailAlert_(new  RecentMessagesAlert(new Logic::RecentItemDelegate(this), AlertType::alertTypeEmail))
+        , MainWindow_(parent)
+        , first_start_(true)
         , Base_(build::is_icq() ?
-            ":/resources/main_window/appicon.ico" :
-            ":/resources/main_window/appicon_agent.ico")
+            qsl(":/logo/ico_icq") :
+            qsl(":/logo/ico_agent"))
         , Unreads_(build::is_icq() ?
-            ":/resources/main_window/appicon_unread.ico" :
-            ":/resources/main_window/appicon_unread_agent.ico")
+            qsl(":/logo/ico_icq_unread") :
+            qsl(":/logo/ico_agent_unread"))
 #ifdef _WIN32
         , TrayBase_(build::is_icq() ?
-            ":/resources/main_window/appicon_tray.ico" :
-            ":/resources/main_window/appicon_tray_agent.ico")
-        , TrayUnreads_(build::is_icq() ? 
-            ":/resources/main_window/appicon_tray_unread.ico" :
-            ":/resources/main_window/appicon_tray_unread_agent.ico")
+            qsl(":/logo/ico_icq_tray") :
+            qsl(":/logo/ico_agent_tray"))
+        , TrayUnreads_(build::is_icq() ?
+            qsl(":/logo/ico_icq_unread_tray") :
+            qsl(":/logo/ico_agent_unread_tray"))
 #else
         , TrayBase_(build::is_icq() ?
-            ":/resources/main_window/appicon.ico":
-            ":/resources/main_window/appicon_agent.ico")
+            qsl(":/logo/ico_icq"):
+            qsl(":/logo/ico_agent"))
         , TrayUnreads_(build::is_icq() ?
-            ":/resources/main_window/appicon_unread.ico" :
-            ":/resources/main_window/appicon_unread_agent.ico")
+            qsl(":/logo/ico_icq_unread") :
+            qsl(":/logo/ico_agent_unread"))
 #endif //_WIN32
+        , MailCount_(0)
 #ifdef _WIN32
-        , ptbl(0)
-        , first_start_(true)
+        , ptbl(nullptr)
+        , overlayIcon_(nullptr)
         , UnreadsCount_(0)
 #endif //_WIN32
     {
@@ -97,7 +101,7 @@ namespace Ui
         {
             HRESULT hr = CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&ptbl));
             if (FAILED(hr))
-                ptbl = 0;
+                ptbl = nullptr;
         }
 #endif //_WIN32
         init();
@@ -106,42 +110,61 @@ namespace Ui
         InitMailStatusTimer_->setInterval(init_mail_timeout);
         InitMailStatusTimer_->setSingleShot(true);
 
-        connect(Ui::GetDispatcher(), SIGNAL(im_created()), this, SLOT(loggedIn()), Qt::QueuedConnection);
-        connect(MessageAlert_, SIGNAL(messageClicked(QString, QString)), this, SLOT(messageClicked(QString, QString)), Qt::QueuedConnection);
-        connect(MailAlert_, SIGNAL(messageClicked(QString, QString)), this, SLOT(messageClicked(QString, QString)), Qt::QueuedConnection);
-        connect(MessageAlert_, SIGNAL(changed()), this, SLOT(updateAlertsPosition()), Qt::QueuedConnection);
-        connect(MailAlert_, SIGNAL(changed()), this, SLOT(updateAlertsPosition()), Qt::QueuedConnection);
-        connect(Logic::getContactListModel(), SIGNAL(contactChanged(QString)), this, SLOT(updateIcon()), Qt::QueuedConnection);
-        connect(Ui::GetDispatcher(), SIGNAL(myInfo()), this, SLOT(myInfo()));
+        connect(Ui::GetDispatcher(), &Ui::core_dispatcher::im_created, this, &TrayIcon::loggedIn, Qt::QueuedConnection);
+
+        connect(MessageAlert_, &RecentMessagesAlert::messageClicked, this, &TrayIcon::messageClicked, Qt::QueuedConnection);
+        connect(MailAlert_, &RecentMessagesAlert::messageClicked, this, &TrayIcon::messageClicked, Qt::QueuedConnection);
+        connect(MentionAlert_, &RecentMessagesAlert::messageClicked, this, &TrayIcon::messageClicked, Qt::QueuedConnection);
+
+        connect(MessageAlert_, &RecentMessagesAlert::changed, this, &TrayIcon::updateAlertsPosition, Qt::QueuedConnection);
+        connect(MailAlert_, &RecentMessagesAlert::changed, this, &TrayIcon::updateAlertsPosition, Qt::QueuedConnection);
+        connect(MentionAlert_, &RecentMessagesAlert::changed, this, &TrayIcon::updateAlertsPosition, Qt::QueuedConnection);
+
+        connect(Logic::getContactListModel(), &Logic::ContactListModel::contactChanged, this, [this](const QString&)
+        {
+            updateIcon();
+        }, Qt::QueuedConnection);
+        connect(Ui::GetDispatcher(), &Ui::core_dispatcher::myInfo, this, &TrayIcon::myInfo);
         connect(Ui::GetDispatcher(), &core_dispatcher::needLogin, this, &TrayIcon::loggedOut, Qt::QueuedConnection);
 
-        connect(&Utils::InterConnector::instance(), SIGNAL(historyControlPageFocusIn(QString)), this, SLOT(clearNotifications(QString)), Qt::QueuedConnection);
-        connect(Logic::getContactListModel(), SIGNAL(selectedContactChanged(QString)), this, SLOT(clearNotifications(QString)), Qt::QueuedConnection);
-        connect(Logic::getRecentsModel(), SIGNAL(readStateChanged(QString)), this, SLOT(clearNotifications(QString)), Qt::QueuedConnection);
-        connect(Logic::getUnknownsModel(), SIGNAL(readStateChanged(QString)), this, SLOT(clearNotifications(QString)), Qt::QueuedConnection);
-        connect(Logic::getContactListModel(), SIGNAL(contact_removed(QString)), this, SLOT(clearNotifications(QString)), Qt::QueuedConnection);
-        connect(Ui::GetDispatcher(), SIGNAL(activeDialogHide(QString)), this, SLOT(clearNotifications(QString)), Qt::QueuedConnection);
-        connect(Ui::GetDispatcher(), SIGNAL(mailStatus(QString, unsigned, bool)), this, SLOT(mailStatus(QString, unsigned, bool)), Qt::QueuedConnection);
+        connect(&Utils::InterConnector::instance(), &Utils::InterConnector::historyControlPageFocusIn, this, &TrayIcon::clearNotifications, Qt::QueuedConnection);
+        connect(Logic::getContactListModel(), &Logic::ContactListModel::selectedContactChanged, this, &TrayIcon::clearNotifications, Qt::QueuedConnection);
+        connect(Logic::getContactListModel(), &Logic::ContactListModel::contact_removed, this, &TrayIcon::clearNotifications, Qt::QueuedConnection);
+        connect(Logic::getRecentsModel(), &Logic::RecentsModel::readStateChanged, this, &TrayIcon::clearNotifications, Qt::QueuedConnection);
+        connect(Logic::getUnknownsModel(), &Logic::UnknownsModel::readStateChanged, this, &TrayIcon::clearNotifications, Qt::QueuedConnection);
+        connect(Ui::GetDispatcher(), &core_dispatcher::activeDialogHide, this, &TrayIcon::clearNotifications, Qt::QueuedConnection);
+        connect(Ui::GetDispatcher(), &core_dispatcher::mailStatus, this, &TrayIcon::mailStatus, Qt::QueuedConnection);
 
 #ifdef __APPLE__
         connect(&Utils::InterConnector::instance(), &Utils::InterConnector::mailBoxOpened, this, [this]()
         {
-            clearNotifications("mail");
+            clearNotifications(qsl("mail"));
         });
 #endif
 
         connect(&Utils::InterConnector::instance(), &Utils::InterConnector::mailBoxOpened, this, &TrayIcon::mailBoxOpened, Qt::QueuedConnection);
         connect(&Utils::InterConnector::instance(), &Utils::InterConnector::logout, this, &TrayIcon::logout, Qt::QueuedConnection);
 #ifdef __APPLE__
-        ncSupported(); //setup notification manager
-        setVisible(get_gui_settings()->get_value(settings_show_in_menubar, true));
+        setVisible(get_gui_settings()->get_value(settings_show_in_menubar, false));
 #endif //__APPLE__
 
     }
 
     TrayIcon::~TrayIcon()
     {
+        cleanupOverlayIcon();
         disconnect(get_gui_settings());
+    }
+
+    void TrayIcon::cleanupOverlayIcon()
+    {
+#ifdef _WIN32
+        if (overlayIcon_)
+        {
+            DestroyIcon(overlayIcon_);
+            overlayIcon_ = nullptr;
+        }
+#endif
     }
 
     void TrayIcon::openMailBox(const QString& _mailId)
@@ -150,9 +173,9 @@ namespace Ui
 
         collection.set_value_as_qstring("email", Email_);
 
-        Ui::GetDispatcher()->post_message_to_core("mrim/get_key", collection.get(), this, [this, _mailId](core::icollection* _collection)
+        Ui::GetDispatcher()->post_message_to_core(qsl("mrim/get_key"), collection.get(), this, [this, _mailId](core::icollection* _collection)
         {
-            Utils::openMailBox(Email_, Ui::gui_coll_helper(_collection, false).get_value_as_string("key"), _mailId);
+            Utils::openMailBox(Email_, QString::fromUtf8(Ui::gui_coll_helper(_collection, false).get_value_as_string("key")), _mailId);
         });
     }
 
@@ -165,49 +188,22 @@ namespace Ui
 
     void TrayIcon::forceUpdateIcon()
     {
-        UnreadsCount_ = Logic::getRecentsModel()->totalUnreads() + Logic::getUnknownsModel()->totalUnreads();
-#ifdef _WIN32
-        if (ptbl)
-        {
-            QIcon iconOverlay;
-            if (UnreadsCount_ > 0)
-            {
-                iconOverlay.addPixmap(QPixmap::fromImage(Utils::iconWithCounter(16, UnreadsCount_, QColor("#f23c34"), Qt::white)));
-                iconOverlay.addPixmap(QPixmap::fromImage(Utils::iconWithCounter(32, UnreadsCount_, QColor("#f23c34"), Qt::white)));
-            }
-            ptbl->SetOverlayIcon((HWND)MainWindow_->winId(), UnreadsCount_ > 0 ? createHIconFromQIcon(iconOverlay, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON)) : HICON(), L"");
-        }
-        else
-        {
-            MainWindow_->setWindowIcon(UnreadsCount_ > 0 ? Unreads_ : Base_);
-        }
-#endif //_WIN32
-
-        if (!platform::is_apple())
-        {
-            if (UnreadsCount_ > 0)
-            {
-                QIcon iconOverlay;
-                iconOverlay.addPixmap(QPixmap::fromImage(Utils::iconWithCounter(16, UnreadsCount_, QColor("#f23c34"), Qt::white, TrayBase_.pixmap(QSize(16, 16)).toImage())));
-                iconOverlay.addPixmap(QPixmap::fromImage(Utils::iconWithCounter(32, UnreadsCount_, QColor("#f23c34"), Qt::white, TrayBase_.pixmap(QSize(32, 32)).toImage())));
-                systemTrayIcon_->setIcon(iconOverlay);
-            }
-            else
-            {
-                systemTrayIcon_->setIcon(TrayBase_);
-            }
-        }
-        else
-        {
-            setMacIcon();
-        }
-
-        updateStatus();
+        updateIcon(true);
     }
 
     void TrayIcon::setVisible(bool visible)
     {
         systemTrayIcon_->setVisible(visible);
+        if (emailSystemTrayIcon_)
+            emailSystemTrayIcon_->setVisible(visible);
+    }
+
+    void TrayIcon::updateEmailIcon()
+    {
+        if (MailCount_ && canShowNotifications(true))
+            showEmailIcon();
+        else
+            hideEmailIcon();
     }
 
     void TrayIcon::setMacIcon()
@@ -215,19 +211,21 @@ namespace Ui
 #ifdef __APPLE__
         QString state = MyInfo()->state().toLower();
 
-        if (state != "dnd" &&
-            state != "invisible" &&
-            state != "offline")
-
-        {
-            state = "online";
-        }
-
+        if (state != ql1s("offline"))
+            state = qsl("online");
 
         bool unreads = (Logic::getRecentsModel()->totalUnreads() + Logic::getUnknownsModel()->totalUnreads()) != 0;
-        QString iconResource(QString(":/resources/main_window/mac_tray/icq_osxlogo_%1_%2%3_100.png").
-            arg(state).arg(MacSupport::currentTheme()).
-            arg(unreads && (state != "offline") ? "_unread" : ""));
+        QString iconResource(qsl(":/menubar/%1_%2_%3%4_100").
+            arg(build::is_icq() ? qsl("icq") : qsl("agent"),
+                state,
+                MacSupport::currentTheme(),
+                unreads ? qsl("_unread") : QString())
+        );
+        emailIcon_ = QIcon(Utils::parse_image_name(qsl(":/menubar/mail_%1_100"))
+                           .arg(MacSupport::currentTheme()));
+
+        if (emailSystemTrayIcon_)
+            emailSystemTrayIcon_->setIcon(emailIcon_);
 
         QIcon icon(Utils::parse_image_name(iconResource));
         systemTrayIcon_->setIcon(icon);
@@ -237,7 +235,6 @@ namespace Ui
     void TrayIcon::myInfo()
     {
         setMacIcon();
-        updateStatus();
     }
 
     void TrayIcon::updateAlertsPosition()
@@ -247,124 +244,110 @@ namespace Ui
 
         int screenMarginX = Utils::scale_value(20) - Ui::get_gui_settings()->get_shadow_width();
         int screenMarginY = screenMarginX;
+        int screenMarginYMention = screenMarginY;
         int screenMarginYMail = screenMarginY;
+
         if (MessageAlert_->isVisible())
-            screenMarginYMail += (MessageAlert_->height() - Utils::scale_value(12));
+        {
+            screenMarginYMention += (MessageAlert_->height() - Utils::scale_value(12));
+            screenMarginYMail = screenMarginYMention;
+        }
+
+        if (MentionAlert_->isVisible())
+        {
+            screenMarginYMail += (MentionAlert_->height() - Utils::scale_value(12));
+        }
+
 
         switch (pos)
         {
         case Ui::TOP_RIGHT:
             MessageAlert_->move(availableGeometry.topRight().x() - MessageAlert_->width() - screenMarginX, availableGeometry.topRight().y() + screenMarginY);
+            MentionAlert_->move(availableGeometry.topRight().x() - MentionAlert_->width() - screenMarginX, availableGeometry.topRight().y() + screenMarginYMention);
             MailAlert_->move(availableGeometry.topRight().x() - MailAlert_->width() - screenMarginX, availableGeometry.topRight().y() + screenMarginYMail);
             break;
 
         case Ui::BOTTOM_LEFT:
             MessageAlert_->move(availableGeometry.bottomLeft().x() + screenMarginX, availableGeometry.bottomLeft().y() - MessageAlert_->height() - screenMarginY);
+            MentionAlert_->move(availableGeometry.bottomLeft().x() + screenMarginX, availableGeometry.bottomLeft().y() - MentionAlert_->height() - screenMarginYMention);
             MailAlert_->move(availableGeometry.bottomLeft().x() + screenMarginX, availableGeometry.bottomLeft().y() - MailAlert_->height() - screenMarginYMail);
             break;
 
         case Ui::BOTOOM_RIGHT:
             MessageAlert_->move(availableGeometry.bottomRight().x() - MessageAlert_->width() - screenMarginX, availableGeometry.bottomRight().y() - MessageAlert_->height() - screenMarginY);
+            MentionAlert_->move(availableGeometry.bottomRight().x() - MentionAlert_->width() - screenMarginX, availableGeometry.bottomRight().y() - MentionAlert_->height() - screenMarginYMention);
             MailAlert_->move(availableGeometry.bottomRight().x() - MailAlert_->width() - screenMarginX, availableGeometry.bottomRight().y() - MailAlert_->height() - screenMarginYMail);
             break;
 
         case Ui::TOP_LEFT:
         default:
             MessageAlert_->move(availableGeometry.topLeft().x() + screenMarginX, availableGeometry.topLeft().y() + screenMarginY);
+            MentionAlert_->move(availableGeometry.topLeft().x() + screenMarginX, availableGeometry.topLeft().y() + screenMarginYMention);
             MailAlert_->move(availableGeometry.topLeft().x() + screenMarginX, availableGeometry.topLeft().y() + screenMarginYMail);
             break;
         }
     }
 
-    void TrayIcon::updateStatus()
+    QIcon TrayIcon::createIcon(const bool _withBase)
     {
-        if (!onlineAction_ ||
-            !dndAction_ ||
-            !invAction_)
+        auto createPixmap = [this](const int _size, const int _count, const bool _withBase)
         {
-            return;
-        }
+            QImage baseImage = _withBase ? TrayBase_.pixmap(QSize(_size, _size)).toImage() : QImage();
+            return QPixmap::fromImage(Utils::iconWithCounter(_size, _count, QColor(ql1s("#f23c34")), Qt::white, std::move(baseImage)));
+        };
 
-        onlineAction_->setCheckable(true);
-        dndAction_->setCheckable(true);
-        invAction_->setCheckable(true);
-
-        auto state = MyInfo()->state().toLower();
-        if (state == "invisible")
+        QIcon iconOverlay;
+        if (UnreadsCount_ > 0)
         {
-            onlineAction_->setChecked(false);
-            dndAction_->setChecked(false);
-            invAction_->setChecked(true);
+            iconOverlay.addPixmap(createPixmap(16, UnreadsCount_, _withBase));
+            iconOverlay.addPixmap(createPixmap(32, UnreadsCount_, _withBase));
         }
-        else if (state == "dnd")
-        {
-            onlineAction_->setChecked(false);
-            dndAction_->setChecked(true);
-            invAction_->setChecked(false);
-        }
-        else
-        {
-            onlineAction_->setChecked(true);
-            dndAction_->setChecked(false);
-            invAction_->setChecked(false);
-        }
+        return iconOverlay;
     }
 
-    void TrayIcon::updateIcon()
+    void TrayIcon::updateIcon(const bool _force, const bool _updateOverlay)
     {
         auto count = Logic::getRecentsModel()->totalUnreads() + Logic::getUnknownsModel()->totalUnreads();
-        if (count != UnreadsCount_)
-        {
-            UnreadsCount_ = count;
+        if (count == UnreadsCount_ && !_force)
+            return;
+
+        UnreadsCount_ = count;
+
 #ifdef _WIN32
+        if (_updateOverlay)
+        {
+            cleanupOverlayIcon();
             if (ptbl)
             {
-                QIcon iconOverlay;
-                if (UnreadsCount_ > 0)
-                {
-                    iconOverlay.addPixmap(QPixmap::fromImage(Utils::iconWithCounter(16, UnreadsCount_, QColor("#f23c34"), Qt::white)));
-                    iconOverlay.addPixmap(QPixmap::fromImage(Utils::iconWithCounter(32, UnreadsCount_, QColor("#f23c34"), Qt::white)));
-                }
-                ptbl->SetOverlayIcon((HWND)MainWindow_->winId(), UnreadsCount_ > 0 ? createHIconFromQIcon(iconOverlay, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON)) : HICON(), L"");
+                overlayIcon_ = UnreadsCount_ > 0 ? createHIconFromQIcon(createIcon(), GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON)) : nullptr;
+                ptbl->SetOverlayIcon((HWND)MainWindow_->winId(), overlayIcon_, L"");
             }
             else
             {
                 MainWindow_->setWindowIcon(UnreadsCount_ > 0 ? Unreads_ : Base_);
             }
+        }
 #endif //_WIN32
 
-            if (!platform::is_apple())
-            {
-                if (UnreadsCount_ > 0)
-                {
-                    QIcon iconOverlay;
-                    iconOverlay.addPixmap(QPixmap::fromImage(Utils::iconWithCounter(16, UnreadsCount_, QColor("#f23c34"), Qt::white, TrayBase_.pixmap(QSize(16, 16)).toImage())));
-                    iconOverlay.addPixmap(QPixmap::fromImage(Utils::iconWithCounter(32, UnreadsCount_, QColor("#f23c34"), Qt::white, TrayBase_.pixmap(QSize(32, 32)).toImage())));
-                    systemTrayIcon_->setIcon(iconOverlay);
-                }
-                else
-                {
-                    systemTrayIcon_->setIcon(TrayBase_);
-                }
-            }
-            else
-            {
-                setMacIcon();
-            }
+        if (!platform::is_apple())
+        {
+            systemTrayIcon_->setIcon(UnreadsCount_ > 0 ? createIcon(true): TrayBase_);
         }
-
-        updateStatus();
+        else
+        {
+            setMacIcon();
+        }
     }
 
-    void TrayIcon::clearNotifications(QString aimId)
+    void TrayIcon::clearNotifications(const QString& aimId)
     {
         if (aimId.isEmpty() || !Notifications_.contains(aimId))
             return;
-        
+
         Notifications_.removeAll(aimId);
 #if defined (_WIN32)
-        if (toastSupported())
-            ToastManager_->HideNotifications(aimId);
+//        if (toastSupported())
+//          ToastManager_->HideNotifications(aimId);
 #elif defined (__APPLE__)
         if (ncSupported())
         {
@@ -373,9 +356,9 @@ namespace Ui
 #endif //_WIN32
     }
 
-    void TrayIcon::dlgStates(std::shared_ptr<QList<Data::DlgState>> _states)
+    void TrayIcon::dlgStates(const QVector<Data::DlgState>& _states)
     {
-        for (auto _state : *_states)
+        for (const auto& _state : _states)
         {
             bool canNotify = _state.Visible_ && (!ShowedMessages_.contains(_state.AimId_) || (_state.LastMsgId_ != -1 && ShowedMessages_[_state.AimId_] < _state.LastMsgId_));
             if (_state.GetText().isEmpty())
@@ -386,11 +369,11 @@ namespace Ui
 
             if (!_state.Outgoing_)
             {
-                if (_state.UnreadCount_ != 0 && canNotify && !Logic::getContactListModel()->isMuted(_state.AimId_))
+                if (_state.UnreadCount_ != 0 && canNotify && !Logic::getContactListModel()->isMuted(_state.AimId_) && !_state.hasMentionMe_)
                 {
                     ShowedMessages_[_state.AimId_] = _state.LastMsgId_;
-                    if (canShowNotifications(_state.AimId_ == "mail"))
-                        showMessage(_state);
+                    if (canShowNotifications(_state.AimId_ == ql1s("mail")))
+                        showMessage(_state, AlertType::alertTypeMessage);
 #ifdef __APPLE__
                     if (!MainWindow_->isActive() || MacSupport::previewIsShown())
 #else
@@ -413,27 +396,47 @@ namespace Ui
 
     }
 
-    void TrayIcon::newMail(QString email, QString from, QString subj, QString id)
+    void TrayIcon::mentionMe(const QString& _contact, Data::MessageBuddySptr _mention)
+    {
+        if (canShowNotifications(false))
+        {
+            Data::DlgState state;
+            state.header_ = QChar(0xD83D) % QChar(0xDC4B) % ql1c(' ') % QT_TRANSLATE_NOOP("notifications_alert", "You have been mentioned");
+            state.AimId_ = _contact;
+            state.SearchedMsgId_ = _mention->Id_;
+
+            auto text = Logic::GetMessagesModel()->formatRecentsText(*_mention);
+
+            state.SetText(text);
+            showMessage(state, AlertType::alertTypeMentionMe);
+
+            GetSoundsManager()->playIncomingMessage();
+        }
+    }
+
+    void TrayIcon::newMail(const QString& email, const QString& from, const QString& subj, const QString& id)
     {
         Email_ = email;
+
         if (canShowNotifications(true))
         {
             Data::DlgState state;
-            state.AimId_ = "mail";
+            state.AimId_ = qsl("mail");
             state.Friendly_ = from;
-            state.Email_ = Email_;
+            state.header_ = Email_;
             state.MailId_ = id;
             state.SetText(subj);
-            showMessage(state);
+            showMessage(state, AlertType::alertTypeEmail);
             GetSoundsManager()->playIncomingMail();
         }
 
         showEmailIcon();
     }
 
-    void TrayIcon::mailStatus(QString email, unsigned count, bool init)
+    void TrayIcon::mailStatus(const QString& email, unsigned count, bool init)
     {
         Email_ = email;
+        MailCount_ = count;
 
         if (first_start_)
         {
@@ -466,20 +469,20 @@ namespace Ui
             }
 
             Data::DlgState state;
-            state.AimId_ = "mail";
-            state.Email_ = Email_;
+            state.AimId_ = qsl("mail");
+            state.header_ = Email_;
             state.Friendly_ = QT_TRANSLATE_NOOP("tray_menu", "New email");
-            state.SetText(QVariant(count).toString() + Utils::GetTranslator()->getNumberString(count, 
+            state.SetText(QString::number(count) + Utils::GetTranslator()->getNumberString(count,
                 QT_TRANSLATE_NOOP3("tray_menu", " new email", "1"),
                 QT_TRANSLATE_NOOP3("tray_menu", " new emails", "2"),
                 QT_TRANSLATE_NOOP3("tray_menu", " new emails", "5"),
                 QT_TRANSLATE_NOOP3("tray_menu", " new emails", "21")
                 ));
 
-            if (MailAlert_->updateMailStatusAlert(state))
+            MailAlert_->updateMailStatusAlert(state);
+            if (count == 0)
             {
-                if (count == 0)
-                    MailAlert_->hide();
+                MailAlert_->hide();
                 return;
             }
             else if (MailAlert_->isVisible())
@@ -487,76 +490,151 @@ namespace Ui
                 return;
             }
 
-            showMessage(state);
+            showMessage(state, AlertType::alertTypeEmail);
         }
     }
 
-    void TrayIcon::messageClicked(QString aimId, QString mailId)
+    void TrayIcon::messageClicked(const QString& _aimId, const QString& mailId, const qint64 mentionId, const AlertType _alertType)
     {
+        if (_aimId.isEmpty())
+        {
+            assert(false);
+            return;
+        }
+
+        bool notificationCenterSupported = false;
+
 #if defined (_WIN32)
         if (!toastSupported())
 #elif defined (__APPLE__)
-        if (!ncSupported())
+        notificationCenterSupported = ncSupported();
 #endif //_WIN32
         {
-            if (aimId == "mail")
+            switch (_alertType)
             {
-                MailAlert_->hide();
-                MailAlert_->markShowed();
+                case AlertType::alertTypeEmail:
+                {
+                    if (!notificationCenterSupported)
+                    {
+                        MailAlert_->hide();
+                        MailAlert_->markShowed();
+                    }
+
+                    GetDispatcher()->post_stats_to_core(mailId.isEmpty() ?
+                        core::stats::stats_event_names::alert_mail_common :
+                        core::stats::stats_event_names::alert_mail_letter);
+
+                    openMailBox(mailId);
+
+                    return;
+                }
+                case AlertType::alertTypeMessage:
+                {
+                    if (!notificationCenterSupported)
+                    {
+                        MessageAlert_->hide();
+                        MessageAlert_->markShowed();
+                    }
+
+                    Utils::InterConnector::instance().getMainWindow()->skipRead();
+
+                    Logic::getContactListModel()->setCurrent(_aimId, -1, true);
+
+                    break;
+                }
+                case AlertType::alertTypeMentionMe:
+                {
+                    if (!notificationCenterSupported)
+                    {
+                        MentionAlert_->hide();
+                        MentionAlert_->markShowed();
+                    }
+
+                    emit Logic::getContactListModel()->select(_aimId, mentionId, mentionId);
+
+                    break;
+                }
+                default:
+                {
+                    assert(false);
+                    return;
+                }
             }
-            else
-            {
-                MessageAlert_->hide();
-                MessageAlert_->markShowed();
-            }
+
+            MainWindow_->activateFromEventLoop();
+            MainWindow_->hideMenu();
+            emit Utils::InterConnector::instance().closeAnyPopupMenu();
+            emit Utils::InterConnector::instance().closeAnyPopupWindow();
+            GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::alert_click);
         }
-
-        if (!aimId.isEmpty())
-        {
-            auto w = MainWindow_->getMainPage();
-            if (w)
-                w->snapsClose();
-
-            if (aimId == "mail")
-            {
-                GetDispatcher()->post_stats_to_core(mailId.isEmpty() ? core::stats::stats_event_names::alert_mail_common : core::stats::stats_event_names::alert_mail_letter);
-
-                openMailBox(mailId);
-
-                return;
-
-            }
-            if (Logic::getContactListModel()->selectedContact() != aimId)
-                Utils::InterConnector::instance().getMainWindow()->skipRead();
-            Logic::getContactListModel()->setCurrent(aimId, -1, true, true);
-        }
-
-        MainWindow_->activateFromEventLoop();
-        MainWindow_->hideMenu();
-        emit Utils::InterConnector::instance().closeAnyPopupMenu();
-        emit Utils::InterConnector::instance().closeAnyPopupWindow();
-        GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::alert_click);
     }
 
-    void TrayIcon::showMessage(const Data::DlgState& state)
+    QString alertType2String(const AlertType _alertType)
+    {
+        switch (_alertType)
+        {
+            case AlertType::alertTypeMessage:
+                return qsl("message");
+            case AlertType::alertTypeEmail:
+                return qsl("mail");
+            case AlertType::alertTypeMentionMe:
+                return qsl("mention");
+            default:
+                assert(false);
+                return qsl("unknown");
+        }
+    }
+
+    void TrayIcon::showMessage(const Data::DlgState& state, const AlertType _alertType)
     {
         Notifications_ << state.AimId_;
+
+        const auto isMail = (_alertType == AlertType::alertTypeEmail);
 #if defined (_WIN32)
-        if (toastSupported())
-        {
-            ToastManager_->DisplayToastMessage(state.AimId_, state.GetText());
-            return;
-        }
+//        if (toastSupported())
+//        {
+//          ToastManager_->DisplayToastMessage(state.AimId_, state.GetText());
+//          return;
+//        }
 #elif defined (__APPLE__)
         if (ncSupported())
         {
-            auto displayName = state.AimId_ == "mail" ? state.Friendly_ : Logic::getContactListModel()->getDisplayName(state.AimId_);
-            NotificationCenterManager_->DisplayNotification(state.AimId_, state.senderNick_, state.GetText(), state.MailId_, displayName);
+            auto displayName = isMail ? state.Friendly_ : Logic::getContactListModel()->getDisplayName(state.AimId_);
+
+            if (_alertType == AlertType::alertTypeMentionMe)
+            {
+                displayName = QChar(0xD83D) % QChar(0xDC4B) % ql1c(' ') % QT_TRANSLATE_NOOP("notifications_alert", "You have been mentioned in ") % displayName;
+            }
+
+            NotificationCenterManager_->DisplayNotification(
+                alertType2String(_alertType),
+                state.AimId_,
+                state.senderNick_,
+                state.GetText(),
+                state.MailId_,
+                displayName,
+                QString::number(state.SearchedMsgId_));
             return;
         }
 #endif //_WIN32
-        const auto isMail = state.AimId_ == "mail";
-        auto alert = isMail ? MailAlert_ : MessageAlert_;
+
+        RecentMessagesAlert* alert = nullptr;
+        switch (_alertType)
+        {
+        case AlertType::alertTypeMessage:
+            alert = MessageAlert_;
+            break;
+        case AlertType::alertTypeEmail:
+            alert = MailAlert_;
+            break;
+        case AlertType::alertTypeMentionMe:
+            alert = MentionAlert_;
+            break;
+        default:
+            assert(false);
+            return;
+        }
+
         alert->addAlert(state);
 
         TrayPosition pos = getTrayPosition();
@@ -597,9 +675,9 @@ namespace Ui
         QRect availableGeometry = QDesktopWidget().availableGeometry();
         QRect iconGeometry = systemTrayIcon_->geometry();
 
-        QString ag = QString("availableGeometry x: %1, y: %2, w: %3, h: %4 ").arg(availableGeometry.x()).arg(availableGeometry.y()).arg(availableGeometry.width()).arg(availableGeometry.height());
-        QString ig = QString("iconGeometry x: %1, y: %2, w: %3, h: %4").arg(iconGeometry.x()).arg(iconGeometry.y()).arg(iconGeometry.width()).arg(iconGeometry.height());
-        Log::trace("tray", ag + ig);
+        QString ag = qsl("availableGeometry x: %1, y: %2, w: %3, h: %4 ").arg(availableGeometry.x()).arg(availableGeometry.y()).arg(availableGeometry.width()).arg(availableGeometry.height());
+        QString ig = qsl("iconGeometry x: %1, y: %2, w: %3, h: %4").arg(iconGeometry.x()).arg(iconGeometry.y()).arg(iconGeometry.width()).arg(iconGeometry.height());
+        Log::trace(qsl("tray"), ag + ig);
 
 #ifdef __linux__
         if (iconGeometry.isEmpty())
@@ -616,15 +694,16 @@ namespace Ui
     void TrayIcon::initEMailIcon()
     {
 #ifdef __APPLE__
-        emailIcon_ = QIcon(Utils::parse_image_name(":/resources/main_window/mac_tray/email_100.png"));
+        emailIcon_ = QIcon(Utils::parse_image_name(qsl(":/menubar/mail_%1_100"))
+            .arg(MacSupport::currentTheme()));
 #else
-        emailIcon_ = QIcon(":/resources/main_window/tray_email.ico");
+        emailIcon_ = QIcon(qsl(":/resources/main_window/tray_email.ico"));
 #endif //__APPLE__
     }
 
     void TrayIcon::showEmailIcon()
     {
-        if (platform::is_apple() || emailSystemTrayIcon_ || !canShowNotifications(true))
+        if (platform::is_linux() || emailSystemTrayIcon_ || !canShowNotifications(true))
             return;
 
         emailSystemTrayIcon_ = new QSystemTrayIcon(this);
@@ -635,7 +714,7 @@ namespace Ui
 
     void TrayIcon::hideEmailIcon()
     {
-        if (platform::is_apple() || !emailSystemTrayIcon_)
+        if (platform::is_linux() || !emailSystemTrayIcon_)
             return;
 
         emailSystemTrayIcon_->setVisible(false);
@@ -649,69 +728,20 @@ namespace Ui
         MailAlert_->hide();
 
         MainWindow_->setWindowIcon(Base_);
-        if (!platform::is_apple())
-        {
-            if (UnreadsCount_ > 0)
-            {
-                QIcon iconOverlay;
-                iconOverlay.addPixmap(QPixmap::fromImage(Utils::iconWithCounter(16, UnreadsCount_, QColor("#f23c34"), Qt::white, TrayBase_.pixmap(QSize(16, 16)).toImage())));
-                iconOverlay.addPixmap(QPixmap::fromImage(Utils::iconWithCounter(32, UnreadsCount_, QColor("#f23c34"), Qt::white, TrayBase_.pixmap(QSize(32, 32)).toImage())));
-                systemTrayIcon_->setIcon(iconOverlay);
-            }
-            else
-            {
-                systemTrayIcon_->setIcon(TrayBase_);
-            }
-            systemTrayIcon_->setToolTip(build::is_icq() ? "ICQ" : "Mail.Ru Agent");
-        }
-        else
-        {
-            setMacIcon();
-        }
+        updateIcon(true, false);
+        systemTrayIcon_->setToolTip(build::is_icq() ? qsl("ICQ") : qsl("Mail.Ru Agent"));
 
         initEMailIcon();
 
-        onlineAction_ = dndAction_ = invAction_ = NULL;
-
-
-#ifdef __APPLE__
-
-        onlineAction_ = Menu_->addAction(
-            QIcon(build::is_icq()
-            ? ":/resources/statuses/status_online_200.png"
-            : ":/resources/statuses/status_online_agent_200.png"),
-            QT_TRANSLATE_NOOP("tray_menu", "Online"), this, SLOT(menuStateOnline()));
-        dndAction_ = Menu_->addAction(
-            QIcon(build::is_icq()
-            ? ":/resources/statuses/status_dnd_200.png"
-            : ":/resources/statuses/status_dnd_agent_200.png"),
-            QT_TRANSLATE_NOOP("tray_menu", "Do not disturb"), this, SLOT(menuStateDoNotDisturb()));
-        invAction_ = Menu_->addAction(
-            QIcon(build::is_icq()
-            ? ":/resources/statuses/status_invisible_200.png"
-            : ":/resources/statuses/status_invisible_agent_200.png"),
-            QT_TRANSLATE_NOOP("tray_menu", "Invisible"), this, SLOT(menuStateInvisible()));
-
-        updateStatus();
-
-        Menu_->addSeparator();
-
-        //#ifdef UPDATES
-        //        Menu_->addAction(QIcon(), QT_TRANSLATE_NOOP("context_menu", "Check for updates..."), parent(), SLOT(checkForUpdates()));
-        //        Menu_->addSeparator();
-        //#endif
-        Menu_->addAction(QT_TRANSLATE_NOOP("tray_menu","Quit"), parent(), SLOT(exit()));
-#else
-#ifdef __linux__
-        Menu_->addActionWithIcon(QIcon(), QT_TRANSLATE_NOOP("tray_menu","Open"), parent(), SLOT(activate()));
+#if defined __linux__
+        Menu_->addActionWithIcon(QIcon(), QT_TRANSLATE_NOOP("tray_menu","Open"), parent(), SLOT(activateFromEventLoop()));
         Menu_->addActionWithIcon(QIcon(), QT_TRANSLATE_NOOP("tray_menu","Quit"), parent(), SLOT(exit()));
-#else
-        Menu_->addActionWithIcon(QIcon(Utils::parse_image_name(":/resources/context_menu/quit_100.png")), QT_TRANSLATE_NOOP("tray_menu","Quit"), parent(), SLOT(exit()));
+#elif defined _WIN32
+        Menu_->addActionWithIcon(QIcon(Utils::parse_image_name(qsl(":/context_menu/quit_100"))), QT_TRANSLATE_NOOP("tray_menu", "Quit"), parent(), SLOT(exit()));
 #endif //__linux__
-#endif
 
         systemTrayIcon_->setContextMenu(Menu_);
-        connect(systemTrayIcon_, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this, SLOT(activated(QSystemTrayIcon::ActivationReason)), Qt::QueuedConnection);
+        connect(systemTrayIcon_, &QSystemTrayIcon::activated, this, &TrayIcon::activated, Qt::QueuedConnection);
         systemTrayIcon_->show();
     }
 
@@ -719,7 +749,7 @@ namespace Ui
     {
         Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
         collection.set_value_as_qstring("aimid", aimId);
-        Ui::GetDispatcher()->post_message_to_core("dlg_state/hide", collection.get());
+        Ui::GetDispatcher()->post_message_to_core(qsl("dlg_state/hide"), collection.get());
     }
 
     bool TrayIcon::canShowNotificationsWin() const
@@ -787,7 +817,7 @@ namespace Ui
 
             if (query)
             {
-                BOOL result = FALSE;      
+                BOOL result = FALSE;
                 if (query(SPI_GETSCREENSAVERRUNNING, 0, &result, 0) && result)
                     return false;
             }
@@ -803,30 +833,40 @@ namespace Ui
 
 #endif //_WIN32
 #ifdef __APPLE__
+        if (isMail)
+            return get_gui_settings()->get_value<bool>(settings_notify_new_mail_messages, true) && get_gui_settings()->get_value<bool>(settings_show_in_menubar, false);
+
         return systemTrayIcon_->isSystemTrayAvailable() && systemTrayIcon_->supportsMessages() && (!MainWindow_->isActive() || MacSupport::previewIsShown());
 #else
-        return systemTrayIcon_->isSystemTrayAvailable() && systemTrayIcon_->supportsMessages() && !MainWindow_->isActive();
+        static bool trayAvailable = systemTrayIcon_->isSystemTrayAvailable();
+        static bool msgsSupport = systemTrayIcon_->supportsMessages();
+        return trayAvailable && msgsSupport && !MainWindow_->isActive();
 #endif
     }
 
     void TrayIcon::activated(QSystemTrayIcon::ActivationReason reason)
     {
-        if (platform::is_windows())
+        if (platform::is_windows() || platform::is_apple())
         {
             if (reason == QSystemTrayIcon::Trigger)
                 MainWindow_->activate();
         }
-
-        updateStatus();
+        else //linux
+        {
+            if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::MiddleClick)
+                MainWindow_->activate();
+        }
     }
 
     void TrayIcon::loggedIn()
     {
+        auto updIcon = [this]() { updateIcon(); };
         connect(Logic::getRecentsModel(), &Logic::RecentsModel::dlgStatesHandled, this, &TrayIcon::dlgStates, Qt::QueuedConnection);
-        connect(Logic::getRecentsModel(), &Logic::RecentsModel::updated, this, &TrayIcon::updateIcon, Qt::QueuedConnection);        
+        connect(Logic::getRecentsModel(), &Logic::RecentsModel::updated, this, updIcon, Qt::QueuedConnection);
         connect(Logic::getUnknownsModel(), &Logic::UnknownsModel::dlgStatesHandled, this, &TrayIcon::dlgStates, Qt::QueuedConnection);
-        connect(Logic::getUnknownsModel(), &Logic::UnknownsModel::updated, this, &TrayIcon::updateIcon, Qt::QueuedConnection);       
-        connect(Ui::GetDispatcher(), SIGNAL(newMail(QString, QString, QString, QString)), this, SLOT(newMail(QString, QString, QString, QString)), Qt::QueuedConnection);
+        connect(Logic::getUnknownsModel(), &Logic::UnknownsModel::updated, this, updIcon, Qt::QueuedConnection);
+        connect(Ui::GetDispatcher(), &core_dispatcher::newMail, this, &TrayIcon::newMail, Qt::QueuedConnection);
+        connect(Ui::GetDispatcher(), &core_dispatcher::mentionMe, this, &TrayIcon::mentionMe, Qt::QueuedConnection);
     }
 
     void TrayIcon::loggedOut(const bool _is_auth_error)
@@ -861,64 +901,12 @@ namespace Ui
             if (!NotificationCenterManager_.get())
             {
                 NotificationCenterManager_.reset(new NotificationCenterManager());
-                connect(NotificationCenterManager_.get(), SIGNAL(messageClicked(QString, QString)), this, SLOT(messageClicked(QString, QString)), Qt::QueuedConnection);
-                connect(NotificationCenterManager_.get(), SIGNAL(osxThemeChanged()), this, SLOT(myInfo()), Qt::QueuedConnection);
+                connect(NotificationCenterManager_.get(), &NotificationCenterManager::messageClicked, this, &TrayIcon::messageClicked, Qt::QueuedConnection);
+                connect(NotificationCenterManager_.get(), &NotificationCenterManager::osxThemeChanged, this, &TrayIcon::myInfo, Qt::QueuedConnection);
             }
             return true;
         }
         return false;
     }
 #endif //_WIN32
-
-    void TrayIcon::menuStateOnline()
-    {
-        if (!onlineAction_ ||
-            !dndAction_ ||
-            !invAction_)
-        {
-            return;
-        }
-
-        dndAction_->setChecked(false);
-        invAction_->setChecked(false);
-
-        Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
-        collection.set_value_as_string("state", "online");
-        collection.set_value_as_string("aimid",  MyInfo()->aimId().toStdString());
-        Ui::GetDispatcher()->post_message_to_core("set_state", collection.get());
-    }
-    void TrayIcon::menuStateDoNotDisturb()
-    {
-        if (!onlineAction_ ||
-            !dndAction_ ||
-            !invAction_)
-        {
-            return;
-        }
-
-        onlineAction_->setChecked(false);
-        dndAction_->setChecked(false);
-
-        Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
-        collection.set_value_as_string("state", "dnd");
-        collection.set_value_as_string("aimid", MyInfo()->aimId().toStdString());
-        Ui::GetDispatcher()->post_message_to_core("set_state", collection.get());
-    }
-    void TrayIcon::menuStateInvisible()
-    {
-        if (!onlineAction_ ||
-            !dndAction_ ||
-            !invAction_)
-        {
-            return;
-        }
-
-        onlineAction_->setChecked(false);
-        dndAction_->setChecked(false);
-
-        Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
-        collection.set_value_as_string("state", "invisible");
-        collection.set_value_as_string("aimid", MyInfo()->aimId().toStdString());
-        Ui::GetDispatcher()->post_message_to_core("set_state", collection.get());
-    }
 }

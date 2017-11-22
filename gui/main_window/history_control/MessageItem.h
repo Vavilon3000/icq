@@ -46,6 +46,7 @@ namespace Ui
         QString SenderFriendly_;
 		int AvatarSize_;
 		qint32 Time_;
+        Data::MentionMap Mentions_;
 
         struct IsOutgoingField
         {
@@ -94,10 +95,10 @@ namespace Ui
 		Q_OBJECT
 
 	Q_SIGNALS:
-		void copy(QString);
-        void quote(QList<Data::Quote>);
-        void forward(QList<Data::Quote>);
-        void adminMenuRequest(QString);
+		void copy(const QString&);
+        void quote(const QVector<Data::Quote>&);
+        void forward(const QVector<Data::Quote>&);
+        void avatarMenuRequest(const QString&);
         void selectionChanged();
 
 	public:
@@ -133,7 +134,7 @@ namespace Ui
             const bool _isMChat,
             const bool _isInit = false);
 
-        virtual bool setLastRead(const bool _isLastRead) override;
+        void setLastStatus(LastStatus _lastStatus) override;
 
         virtual void setDeliveredToServer(const bool _delivered) override;
 
@@ -157,7 +158,7 @@ namespace Ui
         QString contentClass() const;
 
 		void updateWith(MessageItem& _messageItem);
-		std::shared_ptr<MessageData> getData();
+		std::shared_ptr<MessageData> getData() const;
 
         void loadAvatar(const int size);
 
@@ -165,15 +166,17 @@ namespace Ui
 
         virtual void onVisibilityChanged(const bool _isVisible) override;
         virtual void onDistanceToViewportChanged(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect) override;
-        
+
         Data::Quote getQuote(bool force = false) const;
-        
+
         void forwardRoutine();
 
         void setNotAuth(const bool _isNotAuth);
         bool isNotAuth();
 
 		virtual void setQuoteSelection() override;
+
+        void setMentions(Data::MentionMap _mentions);
 
     public Q_SLOTS:
         bool updateData();
@@ -182,6 +185,9 @@ namespace Ui
         void avatarClicked();
 		void menu(QAction*);
         void onRecreateAvatarRect();
+        void showHiddenControls();
+        void hideHiddenControls();
+        void setTimestampHoverEnabled(const bool _enabled);
 
 	protected:
         virtual void leaveEvent(QEvent*) override;
@@ -195,6 +201,7 @@ namespace Ui
         virtual void paintEvent(QPaintEvent*) override;
 
         virtual void resizeEvent(QResizeEvent*) override;
+        virtual void hideEvent(QHideEvent*) override;
 
 	private:
 
@@ -228,7 +235,7 @@ namespace Ui
 
         int32_t evaluateTopContentMargin() const;
 
-        const QRect& getAvatarRect() const;
+        QRect getAvatarRect() const;
 
         bool isAvatarVisible() const;
 
@@ -252,7 +259,7 @@ namespace Ui
 
 		bool isMessageBubbleVisible() const;
 
-        void trackContentMenu(const QPoint& _pos);
+        void trackContextMenu(const QPoint& _pos);
         void trackMenu(const QPoint& _pos);
 
 		TextEditEx *MessageBody_;
@@ -260,11 +267,7 @@ namespace Ui
         QString MessageSenderAimId_;
 		::HistoryControl::MessageContentWidget *ContentWidget_;
 
-        bool LastRead_;
-
 		SelectDirection Direction_;
-		ContextMenu* Menu_;
-        ContextMenu* ContentMenu_;
 
 		std::shared_ptr<MessageData> Data_;
 
@@ -280,5 +283,7 @@ namespace Ui
         int startSelectY_;
         bool isSelection_;
         bool isNotAuth_;
+        bool bubbleHovered_;
+        bool timestampHoverEnabled_;
 	};
 }

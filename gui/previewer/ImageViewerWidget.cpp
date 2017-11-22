@@ -46,7 +46,7 @@ void Previewer::ImageViewerWidget::showImage(const QPixmap& _preview, const QStr
 
     setCursor(Qt::ArrowCursor);
 
-    if (type == "jpeg" || type == "png" || type == "bmp")
+    if (type == ql1s("jpeg") || type == ql1s("png") || type == ql1s("bmp"))
     {
         if (_preview.isNull())
         {

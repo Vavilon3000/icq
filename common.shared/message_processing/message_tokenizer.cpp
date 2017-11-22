@@ -7,9 +7,9 @@ common::tools::message_token::message_token()
 {
 }
 
-common::tools::message_token::message_token(std::string&& _text)
-    : type_(type::text)
-    , data_(_text)
+common::tools::message_token::message_token(std::string&& _text, type _type)
+    : type_(_type)
+    , data_(std::move(_text))
 {
 }
 
@@ -42,16 +42,27 @@ common::tools::message_tokenizer::message_tokenizer(const std::string& _message)
         prev += (text_size + url_size);
     };
 
-    for (auto c : _message)
+
+    for (i = 0; i < _message.size(); ++i)
     {
-        parser.process(c);
+        if (_message[i] == '@' && _message[i + 1] == '[' && i < _message.size() - 2)
+        {
+            for (auto j = i + 2; j < _message.size(); ++j)
+            {
+                if (_message[j] == ']')
+                {
+                    i = j;
+                    break;
+                }
+            }
+        }
+
+        parser.process(_message[i]);
 
         if (parser.has_url())
         {
             append_tokens();
         }
-
-        ++i;
     }
 
     parser.finish();
@@ -80,7 +91,7 @@ bool common::tools::message_tokenizer::has_token() const
     return tokens_.size() > 1;
 }
 
-common::tools::message_token common::tools::message_tokenizer::current() const
+const common::tools::message_token& common::tools::message_tokenizer::current() const
 {
     return tokens_.front();
 }

@@ -33,29 +33,6 @@
     </message>
 </context>
 <context>
-    <name>Ui::AccountsPage</name>
-    <message>
-        <source>Choose your account</source>
-        <translation>Zvolit účet</translation>
-    </message>
-    <message>
-        <source>Now we support only one account per session. Please choose prefered one to continue.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Select ICQ account if you want it to be merged with your Agent account.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Do not merge</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Now select ICQ account if you want to merge it with previously selected Agent.</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>about_us</name>
     <message>
         <source>This product includes software developed by the OpenSSL project for use in the OpenSSL Toolkit</source>
@@ -122,26 +99,17 @@
     </message>
 </context>
 <context>
+    <name>avatar_menu</name>
+    <message>
+        <source>Mention</source>
+        <translation>Zmínka</translation>
+    </message>
+</context>
+<context>
     <name>avatar_upload</name>
-    <message>
-        <source>Back</source>
-        <translation>Zpět</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Zrušit</translation>
-    </message>
-    <message>
-        <source>Continue</source>
-        <translation>Pokračovat</translation>
-    </message>
     <message>
         <source>Preview</source>
         <translation>Náhled</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <translation>Uložit</translation>
     </message>
     <message>
         <source>Images (*.jpg *.jpeg *.png *.bmp)</source>
@@ -150,14 +118,6 @@
     <message>
         <source>Avatar was not uploaded due to server error</source>
         <translation>Kvůli chybě serveru nebyl nahrán avatar</translation>
-    </message>
-    <message>
-        <source>Choose file</source>
-        <translation>Vybrat soubor</translation>
-    </message>
-    <message>
-        <source>Change</source>
-        <translation>Změnit</translation>
     </message>
     <message>
         <source>Image size should be 8 Mb or less</source>
@@ -186,6 +146,49 @@ fotografii</translation>
     <message>
         <source>Image should be at least 200x200 px</source>
         <translation>Obrázek by měl mít nejméně 200x200 px</translation>
+    </message>
+    <message>
+        <source>CHANGE</source>
+        <translation>ZMĚNIT</translation>
+    </message>
+    <message>
+        <source>CHOOSE FILE</source>
+        <translation>VYBRAT SOUBOR</translation>
+    </message>
+</context>
+<context>
+    <name>burger_menu</name>
+    <message>
+        <source>Create group chat</source>
+        <translation>Vytvořit skupinový chat</translation>
+    </message>
+    <message>
+        <source>Contacts</source>
+        <translation>Kontakty</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Nastavení</translation>
+    </message>
+    <message>
+        <source>Sounds</source>
+        <translation>Zvuky</translation>
+    </message>
+    <message>
+        <source>Sign out</source>
+        <translation>Odhlásit se</translation>
+    </message>
+    <message>
+        <source>About app</source>
+        <translation>O aplikaci</translation>
+    </message>
+    <message>
+        <source>Contact Us</source>
+        <translation>Kontaktuj nás</translation>
+    </message>
+    <message>
+        <source>Add contact</source>
+        <translation>Přidat kontakt</translation>
     </message>
 </context>
 <context>
@@ -297,7 +300,7 @@ fotografii</translation>
     </message>
     <message>
         <source> has birthday!</source>
-        <translation>má dnes narozeniny!</translation>
+        <translation> má dnes narozeniny!</translation>
     </message>
     <message>
         <source>You have joined group</source>
@@ -351,26 +354,6 @@ fotografii</translation>
         <translation>Oficiální účet</translation>
     </message>
     <message>
-        <source>Forward</source>
-        <translation>Přeposlat</translation>
-    </message>
-    <message>
-        <source>Copy</source>
-        <translation>Kopírovat</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Zrušit</translation>
-    </message>
-    <message>
-        <source>Set to all</source>
-        <translation>Nastavit všem</translation>
-    </message>
-    <message>
-        <source>Set</source>
-        <translation>Nastavit</translation>
-    </message>
-    <message>
         <source> of </source>
         <translation> z </translation>
     </message>
@@ -395,16 +378,28 @@ fotografii</translation>
         <translation>píšou</translation>
     </message>
     <message>
-        <source>Snap expired</source>
-        <translation>Platnost snapu skončila</translation>
-    </message>
-    <message>
         <source>Not authorized</source>
         <translation>Neautorizovaný</translation>
     </message>
     <message>
-        <source>forwarded messages</source>
-        <translation>přeposlané zprávy</translation>
+        <source>CANCEL</source>
+        <translation>ZRUŠIT</translation>
+    </message>
+    <message>
+        <source>SET TO ALL</source>
+        <translation>NASTAVIT VŠEM</translation>
+    </message>
+    <message>
+        <source>SET</source>
+        <translation>NASTAVIT</translation>
+    </message>
+    <message>
+        <source>FORWARD</source>
+        <translation>PŘETOSLAT</translation>
+    </message>
+    <message>
+        <source>COPY</source>
+        <translation>KOPÍROVAT</translation>
     </message>
 </context>
 <context>
@@ -455,10 +450,6 @@ fotografii</translation>
     <message>
         <source>Connection settings</source>
         <translation>Nastavení připojení</translation>
-    </message>
-    <message>
-        <source>Done</source>
-        <translation>Hotovo</translation>
     </message>
 </context>
 <context>
@@ -524,20 +515,8 @@ fotografii</translation>
         <translation>Soubor</translation>
     </message>
     <message>
-        <source>Unknown contacts</source>
-        <translation>Neznámé kontakty</translation>
-    </message>
-    <message>
         <source>Close All</source>
         <translation>Zavřít vše</translation>
-    </message>
-    <message>
-        <source>CONTACTS</source>
-        <translation>KONTAKTY</translation>
-    </message>
-    <message>
-        <source>ALL MESSAGES</source>
-        <translation>VŠECHNY ZPRÁVY</translation>
     </message>
     <message>
         <source>MESSAGES</source>
@@ -546,6 +525,58 @@ fotografii</translation>
     <message>
         <source>SEARCH IN ALL CHATS</source>
         <translation>HLEDAT VE VŠECH CHATECH</translation>
+    </message>
+    <message>
+        <source>New contacts</source>
+        <translation>Nové kontakty</translation>
+    </message>
+    <message>
+        <source>Search in </source>
+        <translation>Hledat v </translation>
+    </message>
+    <message>
+        <source>mutual friend</source>
+        <comment>1</comment>
+        <translation>společný přítel</translation>
+    </message>
+    <message>
+        <source>mutual friends</source>
+        <comment>2</comment>
+        <translation>společní přátelé</translation>
+    </message>
+    <message>
+        <source>mutual friends</source>
+        <comment>5</comment>
+        <translation>společných přátel</translation>
+    </message>
+    <message>
+        <source>mutual friends</source>
+        <comment>21</comment>
+        <translation>společných přátel</translation>
+    </message>
+    <message>
+        <source>All People</source>
+        <translation>Všichni lidé</translation>
+    </message>
+    <message>
+        <source>All Chats</source>
+        <translation>Všechny chaty</translation>
+    </message>
+    <message>
+        <source>More results</source>
+        <translation>Více výsledků</translation>
+    </message>
+    <message>
+        <source>GIF</source>
+        <translation>GIF</translation>
+    </message>
+    <message>
+        <source>PEOPLE</source>
+        <translation>LIDÉ</translation>
+    </message>
+    <message>
+        <source>Search for livechats and channels</source>
+        <translation>Vyhledávání živých chatů a kanálů</translation>
     </message>
 </context>
 <context>
@@ -569,10 +600,6 @@ fotografii</translation>
     <message>
         <source>Please enter a valid email address</source>
         <translation>Zadej platnou e-mailovou adresu</translation>
-    </message>
-    <message>
-        <source>Send</source>
-        <translation>Odeslat</translation>
     </message>
     <message>
         <source>Error occured, try again later</source>
@@ -614,6 +641,10 @@ fotografii</translation>
         <source>Your comments or suggestions...</source>
         <translation>Tvoje komentáře a návrhy...</translation>
     </message>
+    <message>
+        <source>SEND</source>
+        <translation>ODESLAT</translation>
+    </message>
 </context>
 <context>
     <name>context_menu</name>
@@ -650,24 +681,12 @@ fotografii</translation>
         <translation>Zavřít</translation>
     </message>
     <message>
-        <source>Mark all read</source>
-        <translation>Označit vše jako přečtené</translation>
-    </message>
-    <message>
         <source>Save as...</source>
         <translation>Uložit jako...</translation>
     </message>
     <message>
         <source>Copy</source>
         <translation>Kopírovat</translation>
-    </message>
-    <message>
-        <source>Quote</source>
-        <translation>Citovat</translation>
-    </message>
-    <message>
-        <source>Copy file</source>
-        <translation>Kopírovat soubor</translation>
     </message>
     <message>
         <source>Copy link</source>
@@ -700,6 +719,26 @@ fotografii</translation>
     <message>
         <source>Open in browser</source>
         <translation>Otevřít v prohlížeči</translation>
+    </message>
+    <message>
+        <source>Reply</source>
+        <translation>Odpovědět</translation>
+    </message>
+    <message>
+        <source>Add to favorites</source>
+        <translation>Přidat do oblíbených</translation>
+    </message>
+    <message>
+        <source>Copy to clipboard</source>
+        <translation>Kopírovat do clipboardu</translation>
+    </message>
+    <message>
+        <source>Copy text</source>
+        <translation>Kopírovat text</translation>
+    </message>
+    <message>
+        <source>Read all</source>
+        <translation>Načíst vše</translation>
     </message>
 </context>
 <context>
@@ -1640,10 +1679,6 @@ fotografii</translation>
         <translation>Veřejný chat</translation>
     </message>
     <message>
-        <source>Chat will be visible to everyone</source>
-        <translation>Chat bude vidět každý</translation>
-    </message>
-    <message>
         <source>Join with Approval</source>
         <translation>Připojení se schválením</translation>
     </message>
@@ -1662,14 +1697,6 @@ fotografii</translation>
     <message>
         <source>Select members</source>
         <translation>Vybrat členy</translation>
-    </message>
-    <message>
-        <source>Next</source>
-        <translation>Další</translation>
-    </message>
-    <message>
-        <source>Done</source>
-        <translation>Hotovo</translation>
     </message>
     <message>
         <source>Add to chat</source>
@@ -1702,6 +1729,62 @@ fotografii</translation>
     <message>
         <source>Members must be of legal age to join</source>
         <translation>Členové musí být plnoletí, aby se mohli připojit</translation>
+    </message>
+    <message>
+        <source>The chat will appear in the app&apos;s showcase and any user can find it in the list</source>
+        <translation>Chat se zobrazí v prezentaci aplikace a každý uživatel ho může najít v seznamu</translation>
+    </message>
+    <message>
+        <source>Live chats</source>
+        <translation>Live Chats</translation>
+    </message>
+    <message>
+        <source>Chat information is unavailable now, please try again later</source>
+        <translation>Informace z chatu již nejsou k dispozici, zkus to znovu později</translation>
+    </message>
+    <message>
+        <source>Chat does not exist or it is hidden by privacy settings</source>
+        <translation>Chat neexistuje nebo je skrytý v důsledku nastavení soukromí</translation>
+    </message>
+    <message>
+        <source>member</source>
+        <comment>1</comment>
+        <translation>účastník</translation>
+    </message>
+    <message>
+        <source>members</source>
+        <comment>2</comment>
+        <translation>účastníka</translation>
+    </message>
+    <message>
+        <source>members</source>
+        <comment>5</comment>
+        <translation>účastníci</translation>
+    </message>
+    <message>
+        <source>members</source>
+        <comment>21</comment>
+        <translation>účastníků</translation>
+    </message>
+    <message>
+        <source>friend</source>
+        <comment>1</comment>
+        <translation>přítel</translation>
+    </message>
+    <message>
+        <source>friends</source>
+        <comment>2</comment>
+        <translation>přátelé</translation>
+    </message>
+    <message>
+        <source>friends</source>
+        <comment>5</comment>
+        <translation>přátel</translation>
+    </message>
+    <message>
+        <source>friends</source>
+        <comment>21</comment>
+        <translation>přátel</translation>
     </message>
 </context>
 <context>
@@ -1771,67 +1854,12 @@ fotografii</translation>
         <translation>Odeslat %1 %2 %3 %4</translation>
     </message>
     <message>
-        <source>This chat is read-only</source>
-        <translation>Tento chat je pouze v režimu pro čtení</translation>
-    </message>
-    <message>
         <source>Leave and delete</source>
         <translation>Odejít a smazat</translation>
     </message>
     <message>
         <source>You are not a member of this chat. </source>
         <translation>Nejsi účastníkem tohoto chatu. </translation>
-    </message>
-</context>
-<context>
-    <name>livechats</name>
-    <message>
-        <source>friend</source>
-        <comment>1</comment>
-        <translation>přítel</translation>
-    </message>
-    <message>
-        <source>friends</source>
-        <comment>2</comment>
-        <translation>přátelé</translation>
-    </message>
-    <message>
-        <source>friends</source>
-        <comment>5</comment>
-        <translation>přátele</translation>
-    </message>
-    <message>
-        <source>friends</source>
-        <comment>21</comment>
-        <translation>přátelé</translation>
-    </message>
-    <message>
-        <source>Chat information is unavailable now, please try again later</source>
-        <translation>Informace z chatu již nejsou k dispozici, zkus to znovu později</translation>
-    </message>
-    <message>
-        <source>Chat does not exist or it is hidden by privacy settings</source>
-        <translation>Chat neexistuje nebo je skrytý v důsledku nastavení soukromí</translation>
-    </message>
-    <message>
-        <source>Close</source>
-        <translation>Zavřít</translation>
-    </message>
-    <message>
-        <source>Join</source>
-        <translation>Přidat se</translation>
-    </message>
-    <message>
-        <source>Open</source>
-        <translation>Otevřít</translation>
-    </message>
-    <message>
-        <source>Waiting for approval</source>
-        <translation>Čeká se na schválení</translation>
-    </message>
-    <message>
-        <source>Live chats</source>
-        <translation>Live Chats</translation>
     </message>
 </context>
 <context>
@@ -1857,20 +1885,12 @@ fotografii</translation>
         <translation>Chci zůstat přihlášen</translation>
     </message>
     <message>
-        <source>Continue</source>
-        <translation>Pokračovat</translation>
-    </message>
-    <message>
         <source>Type country or code</source>
         <translation>Napiš zemi nebo kód</translation>
     </message>
     <message>
         <source>your phone number</source>
         <translation>vaše telefonní číslo</translation>
-    </message>
-    <message>
-        <source>Start messaging</source>
-        <translation>Zahájit konverzaci</translation>
     </message>
     <message>
         <source>Login via phone</source>
@@ -1930,19 +1950,23 @@ fotografii</translation>
     </message>
     <message>
         <source>Enter code from SMS</source>
-        <translation type="unfinished"></translation>
+        <translation>Zadat kód z SMS</translation>
     </message>
     <message>
         <source>Enter phone number</source>
-        <translation type="unfinished"></translation>
+        <translation>Zadat telefonní číslo</translation>
     </message>
     <message>
         <source>Enter UIN or Email</source>
-        <translation type="unfinished"></translation>
+        <translation>Zadat UIN nebo e-mail</translation>
     </message>
     <message>
         <source>Enter your Email</source>
-        <translation type="unfinished"></translation>
+        <translation>Zadat svůj e-mail</translation>
+    </message>
+    <message>
+        <source>NEXT</source>
+        <translation>DALŠÍ</translation>
     </message>
 </context>
 <context>
@@ -2045,49 +2069,6 @@ fotografii</translation>
     </message>
 </context>
 <context>
-    <name>main_menu</name>
-    <message>
-        <source>Create group chat</source>
-        <translation>Vytvořit skupinový chat</translation>
-    </message>
-    <message>
-        <source>Add contact</source>
-        <translation>Přidat kontakt</translation>
-    </message>
-    <message>
-        <source>Contacts</source>
-        <translation>Kontakty</translation>
-    </message>
-    <message>
-        <source>Settings</source>
-        <translation>Nastavení</translation>
-    </message>
-    <message>
-        <source>Sounds</source>
-        <translation>Zvuky</translation>
-    </message>
-    <message>
-        <source>Discover</source>
-        <translation>Objevujte</translation>
-    </message>
-    <message>
-        <source>Stories</source>
-        <translation>Příběhy</translation>
-    </message>
-    <message>
-        <source>Sign out</source>
-        <translation>Odhlásit se</translation>
-    </message>
-    <message>
-        <source>About app</source>
-        <translation>O aplikaci</translation>
-    </message>
-    <message>
-        <source>Contact Us</source>
-        <translation>Kontaktuj nás</translation>
-    </message>
-</context>
-<context>
     <name>main_page</name>
     <message>
         <source>My profile</source>
@@ -2123,7 +2104,57 @@ fotografii</translation>
     </message>
     <message>
         <source>Add contact</source>
-        <translation>Přidat kontakt</translation>
+        <translation>PŘIDAT KONTAKT</translation>
+    </message>
+    <message>
+        <source>Stickers</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>mentions</name>
+    <message>
+        <source>not in this chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>merge_accounts</name>
+    <message>
+        <source>Now Mail.Ru Agent supports only one account. You can merge it with ICQ one.</source>
+        <translation>Aplikace Mail.Ru Agent nyní podporuje pouze jeden účet. Můžete jej sloučit s účtem ICQ.</translation>
+    </message>
+    <message>
+        <source>Choose Mail.Ru Agent account</source>
+        <translation>Zvolit účet Mail.Ru Agent</translation>
+    </message>
+    <message>
+        <source>Choose ICQ account</source>
+        <translation>Zvolit účet ICQ</translation>
+    </message>
+    <message>
+        <source>Account settings</source>
+        <translation>Nastavení účtu</translation>
+    </message>
+    <message>
+        <source>Mail.Ru Agent</source>
+        <translation>Mail.Ru Agent</translation>
+    </message>
+    <message>
+        <source>ICQ</source>
+        <translation>ICQ</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Zpět</translation>
+    </message>
+    <message>
+        <source>Next</source>
+        <translation>Další</translation>
+    </message>
+    <message>
+        <source>Skip</source>
+        <translation>Přeskočit</translation>
     </message>
 </context>
 <context>
@@ -2131,6 +2162,14 @@ fotografii</translation>
     <message>
         <source>View all</source>
         <translation>Zobrazit vše</translation>
+    </message>
+    <message>
+        <source>You have been mentioned</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>You have been mentioned in </source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2144,32 +2183,12 @@ fotografii</translation>
         <translation>synchronizovat své kontakty</translation>
     </message>
     <message>
-        <source>or </source>
-        <translation>nebo </translation>
-    </message>
-    <message>
-        <source>by phone number or UIN</source>
-        <translation>pomocí telefonního čísla nebo UIN</translation>
-    </message>
-    <message>
-        <source>Write a message</source>
-        <translation>Napsat zprávu</translation>
-    </message>
-    <message>
-        <source>find friends</source>
-        <translation>najít přátele</translation>
-    </message>
-    <message>
         <source>Looks like you have no contacts yet</source>
         <translation>Vypadá to, že ještě nemáš žádné kontakty</translation>
     </message>
     <message>
         <source>You have no opened chats yet</source>
         <translation>Nemáš ještě žádné otevřené chaty</translation>
-    </message>
-    <message>
-        <source>Continue</source>
-        <translation>Pokračovat</translation>
     </message>
     <message>
         <source>Your nickname cannot be longer than 20 symbols</source>
@@ -2192,23 +2211,19 @@ fotografii</translation>
         <translation>Nainstalovat Mail.Ru Agent na mobilu</translation>
     </message>
     <message>
-        <source>by phone number or Email</source>
-        <translation>pomocí telefonního čísla nebo e-mailu</translation>
+        <source>CONTINUE</source>
+        <translation>POKRAČOVAT</translation>
+    </message>
+    <message>
+        <source>Use the search to add contacts</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>popup_window</name>
     <message>
-        <source>Cancel</source>
-        <translation>Zrušit</translation>
-    </message>
-    <message>
         <source>Are you sure you want to sign out?</source>
         <translation>Opravdu se chceš odhlásit?</translation>
-    </message>
-    <message>
-        <source>Yes</source>
-        <translation>Ano</translation>
     </message>
     <message>
         <source>Are you sure you want to move contact to ignore list?</source>
@@ -2225,10 +2240,6 @@ fotografii</translation>
     <message>
         <source>Are you sure this contact is spam?</source>
         <translation>Opravdu je tento kontakt spam?</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <translation>Uložit</translation>
     </message>
     <message>
         <source>Contact name</source>
@@ -2253,10 +2264,6 @@ fotografii</translation>
     <message>
         <source>Are you sure you want to delete user from ignore list?</source>
         <translation>Opravdu chceš odebrat uživatele ze seznamu ignorovaných?</translation>
-    </message>
-    <message>
-        <source>Delete</source>
-        <translation>vymazat</translation>
     </message>
     <message>
         <source>Are you sure you want to block user in this chat?</source>
@@ -2287,20 +2294,12 @@ fotografii</translation>
         <translation>Sdílet odkaz na chat</translation>
     </message>
     <message>
-        <source>Copy link and close</source>
-        <translation>Zkopírovat odkaz a zavřít</translation>
-    </message>
-    <message>
         <source>Forward</source>
         <translation>Přeposlat</translation>
     </message>
     <message>
         <source>Ignored contacts</source>
         <translation>Ignorace</translation>
-    </message>
-    <message>
-        <source>Done</source>
-        <translation>Hotovo</translation>
     </message>
     <message>
         <source>Are you sure you want to forward messages to &lt;USER&gt;?</source>
@@ -2338,6 +2337,78 @@ fotografii</translation>
         <source>Contacts</source>
         <translation>Kontakty</translation>
     </message>
+    <message>
+        <source>CANCEL</source>
+        <translation>ZRUŠIT</translation>
+    </message>
+    <message>
+        <source>YES</source>
+        <translation>ANO</translation>
+    </message>
+    <message>
+        <source>SAVE</source>
+        <translation>ULOŽIT</translation>
+    </message>
+    <message>
+        <source>DONE</source>
+        <translation>HOTOVO</translation>
+    </message>
+    <message>
+        <source>DELETE</source>
+        <translation>VYMAZAT</translation>
+    </message>
+    <message>
+        <source>BACK</source>
+        <translation>ZPĚT</translation>
+    </message>
+    <message>
+        <source>CONTINUE</source>
+        <translation>POKRAČOVAT</translation>
+    </message>
+    <message>
+        <source>NEXT</source>
+        <translation>DALŠÍ</translation>
+    </message>
+    <message>
+        <source>COPY LINK</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>WAITING</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CLOSE</source>
+        <translation>ZAVŘÍT</translation>
+    </message>
+    <message>
+        <source>JOIN</source>
+        <translation>PŘIDAT SE</translation>
+    </message>
+    <message>
+        <source>OPEN</source>
+        <translation>OЕУМŘÍЕ</translation>
+    </message>
+    <message>
+        <source>ADD</source>
+        <translation>PŘIDAT</translation>
+    </message>
+    <message>
+        <source>REMOVE</source>
+        <translation>ODSTRANIT</translation>
+    </message>
+    <message>
+        <source>SEND</source>
+        <translation>ODESLAT</translation>
+    </message>
+    <message>
+        <source>Are you sure you want to remove this sticker pack?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove sticker pack</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>previewer</name>
@@ -2355,69 +2426,6 @@ fotografii</translation>
     </message>
 </context>
 <context>
-    <name>promo_page</name>
-    <message>
-        <source>Contacts</source>
-        <translation>Kontakty</translation>
-    </message>
-    <message>
-        <source>The contact list is now</source>
-        <translation>Seznam kontaktů se nyní</translation>
-    </message>
-    <message>
-        <source>located here</source>
-        <translation>nachází zde</translation>
-    </message>
-    <message>
-        <source>Next</source>
-        <translation>Další</translation>
-    </message>
-    <message>
-        <source>Skip</source>
-        <translation>Přeskočit</translation>
-    </message>
-    <message>
-        <source>Synchronization</source>
-        <translation>Synchronizace</translation>
-    </message>
-    <message>
-        <source>Stickers</source>
-        <translation>Nálepky</translation>
-    </message>
-    <message>
-        <source>Wallpapers</source>
-        <translation>Tapety</translation>
-    </message>
-    <message>
-        <source>Get Started</source>
-        <translation>Začněte</translation>
-    </message>
-    <message>
-        <source>Synchronize your chat history</source>
-        <translation>Synchronizujte historii chatu</translation>
-    </message>
-    <message>
-        <source>and contact list across all devices</source>
-        <translation>a seznam kontaktů ve všech zařízeních</translation>
-    </message>
-    <message>
-        <source>Click here and choose</source>
-        <translation>Klikněte sem a vyberte si</translation>
-    </message>
-    <message>
-        <source>from over 500 bright stickers</source>
-        <translation>z více než 500 zářivých samolepek</translation>
-    </message>
-    <message>
-        <source>Customize your chats</source>
-        <translation>Upravte si svůj chat</translation>
-    </message>
-    <message>
-        <source>Choose a wallpaper from our collection</source>
-        <translation>Vyberte si tapetu z naší kolekce</translation>
-    </message>
-</context>
-<context>
     <name>ptt_widget</name>
     <message>
         <source>unclear message</source>
@@ -2425,22 +2433,25 @@ fotografii</translation>
     </message>
 </context>
 <context>
+    <name>search</name>
+    <message>
+        <source>Add contact</source>
+        <translation>Přidat kontakt</translation>
+    </message>
+    <message>
+        <source>New groupchat</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>search_widget</name>
     <message>
-        <source>Search</source>
-        <translation>Hledat</translation>
-    </message>
-    <message>
-        <source>Phone or Name, Email, UIN</source>
-        <translation>Telefon nebo jméno, e-mail, UIN</translation>
-    </message>
-    <message>
         <source>M</source>
-        <translation>M</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>F</source>
-        <translation>Ž</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>year</source>
@@ -2450,21 +2461,37 @@ fotografii</translation>
     <message>
         <source>years</source>
         <comment>2</comment>
-        <translation>roky</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>years</source>
         <comment>5</comment>
-        <translation>let</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>years</source>
         <comment>21</comment>
-        <translation>let</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Nothing found</source>
-        <translation>Nic nenalezeno</translation>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Phone or Name, Email, UIN</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>SEARCH</source>
+        <translation>VYHLEDÁVÁNÍ</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Vyhledávání</translation>
+    </message>
+    <message>
+        <source>Phone, UIN, Name, Email</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2635,11 +2662,27 @@ fotografii</translation>
     </message>
     <message>
         <source>Preview images and links</source>
-        <translation type="unfinished"></translation>
+        <translation>Zobrazit náhled obrázků a odkazů</translation>
     </message>
     <message>
-        <source>Show snaps</source>
-        <translation type="unfinished"></translation>
+        <source>Hide message timestamps</source>
+        <translation>Skrýt čas zpráv</translation>
+    </message>
+    <message>
+        <source>Open chat on new messages</source>
+        <translation>Otevřít chat na nových zprávách</translation>
+    </message>
+    <message>
+        <source>By default</source>
+        <translation>Ve výchozím nastavení</translation>
+    </message>
+    <message>
+        <source>Contacts</source>
+        <translation>Kontakty</translation>
+    </message>
+    <message>
+        <source>Show popular contacts</source>
+        <translation>Zobrazit oblíbené kontakty</translation>
     </message>
 </context>
 <context>
@@ -2659,10 +2702,6 @@ fotografii</translation>
     <message>
         <source>More</source>
         <translation>Více</translation>
-    </message>
-    <message>
-        <source>Add contact</source>
-        <translation>Přidat kontakt</translation>
     </message>
     <message>
         <source>Report spam</source>
@@ -2697,10 +2736,6 @@ fotografii</translation>
         <translation>Smazat</translation>
     </message>
     <message>
-        <source>Save</source>
-        <translation>Uložit</translation>
-    </message>
-    <message>
         <source>Chat name</source>
         <translation>Název chatu</translation>
     </message>
@@ -2725,10 +2760,6 @@ fotografii</translation>
         <translation>příjmení</translation>
     </message>
     <message>
-        <source>Online</source>
-        <translation>Online</translation>
-    </message>
-    <message>
         <source>Clear history</source>
         <translation>Smazat historii</translation>
     </message>
@@ -2751,14 +2782,6 @@ fotografii</translation>
     <message>
         <source>City</source>
         <translation>město</translation>
-    </message>
-    <message>
-        <source>Do not disturb</source>
-        <translation>Nerušit</translation>
-    </message>
-    <message>
-        <source>Invisible</source>
-        <translation>Neviditelný/á</translation>
     </message>
     <message>
         <source>for safety and spam protection</source>
@@ -2815,10 +2838,6 @@ Please edit phone number and try again.</source>
 Uprav telefonní číslo a opakuj akci.</translation>
     </message>
     <message>
-        <source>Copy link to chat</source>
-        <translation>Zkopírovat odkaz do chatu</translation>
-    </message>
-    <message>
         <source>Approve All</source>
         <translation>Schválit vše</translation>
     </message>
@@ -2829,10 +2848,6 @@ Uprav telefonní číslo a opakuj akci.</translation>
     <message>
         <source>Waiting for approval</source>
         <translation>Čeká se na schválení</translation>
-    </message>
-    <message>
-        <source>link copied</source>
-        <translation>odkaz zkopírován</translation>
     </message>
     <message>
         <source>more</source>
@@ -2871,10 +2886,6 @@ Uprav telefonní číslo a opakuj akci.</translation>
         <translation>narozeniny</translation>
     </message>
     <message>
-        <source>Search for messages</source>
-        <translation>Hledat zprávy</translation>
-    </message>
-    <message>
         <source>Unfortunatelly, you have been deleted and cannot see the members of this chat or message them.</source>
         <translation>Bohužel jsi byl/a vymazán/a a nemůžeš vidět členy tohoto chatu ani jim psát.</translation>
     </message>
@@ -2894,47 +2905,47 @@ Uprav telefonní číslo a opakuj akci.</translation>
         <source>Email/UIN</source>
         <translation>Email/UIN</translation>
     </message>
+    <message>
+        <source>ADD CONTACT</source>
+        <translation>PŘIDAT KONTAKT</translation>
+    </message>
+    <message>
+        <source>SAVE</source>
+        <translation>ULOŽIT</translation>
+    </message>
+    <message>
+        <source>Share link</source>
+        <translation>Sdílet odkaz na chat</translation>
+    </message>
+    <message>
+        <source>Share contact</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
-    <name>snaps_page</name>
+    <name>stickers</name>
     <message>
-        <source>Cancel</source>
-        <translation>Zrušit</translation>
+        <source>Loading...</source>
+        <translation>Nahrávám...</translation>
     </message>
     <message>
-        <source>Yes</source>
-        <translation>Ano</translation>
+        <source>Share</source>
+        <translation>Sdílet</translation>
     </message>
     <message>
-        <source>Are you sure you want to delete this snap?</source>
-        <translation>Opravdu chcete tento snap smazat?</translation>
-    </message>
-    <message>
-        <source>Delete snap</source>
-        <translation>Smazat snap</translation>
-    </message>
-    <message>
-        <source>Unfortunately, this file is not supported on your device.</source>
-        <translation>Tento soubor bohužel není ve vašem zařízení podporován.</translation>
-    </message>
-    <message>
-        <source>view</source>
-        <comment>1</comment>
+        <source>You have not added stickers yet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>views</source>
-        <comment>2</comment>
+        <source>Popular</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>views</source>
-        <comment>5</comment>
+        <source>My</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>views</source>
-        <comment>21</comment>
+        <source>Create stickerpack</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2950,19 +2961,78 @@ Uprav telefonní číslo a opakuj akci.</translation>
     </message>
 </context>
 <context>
+    <name>tooltips</name>
+    <message>
+        <source>Video call</source>
+        <translation>Videohovor</translation>
+    </message>
+    <message>
+        <source>Add member</source>
+        <translation>الشاشة</translation>
+    </message>
+    <message>
+        <source>Chat options</source>
+        <translation>Možnosti chatu</translation>
+    </message>
+    <message>
+        <source>Smileys and stickers</source>
+        <translation>Smajlíci a nálepky</translation>
+    </message>
+    <message>
+        <source>Send message</source>
+        <translation>Odeslat zprávu</translation>
+    </message>
+    <message>
+        <source>Send file</source>
+        <translation>Odeslat soubor</translation>
+    </message>
+    <message>
+        <source>Add users to call</source>
+        <translation>Přidat uživatele pro hovor</translation>
+    </message>
+    <message>
+        <source>Open chat page</source>
+        <translation>Otevřít stránku chatu</translation>
+    </message>
+    <message>
+        <source>Stop call</source>
+        <translation>Ukončit hovor</translation>
+    </message>
+    <message>
+        <source>Turn off camera</source>
+        <translation>Vypnout fotoaparát</translation>
+    </message>
+    <message>
+        <source>Turn on camera</source>
+        <translation>Zapnout fotoaparát</translation>
+    </message>
+    <message>
+        <source>Turn off microphone</source>
+        <translation>Vypnout mikrofon</translation>
+    </message>
+    <message>
+        <source>Turn on microphone</source>
+        <translation>Zapnout mikrofon</translation>
+    </message>
+    <message>
+        <source>Turn off screen sharing</source>
+        <translation>Vypnout sdílení obrazovky</translation>
+    </message>
+    <message>
+        <source>Turn on screen sharing</source>
+        <translation>Zapnout sdílení obrazovky</translation>
+    </message>
+    <message>
+        <source>Call</source>
+        <translation>Call</translation>
+    </message>
+    <message>
+        <source>Share</source>
+        <translation>Sdílet</translation>
+    </message>
+</context>
+<context>
     <name>tray_menu</name>
-    <message>
-        <source>Online</source>
-        <translation>Online</translation>
-    </message>
-    <message>
-        <source>Do not disturb</source>
-        <translation>Nerušit</translation>
-    </message>
-    <message>
-        <source>Invisible</source>
-        <translation>Neviditelný/á</translation>
-    </message>
     <message>
         <source>Quit</source>
         <translation>Ukončit</translation>
@@ -3035,16 +3105,8 @@ Uprav telefonní číslo a opakuj akci.</translation>
         <translation>Jak to funguje</translation>
     </message>
     <message>
-        <source>Ok</source>
-        <translation>OK</translation>
-    </message>
-    <message>
         <source>Ringing...</source>
         <translation>Volám...</translation>
-    </message>
-    <message>
-        <source>Return to call</source>
-        <translation>Návrat k hovoru</translation>
     </message>
     <message>
         <source>Data saving enabled</source>
@@ -3053,10 +3115,6 @@ Uprav telefonní číslo a opakuj akci.</translation>
     <message>
         <source> enabled data saving</source>
         <translation> povolil/a ukládání dat</translation>
-    </message>
-    <message>
-        <source>Add</source>
-        <translation>Přidat</translation>
     </message>
     <message>
         <source>Add to call</source>
@@ -3071,8 +3129,12 @@ Uprav telefonní číslo a opakuj akci.</translation>
         <translation>OSTATNÍ</translation>
     </message>
     <message>
-        <source>Cancel</source>
-        <translation>Zrušit</translation>
+        <source>Screen</source>
+        <translation>Obrazovka</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
     </message>
 </context>
 </TS>

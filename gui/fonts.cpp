@@ -11,8 +11,6 @@ namespace
 {
     typedef std::unordered_map<FontWeight, QString> QssWeightsMapT;
 
-    const auto QFONT_WEIGHT_MEDIUM = (QFont::Weight)57;
-
     void applyFontFamily(const FontFamily _fontFamily, Out QFont &_font);
 
     void applyFontWeight(
@@ -23,35 +21,15 @@ namespace
 
     const QssWeightsMapT& getCurrentWeightsMap();
 
-    const QssWeightsMapT& getPreSierraWeightsMap();
+    const QssWeightsMapT& getOpenSansWeightsMap();
 
-    const QssWeightsMapT& getSierraWeightsMap();
-
-    const QssWeightsMapT& getWindowsWeightsMap();
-
-    const QssWeightsMapT& getArialWeightsMap();
+    const QssWeightsMapT& getSegoeUIWeightsMap();
 
     QString evalQssFontWeight(const FontFamily _fontFamily, const FontWeight _fontStyle);
 
     QFont::Weight icqWeight2QtWeight(const FontWeight _internalWeight);
 
     QString segoeUiFamilyName(const FontWeight _weight);
-
-    namespace san_francisco
-    {
-        const QString fontFamily = "";
-
-        namespace weight
-        {
-            const QString mediumQss = "504";
-
-            int32_t semibold(const int32_t _size);
-
-            const QString boldQss = "696";
-
-            const int bold = 87;
-        }
-    }
 
 }
 
@@ -107,22 +85,12 @@ QFont appFontScaled(const int32_t _sizePx, const FontFamily _family, const FontW
 
 FontFamily defaultAppFontFamily()
 {
-    if (platform::is_apple())
-    {
-        if (platform::osxVersion() < platform::OsxVersion::MV_10_10)
-        {
-            return FontFamily::LUCIDA_GRANDE;
-        }
-
-        return FontFamily::HELVETICA_NEUE;
-    }
-
     if (platform::is_windows_vista_or_late())
     {
         return FontFamily::SEGOE_UI;
     }
 
-    return FontFamily::ARIAL;
+    return FontFamily::OPEN_SANS;
 }
 
 FontWeight defaultAppFontWeight()
@@ -142,18 +110,15 @@ QString appFontFullQss(const int32_t _sizePx, const FontFamily _fontFamily, cons
     QString result;
     result.reserve(512);
 
-    result += "font-size: ";
-    result += QString::number(_sizePx);
-    result += "px; font-family: \"";
-    result += appFontFamilyNameQss(_fontFamily, _fontWeight);
-    result += "\"";
+    result = ql1s("font-size: ")
+        % QString::number(_sizePx)
+        % ql1s("px; font-family: \"")
+        % appFontFamilyNameQss(_fontFamily, _fontWeight)
+        % ql1c('"');
 
     const auto weight = evalQssFontWeight(_fontFamily, _fontWeight);
     if (!weight.isEmpty())
-    {
-        result += "; font-weight: ";
-        result += weight;
-    }
+        result += (ql1s("; font-weight: ") % weight);
 
     return result;
 }
@@ -165,24 +130,15 @@ QString appFontFamilyNameQss(const FontFamily _fontFamily, const FontWeight _fon
 
     switch (_fontFamily)
     {
-        case FontFamily::ARIAL:
-            return "Arial";
-
-        case FontFamily::HELVETICA_NEUE:
-            return "Helvetica Neue";
-
-        case FontFamily::LUCIDA_GRANDE:
-            return "Lucida Grande";
-
-        case FontFamily::SAN_FRANCISCO:
-            return san_francisco::fontFamily;
+        case FontFamily::OPEN_SANS:
+            return qsl("Open Sans");
 
         case FontFamily::SEGOE_UI:
             return segoeUiFamilyName(_fontWeight);
     }
 
     assert(!"unexpected font family");
-    return QString("Comic Sans");
+    return qsl("Comic Sans");
 }
 
 QString appFontWeightQss(const FontWeight _weight)
@@ -216,29 +172,29 @@ QString defaultAppFontQssWeight()
     return iter->second;
 }
 
-QString SetFont(const QString& _qss)
+QString SetFont(QString _qss)
 {
-    QString result(_qss);
+    QString result(std::move(_qss));
 
     const auto fontFamily = appFontFamilyNameQss(defaultAppFontFamily(), FontWeight::Normal);
     const auto fontFamilyBold = appFontFamilyNameQss(defaultAppFontFamily(), FontWeight::Bold);
     const auto fontFamilyMedium = appFontFamilyNameQss(defaultAppFontFamily(), FontWeight::Medium);
     const auto fontFamilyLight = appFontFamilyNameQss(defaultAppFontFamily(), FontWeight::Light);
 
-    result.replace("%FONT_FAMILY%", fontFamily);
-    result.replace("%FONT_FAMILY_BOLD%", fontFamilyBold);
-    result.replace("%FONT_FAMILY_MEDIUM%", fontFamilyMedium);
-    result.replace("%FONT_FAMILY_LIGHT%", fontFamilyLight);
+    result.replace(ql1s("%FONT_FAMILY%"), fontFamily);
+    result.replace(ql1s("%FONT_FAMILY_BOLD%"), fontFamilyBold);
+    result.replace(ql1s("%FONT_FAMILY_MEDIUM%"), fontFamilyMedium);
+    result.replace(ql1s("%FONT_FAMILY_LIGHT%"), fontFamilyLight);
 
     const auto fontWeightQss = appFontWeightQss(FontWeight::Normal);
     const auto fontWeightBold = appFontWeightQss(FontWeight::Bold);
     const auto fontWeightMedium = appFontWeightQss(FontWeight::Medium);
     const auto fontWeightLight = appFontWeightQss(FontWeight::Light);
 
-    result.replace("%FONT_WEIGHT%", fontWeightQss);
-    result.replace("%FONT_WEIGHT_BOLD%", fontWeightBold);
-    result.replace("%FONT_WEIGHT_MEDIUM%", fontWeightMedium);
-    result.replace("%FONT_WEIGHT_LIGHT%", fontWeightLight);
+    result.replace(ql1s("%FONT_WEIGHT%"), fontWeightQss);
+    result.replace(ql1s("%FONT_WEIGHT_BOLD%"), fontWeightBold);
+    result.replace(ql1s("%FONT_WEIGHT_MEDIUM%"), fontWeightMedium);
+    result.replace(ql1s("%FONT_WEIGHT_LIGHT%"), fontWeightLight);
 
     return result;
 }
@@ -247,78 +203,37 @@ namespace
 {
     const QssWeightsMapT& getCurrentWeightsMap()
     {
-        if (platform::is_apple())
-        {
-            const auto isPreSierraVersion = (platform::osxVersion() <= platform::OsxVersion::MV_10_11);
-            if (isPreSierraVersion)
-            {
-                return getPreSierraWeightsMap();
-            }
-
-            return getSierraWeightsMap();
-        }
-
         if (platform::is_windows_vista_or_late())
-            return getWindowsWeightsMap();
+            return getSegoeUIWeightsMap();
 
-        return getArialWeightsMap();
+        return getOpenSansWeightsMap();
     }
 
-    const QssWeightsMapT& getPreSierraWeightsMap()
+    const QssWeightsMapT& getOpenSansWeightsMap()
     {
         static QssWeightsMapT weightMap;
 
         if (weightMap.empty())
         {
-            weightMap.emplace(FontWeight::Light, "200");
-            weightMap.emplace(FontWeight::Normal, "400");
-            weightMap.emplace(FontWeight::Medium, "450");
-            weightMap.emplace(FontWeight::Bold, "800");
+            weightMap.emplace(FontWeight::Light, qsl("300"));
+            weightMap.emplace(FontWeight::Normal, qsl("400"));
+            weightMap.emplace(FontWeight::Medium, qsl("500"));
+            weightMap.emplace(FontWeight::Bold, qsl("700"));
         }
 
         return weightMap;
     }
 
-    const QssWeightsMapT& getSierraWeightsMap()
+    const QssWeightsMapT& getSegoeUIWeightsMap()
     {
         static QssWeightsMapT weightMap;
 
         if (weightMap.empty())
         {
-            weightMap.emplace(FontWeight::Light, "300");
-            weightMap.emplace(FontWeight::Normal, "400");
-            weightMap.emplace(FontWeight::Medium, "450");
-            weightMap.emplace(FontWeight::Bold, "800");
-        }
-
-        return weightMap;
-    }
-
-    const QssWeightsMapT& getWindowsWeightsMap()
-    {
-        static QssWeightsMapT weightMap;
-
-        if (weightMap.empty())
-        {
-            weightMap.emplace(FontWeight::Light, "200");
-            weightMap.emplace(FontWeight::Normal, "400");
-            weightMap.emplace(FontWeight::Medium, "450");
-            weightMap.emplace(FontWeight::Bold, "800");
-        }
-
-        return weightMap;
-    }
-
-    const QssWeightsMapT& getArialWeightsMap()
-    {
-        static QssWeightsMapT weightMap;
-
-        if (weightMap.empty())
-        {
-            weightMap.emplace(FontWeight::Light, "200");
-            weightMap.emplace(FontWeight::Normal, "400");
-            weightMap.emplace(FontWeight::Medium, "550");
-            weightMap.emplace(FontWeight::Bold, "700");
+            weightMap.emplace(FontWeight::Light, qsl("200"));
+            weightMap.emplace(FontWeight::Normal, qsl("400"));
+            weightMap.emplace(FontWeight::Medium, qsl("450"));
+            weightMap.emplace(FontWeight::Bold, qsl("800"));
         }
 
         return weightMap;
@@ -336,25 +251,9 @@ namespace
             return QString();
         }
 
-        if (_fontFamily == FontFamily::ARIAL)
+        if (_fontFamily == FontFamily::OPEN_SANS)
         {
             return appFontWeightQss(_fontWeight);
-        }
-
-        if (_fontFamily == FontFamily::HELVETICA_NEUE)
-        {
-            return appFontWeightQss(_fontWeight);
-        }
-
-        if (_fontFamily == FontFamily::SAN_FRANCISCO)
-        {
-            if (_fontWeight == FontWeight::Light)
-                return QString();
-
-            if (_fontWeight == FontWeight::Medium)
-                return san_francisco::weight::mediumQss;
-
-            return QString();
         }
 
         assert(!"unknown font family / style comnbination");
@@ -372,11 +271,7 @@ namespace
 
             case FontWeight::Normal: return QFont::Weight::Normal;
 
-            #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
             case FontWeight::Medium: return QFont::Weight::Medium;
-            #else
-            case FontWeight::Medium: return QFONT_WEIGHT_MEDIUM;
-            #endif
 
             case FontWeight::Bold: return QFont::Weight::Bold;
         }
@@ -393,19 +288,19 @@ namespace
         QString familyName;
         familyName.reserve(1024);
 
-        familyName += "Segoe UI";
+        familyName += ql1s("Segoe UI");
 
         switch (_weight)
         {
             case FontWeight::Light:
-                familyName += " Light";
+                familyName += ql1s(" Light");
                 break;
 
             case FontWeight::Normal:
                 break;
 
             case FontWeight::Medium:
-                familyName += " Semibold";
+                familyName += ql1s(" Semibold");
                 break;
 
             case FontWeight::Bold:
@@ -427,19 +322,11 @@ namespace
         switch (_fontFamily)
         {
             case FontFamily::SEGOE_UI:
-                _font.setFamily("Segoe UI");
+                _font.setFamily(qsl("Segoe UI"));
                 return;
 
-            case FontFamily::SAN_FRANCISCO:
-                _font.setFamily(san_francisco::fontFamily);
-                return;
-
-            case FontFamily::HELVETICA_NEUE:
-                _font.setFamily("Helvetica Neue");
-                return;
-
-            case FontFamily::ARIAL:
-                _font.setFamily("Arial");
+            case FontFamily::OPEN_SANS:
+                _font.setFamily(qsl("Open Sans"));
                 return;
 
             default:
@@ -466,14 +353,14 @@ namespace
             switch (_fontWeight)
             {
                 case FontWeight::Light:
-                    _font.setFamily("Segoe UI Light");
+                    _font.setFamily(qsl("Segoe UI Light"));
                     return;
 
                 case FontWeight::Normal:
                     return;
 
                 case FontWeight::Medium:
-                    _font.setFamily("Segoe UI Semibold");
+                    _font.setFamily(qsl("Segoe UI Semibold"));
                     return;
 
                 case FontWeight::Bold:
@@ -487,12 +374,8 @@ namespace
             }
         }
 
-        if (_fontFamily == FontFamily::SAN_FRANCISCO)
-        {
-            return;
-        }
 
-        if (_fontFamily == FontFamily::HELVETICA_NEUE)
+        if (_fontFamily == FontFamily::OPEN_SANS)
         {
             switch (_fontWeight)
             {
@@ -517,51 +400,8 @@ namespace
             return;
         }
 
-        if (_fontFamily == FontFamily::ARIAL)
-        {
-            switch (_fontWeight)
-            {
-            case FontWeight::Normal:
-                _font.setWeight(QFont::Weight::Normal);
-                return;
-
-            case FontWeight::Light:
-                _font.setWeight(QFont::Weight::Light);
-                return;
-
-            case FontWeight::Medium:
-                _font.setWeight(QFont::Weight::DemiBold);
-                return;
-
-            case FontWeight::Bold:
-                _font.setWeight(QFont::Weight::Bold);
-                return;
-            }
-
-            assert(!"unexpected font style");
-            return;
-        }
-
         assert(!"unexpected font family");
         return;
-    }
-
-    namespace san_francisco
-    {
-        namespace weight
-        {
-            int32_t semibold(const int32_t _size)
-            {
-                assert(_size > 0);
-
-                if (_size <= 16)
-                {
-                    return 64;
-                }
-
-                return 63;
-            }
-        }
     }
 }
 

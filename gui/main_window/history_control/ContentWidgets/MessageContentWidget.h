@@ -57,6 +57,8 @@ namespace HistoryControl
 
         virtual void onVisibilityChanged(const bool isVisible);
 
+        virtual QRect getLastPreviewGeometry() = 0;
+
         virtual void onDistanceToViewportChanged(const QRect& _widgetAbsGeometry, const QRect& _viewportVisibilityAbsRect);
 
         virtual QString selectedText() const;

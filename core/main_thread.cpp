@@ -4,7 +4,7 @@
 using namespace core;
 
 main_thread::main_thread()
-    :	threadpool( 1 )
+    : threadpool( 1 )
 {
 }
 

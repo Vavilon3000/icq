@@ -32,7 +32,7 @@ namespace Profiling
 		collection.set_value_as_int64("id", id_);
 		collection.set_value_as_int64("ts", QDateTime::currentMSecsSinceEpoch());
 
-		Ui::GetDispatcher()->post_message_to_core("profiler/proc/start", collection.get());
+		Ui::GetDispatcher()->post_message_to_core(qsl("profiler/proc/start"), collection.get());
 	}
 
 	auto_stop_watch::~auto_stop_watch()
@@ -42,7 +42,7 @@ namespace Profiling
 		collection.set_value_as_int64("id", id_);
 		collection.set_value_as_int64("ts", QDateTime::currentMSecsSinceEpoch());
 
-		Ui::GetDispatcher()->post_message_to_core("profiler/proc/stop", collection.get());
+		Ui::GetDispatcher()->post_message_to_core(qsl("profiler/proc/stop"), collection.get());
 	}
 
 }

@@ -6,12 +6,12 @@ QWidget
 
 QPushButton
 {
-    font-size: 16dip;
+    font-size: 15dip;
 }
 
 QPushButton::menu-indicator
 {
-    image: url(:/resources/basic_elements/arrow_small_a_100.png);
+    image: url(:/controls/arrow_a_100);
     width: 12dip;
     height: 8dip;
     subcontrol-origin: padding;
@@ -20,9 +20,9 @@ QPushButton::menu-indicator
 
 QMenu::item
 {
-	padding-left: 14dip;
-	min-width: 140dip;
-	max-width: 248dip;
+    padding-left: 14dip;
+    min-width: 140dip;
+    max-width: 248dip;
 }
 
 QSlider
@@ -42,7 +42,7 @@ QSlider::groove:horizontal
 QSlider::handle:horizontal
 {
     background: transparent;
-    image: url(:/resources/basic_elements/content_selectbar_100.png);
+    image: url(:/controls/selectbar_100);
     border: none;
     width: 8dip;
     height: 24dip;

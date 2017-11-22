@@ -21,7 +21,7 @@ int32_t fetch_event_typing::parse(const rapidjson::Value& _node_event_data)
 
     if (it_status != _node_event_data.MemberEnd() && it_status->value.IsString())
     {
-        std::string status = it_status->value.GetString();
+        std::string status = rapidjson_get_string(it_status->value);
         is_typing_ = (status == "typing");
     }
 
@@ -29,7 +29,7 @@ int32_t fetch_event_typing::parse(const rapidjson::Value& _node_event_data)
 
     if (it_aimid != _node_event_data.MemberEnd() && it_aimid->value.IsString())
     {
-        aimid_ = it_aimid->value.GetString();
+        aimid_ = rapidjson_get_string(it_aimid->value);
     }
     else
     {
@@ -44,7 +44,7 @@ int32_t fetch_event_typing::parse(const rapidjson::Value& _node_event_data)
 
         if (itsender != it_attr->value.MemberEnd() && itsender->value.IsString())
         {
-            chatter_aimid_ = itsender->value.GetString();
+            chatter_aimid_ = rapidjson_get_string(itsender->value);
         }
 
         const auto itoptions = it_attr->value.FindMember("options");
@@ -55,7 +55,7 @@ int32_t fetch_event_typing::parse(const rapidjson::Value& _node_event_data)
 
             if (itname != itoptions->value.MemberEnd() && itname->value.IsString())
             {
-                chatter_name_ = itname->value.GetString();
+                chatter_name_ = rapidjson_get_string(itname->value);
             }
         }
     }

@@ -9,7 +9,7 @@ namespace Logic
     {
         HasMouseOver    = 0x00000001,
     };
-    
+
     class CustomAbstractListModel: public QAbstractListModel
     {
         Q_OBJECT
@@ -22,14 +22,13 @@ namespace Logic
 
     protected:
         virtual void refreshList();
-        
+
     public:
-        CustomAbstractListModel(QObject *parent = 0);
-        virtual ~CustomAbstractListModel();
-        
+        CustomAbstractListModel(QObject *parent = nullptr);
+
         void setFlag(int flag);
         void unsetFlag(int flag);
-        
+
         inline bool customFlagIsSet(int flag) const
         {
             return ((flags_ & flag) == flag);

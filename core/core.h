@@ -35,7 +35,7 @@ namespace core
     struct proxy_settings;
     class proxy_settings_manager;
     class hosts_config;
-    
+
     namespace update
     {
         class updater;
@@ -115,10 +115,10 @@ namespace core
         virtual ~core_dispatcher();
 
         void start(const common::core_gui_settings&);
-        std::string get_uniq_device_id();
+        std::string get_uniq_device_id() const;
         void execute_core_context(std::function<void()> _func);
 
-        uint32_t add_timer(std::function<void()> _func, uint32_t _timeout);
+        uint32_t add_timer(std::function<void()> _func, std::chrono::milliseconds _timeout);
         void stop_timer(uint32_t _id);
 
         std::shared_ptr<async_task_handlers> save_async(std::function<int32_t()> task);
@@ -132,8 +132,8 @@ namespace core
         void receive_message_from_gui(const char * _message, int64_t _seq, icollection* _message_data);
 
         const common::core_gui_settings& get_core_gui_settings() const;
-        
-        bool is_valid_search();
+
+        bool is_valid_search() const;
         void begin_search();
         unsigned end_search();
 
@@ -144,9 +144,9 @@ namespace core
         void unlogin(const bool _is_auth_error);
 
         std::string get_root_login();
-        std::string get_login_after_start();
+        std::string get_login_after_start() const;
         std::string get_contact_friendly_name(unsigned _id, const std::string& _contact_login);
-        std::shared_ptr<base_im> find_im_by_id(unsigned _id);
+        std::shared_ptr<base_im> find_im_by_id(unsigned _id) const;
 
         void update_login(im_login_id& _login);
         void replace_uin_in_login(im_login_id& old_login, im_login_id& new_login);
@@ -163,7 +163,7 @@ namespace core
 
         network_log& get_network_log();
 
-        proxy_settings get_proxy_settings();
+        proxy_settings get_proxy_settings() const;
         bool try_to_apply_alternative_settings();
 
         void set_user_proxy_settings(const proxy_settings& _user_proxy_settings);
@@ -181,12 +181,11 @@ namespace core
         // We save fix voip mute flag in settings,
         // Because we want to call this fix once.
         void set_voip_mute_fix_flag(bool bValue);
-        bool get_voip_mute_fix_flag();
+        bool get_voip_mute_fix_flag() const;
 
         hosts_config& get_hosts_config();
 
-        void post_need_promo();
-        void set_need_show_promo(bool _need_show_promo);
+        void update_outgoing_msg_count(const std::string& _aimid, int _count);
     };
 
     extern std::unique_ptr<core::core_dispatcher>		g_core;

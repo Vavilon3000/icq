@@ -13,8 +13,6 @@ namespace
 
     std::unordered_map<int64_t, proc_info> callbacks_;
 
-    void call(const int64_t _id, const core::coll_helper &_coll);
-
     void addref(const int64_t _id);
 
     void release(const int64_t _id);
@@ -59,47 +57,6 @@ ifptr<ivalue> remote_proc::toValue() const
 
 namespace
 {
-	void call(const int64_t _id, const core::coll_helper &_coll)
-	{
-		assert(_id > 0);
-
-		auto iter = callbacks_.find(_id);
-		if (iter == callbacks_.end())
-		{
-			assert(!"call on an unknown callback");
-			return;
-		}
-
-		const auto &info = std::get<1>(*iter);
-
-		const auto &proc = get_proc(info);
-		assert(proc);
-
-		proc(_coll);
-	}
-
-	void addref(const int64_t _id)
-	{
-		assert(_id > 0);
-
-		auto iter = callbacks_.find(_id);
-		if (iter == callbacks_.end())
-		{
-			assert(!"addref on an unknown callback");
-			return;
-		}
-
-		const auto &info = std::get<1>(*iter);
-
-		const auto ref_counter = get_counter(info);
-		assert(ref_counter > 0);
-
-		const auto &proc = get_proc(info);
-		assert(proc);
-
-		iter->second = make_info(ref_counter + 1, proc);
-	}
-
 	void release(const int64_t _id)
 	{
 		assert(_id > 0);

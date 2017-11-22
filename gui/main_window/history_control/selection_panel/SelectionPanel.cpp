@@ -18,8 +18,8 @@
 
 namespace
 {
-    const int horizontalSpace = 24;
-    const int verticalSpace = 15;
+    const int horizontalSpace = 12;
+    const int verticalSpace = 12;
     const int buttonSpace = 12;
 }
 
@@ -29,35 +29,33 @@ Ui::Selection::SelectionPanel::SelectionPanel(MessagesScrollArea* _messages, QWi
 {
     assert(_messages);
 
-    const auto style = 
-        Utils::LoadStyle(":/main_window/history_control/history_control.qss");
+    const auto style =
+        Utils::LoadStyle(qsl(":/qss/history_control"));
     setStyleSheet(style);
-    setObjectName("topWidget");
+    setObjectName(qsl("topWidget"));
 
-    auto forward = new QPushButton(QT_TRANSLATE_NOOP("chat_page", "Forward"));
+    auto forward = new QPushButton(QT_TRANSLATE_NOOP("chat_page", "FORWARD"));
     forward->setCursor(Qt::PointingHandCursor);
-    Utils::ApplyStyle(forward, Ui::CommonStyle::getGreenButtonStyle());
+    Utils::ApplyStyle(forward, CommonStyle::getGreenButtonStyle());
 
-    auto copy = new QPushButton(QT_TRANSLATE_NOOP("chat_page", "Copy"));
+    auto copy = new QPushButton(QT_TRANSLATE_NOOP("chat_page", "COPY"));
     copy->setCursor(Qt::PointingHandCursor);
-    Utils::ApplyStyle(copy, Ui::CommonStyle::getGreenButtonStyle());
+    Utils::ApplyStyle(copy, CommonStyle::getGreenButtonStyle());
 
     auto cancel = new LabelEx(this);
-    cancel->setText(QT_TRANSLATE_NOOP("chat_page", "Cancel"));
-    QPalette p;
-    p.setColor(QPalette::Foreground, CommonStyle::getLinkColor());
-    cancel->setPalette(p);
-    cancel->setFont(Fonts::appFontScaled(16));
+    cancel->setText(QT_TRANSLATE_NOOP("chat_page", "CANCEL"));
+    cancel->setColor(CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY));
+    cancel->setFont(Fonts::appFontScaled(15, Fonts::FontWeight::Medium));
     cancel->setCursor(Qt::PointingHandCursor);
     cancel->adjustSize();
 
     connect(forward, &QPushButton::clicked, this, [=]()
     {
-        auto quotes = messages_->getQuotes();
+        const auto quotes = messages_->getQuotes();
         if (quotes.empty())
             return;
 
-        if (quotes.size() == 1 && 
+        if (quotes.size() == 1 &&
             (quotes.begin()->type_ == Data::Quote::Type::file_sharing ||
             quotes.begin()->type_ == Data::Quote::Type::link))
         {
@@ -71,9 +69,9 @@ Ui::Selection::SelectionPanel::SelectionPanel(MessagesScrollArea* _messages, QWi
         closePanel();
     });
 
-    connect(copy, &QPushButton::clicked, [this]()
+    connect(copy, &QPushButton::clicked, this, [this]()
     {
-        const auto text = messages_->getSelectedText();;
+        const auto text = messages_->getSelectedText();
 
         auto clipboard = QApplication::clipboard();
         clipboard->setText(text);
@@ -83,10 +81,7 @@ Ui::Selection::SelectionPanel::SelectionPanel(MessagesScrollArea* _messages, QWi
         Ui::MainPage::instance()->getContactDialog()->setFocusOnInputWidget();
     });
 
-    connect(cancel, &LabelEx::clicked, [this]()
-    {
-        closePanel();
-    });
+    connect(cancel, &LabelEx::clicked, this, &Ui::Selection::SelectionPanel::closePanel);
 
     auto layout = Utils::emptyHLayout();
     layout->setContentsMargins(

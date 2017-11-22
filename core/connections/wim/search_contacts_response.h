@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../corelib/collection_helper.h"
+#include "chat_info.h"
 
 namespace core
 {
@@ -10,7 +11,8 @@ namespace core
         {
             bool finish_;
             std::string next_tag_;
-            struct chunk
+
+            struct contact_chunk
             {
                 std::string aimid_;
                 std::string stamp_;
@@ -33,16 +35,24 @@ namespace core
                 }
                 birthdate_;
                 std::string about_;
-                chunk(): score_(-1) {}
+                int32_t mutual_friend_count_;
+
+                contact_chunk(): score_(-1), mutual_friend_count_(0) {}
             };
-            std::vector<chunk> data_;
+            std::vector<contact_chunk> contacts_data_;
+            std::vector<chat_info> chats_data_;
+
+            bool unserialize_contacts(const rapidjson::Value& _node);
+            bool unserialize_chats(const rapidjson::Value& _node);
+
+            void serialize_contacts(core::coll_helper _root_coll) const;
+            void serialize_chats(core::coll_helper _root_coll) const;
 
         public:
             search_contacts_response();
 
-            int32_t unserialize_header(const rapidjson::Value& _node); // search 2
-            int32_t unserialize(const rapidjson::Value& _node);
-            void serialize(core::coll_helper _coll);
+            bool unserialize(const rapidjson::Value& _node);
+            void serialize(core::coll_helper _root_coll) const;
         };
 
     }

@@ -34,13 +34,16 @@
 #define settings_autoplay_video "autoplay_video"
 #define settings_auto_scroll_new_messages "auto_scroll_new_messages"
 #define settings_scale_coefficient "scale_coefficient"
-#define settings_sidebar_hide "hide_sidebar"
-#define settings_show_snaps "settings_show_snaps"
+#define settings_hide_message_timestamps "hide_message_timestamps"
+#define settings_show_popular_contacts "show_popular_contacts"
 
 #define settings_microphone "microphone"
 #define settings_microphone_gain "microphone_gain"
 #define settings_speakers "speakers"
 #define settings_webcam "webcam"
+#define settings_microphone_is_default "default_microphone"
+#define settings_speakers_is_default "default_speakers"
+
 
 #define settings_notify_new_messages "notify_new_messages"
 #define settings_notify_new_mail_messages "notify_new_mail_messages"

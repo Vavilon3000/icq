@@ -33,14 +33,14 @@ link_meta::link_meta(
     const std::string &_content_type,
     const preview_size &_preview_size,
     const int64_t _file_size)
-    : annotation_(_annotation)
+    : preview_uri_(_preview_uri)
+    , download_uri_(_download_uri)
     , title_(_title)
-    , preview_uri_(_preview_uri)
+    , annotation_(_annotation)
     , favicon_uri_(_favicon_uri)
     , site_name_(_site_name)
     , content_type_(_content_type)
     , preview_size_(_preview_size)
-    , download_uri_(_download_uri)
     , file_size_(_file_size)
 {
     assert(!site_name_.empty());
@@ -238,7 +238,7 @@ link_meta_uptr parse_json(InOut char *_json, const std::string &_uri)
         return nullptr;
     }
 
-    link_meta_uptr info(new link_meta(
+    return std::make_unique<link_meta>(
         title,
         annotation,
         preview_uri,
@@ -247,9 +247,7 @@ link_meta_uptr parse_json(InOut char *_json, const std::string &_uri)
         site_name,
         content_type,
         size,
-        file_size));
-
-    return info;
+        file_size);
 }
 
 namespace uri
@@ -314,7 +312,7 @@ namespace
             return std::string();
         }
 
-        return iter_annotation->value.GetString();
+        return rapidjson_get_string(iter_annotation->value);
     }
 
     std::string parse_content_type(const rapidjson::Value &_doc_node)
@@ -326,7 +324,7 @@ namespace
             return std::string();
         }
 
-        return iter_content_type->value.GetString();
+        return rapidjson_get_string(iter_content_type->value);
     }
 
     std::string parse_favicon(const rapidjson::Value &_doc_node)
@@ -352,7 +350,7 @@ namespace
             return std::string();
         }
 
-        return node_preview_url.GetString();
+        return rapidjson_get_string(node_preview_url);
     }
 
     std::string parse_image_uri(const rapidjson::Value &_doc_node, Out preview_size &_size, Out std::string &_download_uri, Out int64_t &_file_size)
@@ -362,6 +360,8 @@ namespace
         Out _file_size = -1;
 
         auto iter_images = _doc_node.FindMember("images");
+        auto iter_ctype = _doc_node.FindMember("content_type");
+
         if ((iter_images == _doc_node.MemberEnd()) ||
             !iter_images->value.IsArray() ||
             iter_images->value.Empty())
@@ -376,10 +376,44 @@ namespace
             return std::string();
         }
 
-        const auto &node_url = node_image["url"];
-        if (node_url.IsString())
+        const auto is_video = parse_content_type(_doc_node) == "video";
+
+        auto iter_custom = _doc_node.FindMember("custom_fields");
+        if (iter_custom != _doc_node.MemberEnd() && iter_custom->value.IsArray() && !iter_custom->value.Empty())
         {
-            Out _download_uri = node_url.GetString();
+            for (auto node = iter_custom->value.Begin(), nend = iter_custom->value.End(); node != nend; ++node)
+            {
+                if (!node->IsObject())
+                    continue;
+
+                const auto iter_name = node->FindMember("name");
+                const auto iter_value = node->FindMember("value");
+
+                if (iter_name == node->MemberEnd() || !iter_name->value.IsString() || iter_value == node->MemberEnd() || !iter_value->value.IsString())
+                    continue;
+
+                if (rapidjson_get_string(iter_name->value) == "download_url")
+                {
+                    Out _download_uri = rapidjson_get_string(iter_value->value);
+                    break;
+                }
+            }
+        }
+        else if (is_video)
+        {
+            auto iter_url = _doc_node.FindMember("url");
+            if (iter_url != _doc_node.MemberEnd() && iter_url->value.IsString())
+            {
+                Out _download_uri = rapidjson_get_string(iter_url->value);
+            }
+        }
+        else
+        {
+            const auto &node_url = node_image["url"];
+            if (node_url.IsString())
+            {
+                Out _download_uri = rapidjson_get_string(node_url);
+            }
         }
 
         const auto &node_preview_url = node_image["preview_url"];
@@ -393,7 +427,7 @@ namespace
         const auto &node_preview_width = node_image["preview_width"];
         if (node_preview_width.IsString())
         {
-            preview_width = std::stoi(node_preview_width.GetString());
+            preview_width = std::stoi(rapidjson_get_string(node_preview_width));
         }
 
         auto preview_height = 0;
@@ -401,7 +435,7 @@ namespace
         const auto &node_preview_height = node_image["preview_height"];
         if (node_preview_height.IsString())
         {
-            preview_height = std::stoi(node_preview_height.GetString());
+            preview_height = std::stoi(rapidjson_get_string(node_preview_height));
         }
 
         const auto is_size_valid = ((preview_width > 0) && (preview_height > 0));
@@ -411,13 +445,13 @@ namespace
         }
 
         const auto &node_orig_size = node_image["orig_size"];
-        if (node_orig_size.IsString())
+        if (node_orig_size.IsString() && !is_video)
         {
             int64_t orig_size = -1;
 
             try
             {
-                orig_size = std::stoll(node_orig_size.GetString());
+                orig_size = std::stoll(rapidjson_get_string(node_orig_size));
             }
             catch (std::invalid_argument&)
             {
@@ -435,7 +469,7 @@ namespace
             }
         }
 
-        return node_preview_url.GetString();
+        return rapidjson_get_string(node_preview_url);
     }
 
     std::string parse_title(const rapidjson::Value &_doc_node)
@@ -447,7 +481,7 @@ namespace
             return std::string();
         }
 
-        return iter_title->value.GetString();
+        return rapidjson_get_string(iter_title->value);
     }
 
 }

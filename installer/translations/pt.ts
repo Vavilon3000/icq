@@ -24,20 +24,20 @@
         <translation>ICQ</translation>
     </message>
     <message>
-        <source>Back</source>
-        <translation>Voltar</translation>
-    </message>
-    <message>
-        <source>Next</source>
-        <translation>Próximo</translation>
-    </message>
-    <message>
         <source>Choose ICQ account</source>
         <translation>Escolher a conta do ICQ</translation>
     </message>
     <message>
         <source>Skip step</source>
         <translation>Pular etapa</translation>
+    </message>
+    <message>
+        <source>BACK</source>
+        <translation>Voltar</translation>
+    </message>
+    <message>
+        <source>NEXT</source>
+        <translation>Próximo</translation>
     </message>
 </context>
 <context>
@@ -110,17 +110,16 @@
         <translation>Política de Privacidade</translation>
     </message>
     <message>
-        <source>Install</source>
-        <translatorcomment>To intall ICQ app</translatorcomment>
-        <translation>Instalar</translation>
-    </message>
-    <message>
         <source>Welcome to Mail.Ru Agent</source>
         <translation>Bem-vindo ao Mail.Ru Agent</translation>
     </message>
     <message>
         <source>This will install Mail.Ru Agent on your computer</source>
         <translation>Isto irá instalar o Mail.Ru Agent no seu computador</translation>
+    </message>
+    <message>
+        <source>INSTALL</source>
+        <translation>INSTALAR</translation>
     </message>
 </context>
 <context>

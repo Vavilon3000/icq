@@ -3,14 +3,14 @@
 #include "NameAndStatusWidget.h"
 #include "../controls/TextEmojiWidget.h"
 
-Ui::PushButton_t::PushButton_t(QWidget* parent/* = NULL*/) 
+Ui::PushButton_t::PushButton_t(QWidget* parent/* = NULL*/)
     : QPushButton(parent)
+    , currentState_(normal)
     , fromIconToText_(0)
     , iconW_(-1)
-    , alignment_(Qt::AlignVCenter | Qt::AlignLeft)
     , iconH_(-1)
+    , alignment_(Qt::AlignVCenter | Qt::AlignLeft)
     , postfixColor_("#000000")
-    , currentState_(normal) 
 {
     for (size_t ix = 0; ix < sizeof(colorsForStates_) / sizeof(colorsForStates_[0]); ++ix)
     {
@@ -36,7 +36,7 @@ void Ui::PushButton_t::paintEvent(QPaintEvent*)
     const QPixmap& icon   = !bitmapsForStates_[currentState_].isNull() ? bitmapsForStates_[currentState_] : bitmapsForStates_[normal];
     const QColor& color   = colorsForStates_[currentState_];
 
-    const QString& postfix = postfix_; 
+    const QString& postfix = postfix_;
 
     QFontMetrics fm(font());
     const int offsetPrefix  = ((!icon.isNull()) & (!!compiledText_))  * fromIconToText_;
@@ -185,7 +185,7 @@ int Ui::PushButton_t::precalculateWidth()
     const QPixmap& icon   = !bitmapsForStates_[currentState_].isNull() ? bitmapsForStates_[currentState_] : bitmapsForStates_[normal];
 
     //const QString& prefix  = prefix_;
-    const QString& postfix = postfix_; 
+    const QString& postfix = postfix_;
 
     QFontMetrics fm(font());
     const int offsetPrefix  = ((!icon.isNull()) & (!!compiledText_))  * fromIconToText_;

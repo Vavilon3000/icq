@@ -55,14 +55,14 @@ namespace core
 
     proxy_settings proxy_settings_manager::get_current_settings() const
     {
-        std::unique_lock<std::mutex> lock(mutex_);
+        boost::unique_lock<boost::mutex> lock(mutex_);
         return settings_[current_settings_];
     }
 
     void proxy_settings_manager::apply(const proxy_settings& _settings)
     {
         {
-            std::unique_lock<std::mutex> lock(mutex_);
+            boost::unique_lock<boost::mutex> lock(mutex_);
             if (_settings.proxy_type_ == static_cast<int32_t>(core::proxy_types::auto_proxy))
             {
                 current_settings_ = auto_settings;
@@ -79,7 +79,7 @@ namespace core
 
     bool proxy_settings_manager::try_to_apply_alternative_settings()
     {
-        std::unique_lock<std::mutex> lock(mutex_);
+        boost::unique_lock<boost::mutex> lock(mutex_);
 
         if (current_settings_ == user_settings) // we won't change the settings if they are user
             return false;
@@ -100,7 +100,7 @@ namespace core
 
         settings.use_proxy_ = false;
         CRegKey key;
-        if (key.Open(HKEY_CURRENT_USER, CAtlString(L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Internet Settings")) == ERROR_SUCCESS)
+        if (key.Open(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Internet Settings") == ERROR_SUCCESS)
         {
             DWORD proxy_used = 0;
             if (key.QueryDWORDValue(L"ProxyEnable", proxy_used) == ERROR_SUCCESS)
@@ -161,9 +161,9 @@ namespace core
         auto tlv_proxy_type = tlv_pack_childs.get_item(proxy_settings_values::proxy_settings_proxy_type);
         auto tlv_need_auth = tlv_pack_childs.get_item(proxy_settings_values::proxy_settings_proxy_need_auth);
 
-        if (!tlv_proxy_server 
+        if (!tlv_proxy_server
             || !tlv_proxy_port
-            || !tlv_login 
+            || !tlv_login
             || !tlv_password
             || !tlv_proxy_type
             || !tlv_need_auth)
@@ -185,7 +185,7 @@ namespace core
     {
         core::tools::tlvpack pack;
         core::tools::binary_stream temp_stream;
-        
+
         pack.push_child(tools::tlv(proxy_settings_values::proxy_settings_proxy_type, proxy_type_));
         pack.push_child(tools::tlv(proxy_settings_values::proxy_settings_proxy_server, tools::from_utf16(proxy_server_)));
         pack.push_child(tools::tlv(proxy_settings_values::proxy_settings_proxy_port, proxy_port_));

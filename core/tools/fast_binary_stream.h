@@ -28,10 +28,10 @@ namespace core
             uint32_t available() const;
             void seek(uint32_t _pos);
 
-            void write(char* _lpData, uint32_t _size);
+            void write(const char* _lpData, uint32_t _size);
             template <class T_>	void write(const T_& _val);
 
-            char* read(uint32_t _size);					
+            char* read(uint32_t _size);
             template <class T_> T_ read();
 
             void clear();
@@ -43,13 +43,13 @@ namespace core
         template <class T_>
         void core::tools::fast_binary_stream::write(const T_& _val)
         {
-            write((char*)&_val, (int32_t) sizeof(_val));
+            write((const char*)&_val, (int32_t) sizeof(_val));
         }
 
         template <>
         void core::tools::fast_binary_stream::write<std::string>(const std::string& _val)
         {
-            write((char*)_val.c_str(), (int32_t)_val.length());
+            write(_val.c_str(), (int32_t)_val.length());
         }
 
         template <class T_>
@@ -58,7 +58,7 @@ namespace core
             return  *((T_*) read(sizeof(T_)));
         }
 
-        template <> 
+        template <>
         std::string core::tools::fast_binary_stream::read<std::string>()
         {
             std::string val;
@@ -73,9 +73,6 @@ namespace core
         }
 
     }
-
-
-
 }
 
 template <>	void core::tools::fast_binary_stream::write<std::string>(const std::string& _val);

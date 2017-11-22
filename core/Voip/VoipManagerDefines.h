@@ -26,6 +26,7 @@ namespace voip_manager
         kNotificationType_MediaLocVideoChanged,
         kNotificationType_MediaRemVideoChanged,
         kNotificationType_MediaRemAudioChanged,
+        kNotificationType_MediaLocVideoDeviceChanged,
 
         kNotificationType_DeviceListChanged,
         kNotificationType_DeviceStarted,
@@ -50,7 +51,7 @@ namespace voip_manager
         kNotificationType_LoadMask,
 
         kNotificationType_ConnectionDestroyed,
-		kNotificationType_MainVideoLayoutChanged,
+        kNotificationType_MainVideoLayoutChanged,
     };
 
     struct VoipProxySettings
@@ -191,6 +192,7 @@ namespace voip_manager
         std::string uid;
         std::string name;
         voip2::DeviceType type;
+        voip2::VideoCaptureType videoCaptureType;
         bool isActive;
     };
 
@@ -206,15 +208,15 @@ namespace voip_manager
         Contact  contact;
     };
 
-    enum { kAvatarRequestId          = 0xb00b1e               };
-    enum { kAvatarDefaultSize        = 140                    };
-	enum { kAvatarRequestSize        = 650                    };
-    enum { kNickTextW                = kAvatarDefaultSize * 2 };
-    enum { kNickTextH                = 36                     };
-    enum { kDetachedWndAvatarSize    = 180                    };
-    enum { kLogoFromBoundOffset      = 15                     };
-    enum { kUseVoipProtocolAsDefault = 1                      };
-	enum { kIncomingWndAvatarSize	 = 120					  };
+    enum { kAvatarRequestId = 0xb00b1e };
+    enum { kAvatarDefaultSize = 140 };
+    enum { kAvatarRequestSize = 650 };
+    enum { kNickTextW = kAvatarDefaultSize * 2 };
+    enum { kNickTextH = 36 };
+    enum { kDetachedWndAvatarSize = 180 };
+    enum { kLogoFromBoundOffset = 15 };
+    enum { kUseVoipProtocolAsDefault = 1 };
+    enum { kIncomingWndAvatarSize = 120 };
 
     struct BitmapDescription
     {
@@ -247,6 +249,14 @@ namespace voip_manager
         BitmapDescription bitmap;
     };
 
+    struct ButtonSet
+    {
+        BitmapDescription normalButton;
+        BitmapDescription highlightedButton;
+        BitmapDescription pressedButton;
+        BitmapDescription disabledButton;
+    };
+
     struct WindowParams
     {
         void* hwnd;
@@ -257,10 +267,8 @@ namespace voip_manager
         bool  isSystem;
         float scale;
 
-        BitmapDescription normalButton;
-        BitmapDescription highlightedButton;
-        BitmapDescription pressedButton;
-        BitmapDescription disabledButton;
+        ButtonSet closeButton;
+        ButtonSet goToChatButton;
     };
 
     struct EnableParams
@@ -268,11 +276,11 @@ namespace voip_manager
         bool  enable;
     };
 
-	struct NamedResult
-	{
-		std::string name;
-		bool		result;
-	};
+    struct NamedResult
+    {
+        std::string name;
+        bool result;
+    };
 
     struct WindowState
     {
@@ -293,41 +301,41 @@ namespace voip_manager
         ConferenceOneIsBig,    
     };
 
-	enum MainVideoLayoutType
-	{
-		MVL_OUTGOING = 0,
-		MVL_CONFERENCE,
-		MVL_SIGNLE_CALL	
-	};
+    enum MainVideoLayoutType
+    {
+        MVL_OUTGOING = 0,
+        MVL_CONFERENCE,
+        MVL_SIGNLE_CALL
+    };
 
-	struct MainVideoLayout
-	{
-		void* hwnd;
-		MainVideoLayoutType type;	
-		MainVideoLayout() : hwnd(nullptr), type(MVL_OUTGOING) {};
-		MainVideoLayout(void* hwnd_, MainVideoLayoutType type_) : hwnd(hwnd_), type(type_) {};
-	};
+    struct MainVideoLayout
+    {
+        void* hwnd;
+        MainVideoLayoutType type;
+        MainVideoLayout() : hwnd(nullptr), type(MVL_OUTGOING) {};
+        MainVideoLayout(void* hwnd_, MainVideoLayoutType type_) : hwnd(hwnd_), type(type_) {};
+    };
 
     class ICallManager
     {
     public:
         virtual ~ICallManager() { }
     public:
-        virtual void        call_set_proxy      (const VoipProxySettings& proxySettings) = 0;
-        virtual void        call_create         (const Contact& contact, bool video, bool add)= 0;
-        virtual void        call_stop           ()                                  = 0;
-        virtual void        call_stop_smart     (const std::function<void()>&)            = 0;
-        virtual void        call_accept         (const Contact& contact, bool video)= 0;
-        virtual void        call_decline        (const Contact& contact, bool busy) = 0;
-        virtual unsigned    call_get_count      ()                                  = 0;
-        virtual bool        call_have_established_connection ()                     = 0;
-        virtual bool        call_have_call      (const Contact& contact)            = 0;
-        virtual void        call_request_calls  ()                                  = 0;
+        virtual void call_set_proxy (const VoipProxySettings& proxySettings) = 0;
+        virtual void call_create (const Contact& contact, bool video, bool add) = 0;
+        virtual void call_stop () = 0;
+        virtual void call_stop_smart (const std::function<void()>&) = 0;
+        virtual void call_accept (const Contact& contact, bool video) = 0;
+        virtual void call_decline (const Contact& contact, bool busy) = 0;
+        virtual unsigned call_get_count () = 0;
+        virtual bool call_have_established_connection () = 0;
+        virtual bool call_have_call (const Contact& contact)  = 0;
+        virtual void call_request_calls ()  = 0;
                 
-        virtual void        mute_incoming_call_sounds(bool mute)                    = 0;
+        virtual void mute_incoming_call_sounds(bool mute) = 0;
 
-		virtual void        minimal_bandwidth_switch()								= 0;
-        virtual bool        has_created_call()                                     = 0;
+        virtual void minimal_bandwidth_switch() = 0;
+        virtual bool has_created_call() = 0;
     };
 
     class IDeviceManager
@@ -335,19 +343,19 @@ namespace voip_manager
     public:
         virtual ~IDeviceManager() { }
     public:
-        virtual unsigned get_devices_number(voip2::DeviceType device_type)                                                                     = 0;
-        virtual bool     get_device_list   (voip2::DeviceType device_type, std::vector<device_description>& dev_list)                          = 0;
+        virtual unsigned get_devices_number (voip2::DeviceType device_type) = 0;
+        virtual bool get_device_list (voip2::DeviceType device_type, std::vector<device_description>& dev_list) = 0;
 
-        virtual bool     get_device        (voip2::DeviceType device_type, unsigned index, std::string& device_name, std::string& device_guid) = 0;
-        virtual void     set_device        (voip2::DeviceType device_type, const std::string& device_guid) = 0;
+        virtual bool get_device (voip2::DeviceType device_type, unsigned index, std::string& device_name, std::string& device_guid) = 0;
+        virtual void set_device (voip2::DeviceType device_type, const std::string& device_guid) = 0;
 
-        virtual void     set_device_mute   (voip2::DeviceType deviceType, bool mute)                                                           = 0;
-        virtual bool     get_device_mute   (voip2::DeviceType deviceType)                                                                      = 0;
+        virtual void set_device_mute (voip2::DeviceType deviceType, bool mute) = 0;
+        virtual bool get_device_mute (voip2::DeviceType deviceType) = 0;
 
-        virtual void     set_device_volume (voip2::DeviceType deviceType, float volume)                                                        = 0;
-        virtual float    get_device_volume (voip2::DeviceType deviceType)                                                                      = 0;
+        virtual void set_device_volume (voip2::DeviceType deviceType, float volume) = 0;
+        virtual float get_device_volume (voip2::DeviceType deviceType) = 0;
 
-        virtual void     update            ()                                                                                                  = 0;
+        virtual void update () = 0;
     };
 
     class IWindowManager
@@ -355,19 +363,19 @@ namespace voip_manager
     public:
         virtual ~IWindowManager() { }
     public:
-        virtual void window_add          (voip_manager::WindowParams& windowParams) = 0;
-        virtual void window_remove       (void* hwnd) = 0;
+        virtual void window_add (voip_manager::WindowParams& windowParams) = 0;
+        virtual void window_remove (void* hwnd) = 0;
 
-        virtual void window_set_bitmap   (const WindowBitmap& bmp) = 0;
-        virtual void window_set_bitmap   (const UserBitmap& bmp) = 0;
+        virtual void window_set_bitmap (const WindowBitmap& bmp) = 0;
+        virtual void window_set_bitmap (const UserBitmap& bmp) = 0;
 
         virtual void window_set_conference_layout(void* hwnd, voip_manager::ConferenceLayout layout) = 0;
         virtual void window_switch_aspect(const std::string& contact, void* hwnd) = 0;
 
-        virtual void window_set_offsets  (void* hwnd, unsigned l, unsigned t, unsigned r, unsigned b) = 0;
-        virtual void window_add_button   (voip2::ButtonType type, voip2::ButtonPosition position) = 0;
+        virtual void window_set_offsets (void* hwnd, unsigned l, unsigned t, unsigned r, unsigned b) = 0;
+        virtual void window_add_button (voip2::ButtonType type, voip2::ButtonPosition position, int xOffset, int yOffset) = 0;
 
-		virtual void window_set_primary(void* hwnd, const std::string& contact) = 0;
+        virtual void window_set_primary(void* hwnd, const std::string& contact) = 0;
     };
 
     class IConnectionManager
@@ -384,32 +392,32 @@ namespace voip_manager
     public:
         virtual ~IMediaManager() { }
     public:
-        virtual void media_video_en      (bool enable)       = 0;
-        virtual void media_audio_en      (bool enable)       = 0;
+        virtual void media_video_en (bool enable) = 0;
+        virtual void media_audio_en (bool enable) = 0;
 
-        virtual bool local_video_enabled ()                  = 0;
-        virtual bool local_audio_enabled ()                  = 0;
+        virtual bool local_video_enabled () = 0;
+        virtual bool local_audio_enabled () = 0;
 
-        //virtual bool remote_video_enabled()                  = 0;
+        //virtual bool remote_video_enabled() = 0;
         virtual bool remote_video_enabled(const std::string& account, const std::string& contact) = 0;
 
-        virtual bool remote_audio_enabled()                  = 0;
+        virtual bool remote_audio_enabled() = 0;
         virtual bool remote_audio_enabled(const std::string& account, const std::string& contact) = 0;
     };
 
-	class IMaskManager
-	{
-	public:
-		virtual ~IMaskManager() { }
-	public:
-		virtual void load_mask(const std::string& path) = 0;
+    class IMaskManager
+    {
+    public:
+        virtual ~IMaskManager() { }
+    public:
+        virtual void load_mask(const std::string& path) = 0;
 
-		virtual unsigned version() = 0;
+        virtual unsigned version() = 0;
 
         virtual void set_model_path(const std::string& path) = 0;
 
         virtual void init_mask_engine() = 0;
-	};
+    };
 
 
     class IVoipManager

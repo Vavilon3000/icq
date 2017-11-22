@@ -26,13 +26,13 @@ namespace core
             std::string aimid_;
             bool chat_;
             tools::binary_stream image_;
-            
+
             std::string id_;
 
         public:
-            set_avatar(const wim_packet_params& _params, tools::binary_stream _image, const std::string& _aimId, const bool _chat);
+            set_avatar(wim_packet_params _params, tools::binary_stream _image, const std::string& _aimId, const bool _chat);
             virtual ~set_avatar();
-            
+
             inline const std::string &get_id() const { return id_; }
         };
     }

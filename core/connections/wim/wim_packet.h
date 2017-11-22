@@ -4,7 +4,6 @@
 #pragma once
 
 #include "../../async_task.h"
-#include "../../../common.shared/common.h"
 #include "../../proxy_settings.h"
 #include "../../configuration/hosts_config.h"
 
@@ -28,13 +27,14 @@ namespace core
         const std::string c_wim_host = "https://api.icq.net/";
         const std::string c_robusto_host = "https://rapi.icq.net/";
 
-#define WIM_CAP_VOIP_VOICE   "094613504c7f11d18222444553540000"
-#define WIM_CAP_VOIP_VIDEO   "094613514c7f11d18222444553540000"
-#define WIM_CAP_FILETRANSFER "094613434c7f11d18222444553540000"
-#define WIM_CAP_UNIQ_REQ_ID  "094613534c7f11d18222444553540000"
-#define WIM_CAP_EMOJI        "094613544c7f11d18222444553540000"
+#define WIM_CAP_VOIP_VOICE         "094613504c7f11d18222444553540000"
+#define WIM_CAP_VOIP_VIDEO         "094613514c7f11d18222444553540000"
+#define WIM_CAP_FILETRANSFER       "094613434c7f11d18222444553540000"
+#define WIM_CAP_UNIQ_REQ_ID        "094613534c7f11d18222444553540000"
+#define WIM_CAP_EMOJI              "094613544c7f11d18222444553540000"
+#define WIM_CAP_MENTIONS           "0946135b4c7f11d18222444553540000"
 #define WIM_CAP_MAIL_NOTIFICATIONS "094613594c7f11d18222444553540000"
-#define WIM_CAP_SNAPS "094613584C7F11D18222444553540000"
+#define WIM_CAP_INTRO_DLG_STATE    "0946135a4c7f11d18222444553540000"
 
 #define SAAB_SESSION_OLDER_THAN_AUTH_UPDATE          1010
 
@@ -98,9 +98,12 @@ namespace core
 
             wpie_wrong_login_2x_factor = 38,
 
+            wpie_error_resend = 39,
+
             wpie_client_http_error = 400,
 
-            wpie_error_need_relogin= 1000,
+            wpie_error_need_relogin = 1000,
+            wpie_error_session_killed = 1001,
 
             wpie_error_task_canceled = 2000,
 
@@ -127,6 +130,11 @@ namespace core
             CAPCHA = 603,
             MESSAGE_TOO_BIG = 606,
             TARGET_RATE_LIMIT_REACHED = 607
+        };
+
+        enum wim_protocol_subcodes
+        {
+            no_such_session = 7
         };
 
         struct robusto_packet_params
@@ -199,6 +207,12 @@ namespace core
                 nonce_ = ++nonce_counter;
             }
 
+            wim_packet_params(const wim_packet_params&) = default;
+            wim_packet_params(wim_packet_params&&) = default;
+
+            wim_packet_params& operator=(const wim_packet_params&) = default;
+            wim_packet_params& operator=(wim_packet_params&&) = default;
+
             bool is_auth_valid() const
             {
                 return (!a_token_.empty() && !session_key_.empty() && !dev_id_.empty() && !aimsid_.empty());
@@ -223,7 +237,7 @@ namespace core
             void load_response_str(const char* buf, unsigned size);
             const std::string& response_str() const;
             const std::string& header_str() const;
-            
+
             uint32_t status_code_;
             uint32_t status_detail_code_;
             std::string status_text_;
@@ -245,7 +259,7 @@ namespace core
 
             virtual int32_t on_http_client_error();
 
-            const std::string get_rand_float() const;
+            std::string get_rand_float() const;
             const wim_packet_params& get_params() const;
 
         public:
@@ -263,10 +277,10 @@ namespace core
             static std::string create_query_from_map(const str_2_str_map& params);
             static void replace_log_messages(tools::binary_stream& _bs);
 
-            virtual std::shared_ptr<core::tools::binary_stream> getRawData() { return NULL; }
+            virtual std::shared_ptr<core::tools::binary_stream> getRawData() { return nullptr; }
             uint32_t get_status_code() const { return status_code_; }
             uint32_t get_status_detail_code() const { return status_detail_code_; }
-            std::string get_status_text() const { return status_text_; }
+            const std::string& get_status_text() const { return status_text_; }
             uint32_t get_http_code() const { return http_code_; }
             uint32_t get_repeat_count() const;
             void set_repeat_count(const uint32_t _count);
@@ -278,11 +292,24 @@ namespace core
             bool is_hosts_scheme_changed() const;
             const hosts_map& get_hosts_scheme() const;
 
-            wim_packet(const wim_packet_params& _params);
+            wim_packet(wim_packet_params _params);
             virtual ~wim_packet();
         };
 
     }
+
+    class log_replace_functor
+    {
+        public:
+            void add_marker(const std::string& marker);
+            void add_json_marker(const std::string &marker);
+            void operator()(tools::binary_stream& _bs);
+
+        private:
+            std::vector<std::string> markers_;
+            std::vector<std::string> markers_json_;
+            std::vector<std::string> markers_json_escaped_;
+    };
 }
 
 

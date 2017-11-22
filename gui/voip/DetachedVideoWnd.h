@@ -60,9 +60,9 @@ namespace Ui
         bool closedManualy_;
         QHBoxLayout *horizontalLayout_;
 
-		std::unique_ptr<ShadowWindowParent> shadow_;
+        std::unique_ptr<ShadowWindowParent> shadow_;
         platform_specific::GraphicsPanel* rootWidget_;
-        
+
         void mousePressEvent(QMouseEvent* _e) override;
         void mouseMoveEvent(QMouseEvent* _e) override;
         void mouseDoubleClickEvent(QMouseEvent* _e) override;

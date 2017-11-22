@@ -7,7 +7,7 @@ namespace
     QMap<QChar, QStringList> makeTable()
     {
         QMap<QChar, QStringList> result;
-        
+
         result[QChar(1040)].append(QChar(97));
         result[QChar(1041)].append(QChar(98));
         result[QChar(1042)].append(QChar(118));
@@ -133,14 +133,14 @@ namespace Translit
 {
     std::vector<QStringList> getPossibleStrings(const QString& text)
     {
-        static QMap<QChar, QStringList> table = makeTable();
+        const static QMap<QChar, QStringList> table = makeTable();
 
         int max = std::min(getMaxSearchTextLength(), text.length());
         std::vector<QStringList> result(max);
 
         for (auto i = 0; i < max; ++i)
         {
-            auto chList = table[text.at(i).toUpper()];
+            const auto chList = table[text.at(i).toUpper()];
             if (chList.empty())
             {
                 return std::vector<QStringList>();

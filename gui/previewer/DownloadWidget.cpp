@@ -24,7 +24,7 @@ Previewer::DownloadWidget::DownloadWidget(QWidget* _parent)
     : QFrame(_parent)
     , isLayoutSetted_(false)
 {
-    const auto style = Utils::LoadStyle(":/resources/previewer/qss/download.qss");
+    const auto style = Utils::LoadStyle(qsl(":/qss/gallery_download"));
 
     holder_ = new QFrame();
     holder_->setProperty("DownloadWidget", true);

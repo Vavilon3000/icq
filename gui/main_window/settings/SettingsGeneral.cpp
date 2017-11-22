@@ -35,29 +35,29 @@ const QList<QString> &getLanguagesStrings()
 
 QString languageToString(const QString& _code)
 {
-    auto codes = Utils::GetTranslator()->getLanguages();
-    auto strs = getLanguagesStrings();
+    const auto codes = Utils::GetTranslator()->getLanguages();
+    const auto strs = getLanguagesStrings();
     assert(codes.size() == strs.size() && "Languages codes != Languages strings (1)");
-    auto i = codes.indexOf(_code);
+    const auto i = codes.indexOf(_code);
     if (i >= 0 && i < codes.size())
         return strs[i];
-    return "";
+    return QString();
 }
 
 QString stringToLanguage(const QString& _str)
 {
-    auto codes = Utils::GetTranslator()->getLanguages();
-    auto strs = getLanguagesStrings();
+    const auto codes = Utils::GetTranslator()->getLanguages();
+    const auto strs = getLanguagesStrings();
     assert(codes.size() == strs.size() && "Languages codes != Languages strings (2)");
-    auto i = strs.indexOf(_str);
+    const auto i = strs.indexOf(_str);
     if (i >= 0 && i < strs.size())
         return codes[i];
-    return "";
+    return QString();
 }
 
 void GeneralSettingsWidget::Creator::initGeneral(GeneralSettings* _parent, std::map<std::string, Synchronizator>& _collector)
 {
-    auto scrollArea = CreateScrollAreaAndSetTrScrollBar(_parent);
+    auto scrollArea = CreateScrollAreaAndSetTrScrollBarV(_parent);
     scrollArea->setWidgetResizable(true);
     Utils::grabTouchWidget(scrollArea->viewport(), true);
 
@@ -66,7 +66,7 @@ void GeneralSettingsWidget::Creator::initGeneral(GeneralSettings* _parent, std::
 
     auto mainLayout = Utils::emptyVLayout(mainWidget);
     mainLayout->setAlignment(Qt::AlignTop);
-    mainLayout->setContentsMargins(Utils::scale_value(36), 0, Utils::scale_value(36), Utils::scale_value(36));
+    mainLayout->setContentsMargins(Utils::scale_value(16), 0, Utils::scale_value(16), Utils::scale_value(36));
 
     scrollArea->setWidget(mainWidget);
 
@@ -152,12 +152,12 @@ void GeneralSettingsWidget::Creator::initGeneral(GeneralSettings* _parent, std::
                 scrollArea,
                 mainLayout,
                 QT_TRANSLATE_NOOP("settings_pages", "Show in menu bar"),
-                get_gui_settings()->get_value(settings_show_in_menubar, true),
+                get_gui_settings()->get_value(settings_show_in_menubar, false),
                 [](bool checked) -> QString
             {
                 if (Utils::InterConnector::instance().getMainWindow())
                     Utils::InterConnector::instance().getMainWindow()->showMenuBarIcon(checked);
-                if (get_gui_settings()->get_value(settings_show_in_menubar, true) != checked)
+                if (get_gui_settings()->get_value(settings_show_in_menubar, false) != checked)
                     get_gui_settings()->set_value(settings_show_in_menubar, checked);
                 return (checked ? QT_TRANSLATE_NOOP("settings_pages", "On") : QT_TRANSLATE_NOOP("settings_pages", "Off"));
             });
@@ -206,18 +206,37 @@ void GeneralSettingsWidget::Creator::initGeneral(GeneralSettings* _parent, std::
             return (checked ? QT_TRANSLATE_NOOP("settings_pages", "On") : QT_TRANSLATE_NOOP("settings_pages", "Off"));
         });
 
-        //		GeneralCreator::addSwitcher(
-        //    0,
-        //    scrollArea,
-        //    mainLayout,
-        //    QT_TRANSLATE_NOOP("settings_pages", "Auto-scroll to new messages"),
-        //    get_gui_settings()->get_value<bool>(settings_auto_scroll_new_messages, false),
-        //    [](bool checked)
-        //{
-        //    if (get_gui_settings()->get_value<bool>(settings_auto_scroll_new_messages, false) != checked)
-        //        get_gui_settings()->set_value<bool>(settings_auto_scroll_new_messages, checked);
-        //    return (checked ? QT_TRANSLATE_NOOP("settings_pages", "On") : QT_TRANSLATE_NOOP("settings_pages", "Off"));
-        //});
+        GeneralCreator::addSwitcher(
+            0,
+            scrollArea,
+            mainLayout,
+            QT_TRANSLATE_NOOP("settings_pages", "Open chat on new messages"),
+            get_gui_settings()->get_value<bool>(settings_auto_scroll_new_messages, true),
+            [](bool checked)
+        {
+            if (get_gui_settings()->get_value<bool>(settings_auto_scroll_new_messages, false) != checked)
+                get_gui_settings()->set_value<bool>(settings_auto_scroll_new_messages, checked);
+            return (checked ? QT_TRANSLATE_NOOP("settings_pages", "On") : QT_TRANSLATE_NOOP("settings_pages", "Off"));
+        });
+
+        GeneralCreator::addSwitcher(
+            0,
+            scrollArea,
+            mainLayout,
+            QT_TRANSLATE_NOOP("settings_pages", "Hide message timestamps"),
+            get_gui_settings()->get_value<bool>(settings_hide_message_timestamps, true),
+            [](bool checked)
+        {
+            if (get_gui_settings()->get_value<bool>(settings_hide_message_timestamps, true) != checked)
+                get_gui_settings()->set_value<bool>(settings_hide_message_timestamps, checked);
+
+            if (checked)
+                emit Utils::InterConnector::instance().forceHideMessageTimestamps();
+            else
+                emit Utils::InterConnector::instance().forceShowMessageTimestamps();
+
+            return (checked ? QT_TRANSLATE_NOOP("settings_pages", "On") : QT_TRANSLATE_NOOP("settings_pages", "Off"));
+        });
 
         GeneralCreator::addChooser(
             scrollArea,
@@ -243,7 +262,7 @@ void GeneralSettingsWidget::Creator::initGeneral(GeneralSettings* _parent, std::
         const auto& keysIndex = Utils::getSendKeysIndex();
 
         std::vector<QString> values;
-
+        values.reserve(keysIndex.size());
         for (const auto& key : keysIndex)
             values.push_back(key.first);
 
@@ -268,7 +287,27 @@ void GeneralSettingsWidget::Creator::initGeneral(GeneralSettings* _parent, std::
             get_gui_settings()->set_value<int>(settings_key1_to_send_message, keysIndex[ix].second);
 
         },
-            [](bool) -> QString { return ""; });
+            [](bool) -> QString { return QString(); });
+    }
+        {
+        GeneralCreator::addHeader(scrollArea, mainLayout, QT_TRANSLATE_NOOP("settings_pages", "Contacts"));
+
+        GeneralCreator::addSwitcher(
+            0,
+            scrollArea,
+            mainLayout,
+            QT_TRANSLATE_NOOP("settings_pages", "Show popular contacts"),
+            get_gui_settings()->get_value<bool>(settings_show_popular_contacts, true),
+            [](bool checked)
+        {
+            if (get_gui_settings()->get_value<bool>(settings_show_popular_contacts, true) != checked)
+            {
+                get_gui_settings()->set_value<bool>(settings_show_popular_contacts, checked);
+                emit Utils::InterConnector::instance().clSortChanged();
+            }
+
+            return (checked ? QT_TRANSLATE_NOOP("settings_pages", "On") : QT_TRANSLATE_NOOP("settings_pages", "Off"));
+        });
     }
     {
         GeneralCreator::addHeader(scrollArea, mainLayout, QT_TRANSLATE_NOOP("settings_pages", "Interface"));
@@ -288,24 +327,9 @@ void GeneralSettingsWidget::Creator::initGeneral(GeneralSettings* _parent, std::
             return (checked ? QT_TRANSLATE_NOOP("settings_pages", "On") : QT_TRANSLATE_NOOP("settings_pages", "Off"));
         });
 
-        GeneralCreator::addSwitcher(
-            0,
-            scrollArea,
-            mainLayout,
-            QT_TRANSLATE_NOOP("settings_pages", "Show snaps"),
-            get_gui_settings()->get_value<bool>(settings_show_snaps, false),
-            [](bool checked) -> QString
-        {
-            if (get_gui_settings()->get_value<bool>(settings_show_snaps, false) != checked)
-                get_gui_settings()->set_value<bool>(settings_show_snaps, checked);
-
-            emit Utils::InterConnector::instance().showSnapsChanged();
-            return (checked ? QT_TRANSLATE_NOOP("settings_pages", "On") : QT_TRANSLATE_NOOP("settings_pages", "Off"));
-        });
-
 #ifndef __APPLE__
         auto i = (get_gui_settings()->get_value<double>(settings_scale_coefficient, Utils::getBasicScaleCoefficient()) - 1.f) / .25f; if (i > 3) i = 3;
-        std::vector< QString > sc; sc.push_back("100"); sc.push_back("125"); sc.push_back("150"); sc.push_back("200");
+        const std::vector< QString > sc{ qsl("100"), qsl("125"), qsl("150"), qsl("200") };
         GeneralCreator::addProgresser(
             scrollArea,
             mainLayout,
@@ -317,13 +341,13 @@ void GeneralSettingsWidget::Creator::initGeneral(GeneralSettings* _parent, std::
             double r = sc[i].toDouble() / 100.f;
             if (fabs(get_gui_settings()->get_value<double>(settings_scale_coefficient, Utils::getBasicScaleCoefficient()) - r) >= 0.25f)
                 get_gui_settings()->set_value<double>(settings_scale_coefficient, r);
-            w->setText(QString("%1 %2%").arg(QT_TRANSLATE_NOOP("settings_pages", "Interface scale:")).arg(sc[i]), CommonStyle::getTextCommonColor());
+            w->setText(qsl("%1 %2%").arg(QT_TRANSLATE_NOOP("settings_pages", "Interface scale:"), sc[i]), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY));
             if (fabs(su - r) >= 0.25f)
-                aw->setText(QT_TRANSLATE_NOOP("settings_pages", "(Application restart required)"), QColor("#579e1c"));
+                aw->setText(QT_TRANSLATE_NOOP("settings_pages", "(Application restart required)"), CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT));
             else if (fabs(Utils::getBasicScaleCoefficient() - r) < 0.05f)
-                aw->setText(QT_TRANSLATE_NOOP("settings_pages", "(Recommended)"), CommonStyle::getTextCommonColor());
+                aw->setText(QT_TRANSLATE_NOOP("settings_pages", "(Recommended)"), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY));
             else
-                aw->setText(" ", CommonStyle::getTextCommonColor());
+                aw->setText(qsl(" "), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY));
         });
 #endif
 
@@ -345,21 +369,21 @@ void GeneralSettingsWidget::Creator::initGeneral(GeneralSettings* _parent, std::
                 get_gui_settings()->set_value(settings_language, cl);
                 Utils::GetTranslator()->updateLocale();
                 if (ad && cl != sl)
-                    ad->setText(QT_TRANSLATE_NOOP("settings_pages", "(Application restart required)"), QColor("#579e1c"));
+                    ad->setText(QT_TRANSLATE_NOOP("settings_pages", "(Application restart required)"), CommonStyle::getColor(CommonStyle::Color::GREEN_TEXT));
                 else if (ad)
-                    ad->setText(" ", CommonStyle::getTextCommonColor());
+                    ad->setText(qsl(" "), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY));
             }
         },
-            [](bool) -> QString { return ""; });
+            [](bool) -> QString { return QString(); });
     }
-     
+
     {
         GeneralCreator::addHeader(scrollArea, mainLayout, QT_TRANSLATE_NOOP("settings_pages", "Connection settings"));
         _parent->connectionTypeChooser_ = GeneralCreator::addChooser(
             scrollArea,
             mainLayout,
             QT_TRANSLATE_NOOP("settings_pages", "Connection type:"),
-            "Auto",
+            qsl("Auto"),
             [_parent](TextEmojiWidget* /*b*/)
         {
             auto connection_settings_widget_ = new ConnectionSettingsWidget(_parent);

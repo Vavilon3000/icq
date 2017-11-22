@@ -23,35 +23,36 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
 
     namespace ComplexMessageItemBuilder
 {
-    ComplexMessageItem* makeComplexItem(
-        QWidget *parent,
-        const int64_t id,
-        const QDate date,
-        const int64_t prev,
-        const QString &text,
-        const QString &chatAimid,
-        const QString &senderAimid,
-        const QString &senderFriendly,
-        const QList<Data::Quote>& quotes,
-        HistoryControl::StickerInfoSptr sticker,
-        const bool isOutgoing,
-        const bool isNotAuth)
+    std::unique_ptr<ComplexMessageItem> makeComplexItem(
+        QWidget *_parent,
+        const int64_t _id,
+        const QDate _date,
+        const int64_t _prev,
+        const QString &_text,
+        const QString &_chatAimid,
+        const QString &_senderAimid,
+        const QString &_senderFriendly,
+        const QVector<Data::Quote>& _quotes,
+        const Data::MentionMap& _mentions,
+        HistoryControl::StickerInfoSptr _sticker,
+        const bool _isOutgoing,
+        const bool _isNotAuth)
     {
-        assert(id >= -1);
-        assert(!senderAimid.isEmpty());
-        assert(!senderFriendly.isEmpty());
-        assert(date.isValid());
+        assert(_id >= -1);
+        assert(!_senderAimid.isEmpty());
+        assert(!_senderFriendly.isEmpty());
+        assert(_date.isValid());
 
-        std::unique_ptr<ComplexMessage::ComplexMessageItem> complexItem(
-            new ComplexMessage::ComplexMessageItem(
-            parent,
-            id,
-            date,
-            chatAimid,
-            senderAimid,
-            senderFriendly,
-            sticker ? QT_TRANSLATE_NOOP("contact_list", "Sticker") : text,
-            isOutgoing));
+        auto complexItem = std::make_unique<ComplexMessage::ComplexMessageItem>(
+            _parent,
+            _id,
+            _date,
+            _chatAimid,
+            _senderAimid,
+            _senderFriendly,
+            _sticker ? QT_TRANSLATE_NOOP("contact_list", "Sticker") : _text,
+            _mentions,
+            _isOutgoing);
 
         std::list<TextChunk> chunks;
 
@@ -60,29 +61,32 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
         bool removeSnippetOnFail = false;
 
         int i = 0;
-        for (auto quote : quotes)
+        for (auto quote : _quotes)
         {
             ++i;
             quote.id_ = i;
-            auto text = quote.text_;
+            const auto text = quote.text_;
+            const auto isFirstQuote = (i == 1);
+            const auto isLastQuote = (i == _quotes.size());
 
             if (quote.isSticker())
             {
                 TextChunk chunk(TextChunk::Type::Sticker, text, QString(), -1);
                 chunk.Sticker_ = HistoryControl::StickerInfo::Make(quote.setId_, quote.stickerId_);
-                chunk.Quote_ = quote;
-                chunk.Quote_.isFirstQuote_ = (i == 1);
-                chunk.Quote_.isLastQuote_ = (i == quotes.size());
+                chunk.Quote_ = std::move(quote);
+                chunk.Quote_.isFirstQuote_ = isFirstQuote;
+                chunk.Quote_.isLastQuote_ = isLastQuote;
                 chunks.emplace_back(std::move(chunk));
                 continue;
             }
 
-            if (text.startsWith(">"))
+            if (text.startsWith(ql1c('>')))
             {
                 TextChunk chunk(TextChunk::Type::Text, text, QString(), -1);
-                chunk.Quote_ = quote;
-                chunk.Quote_.isFirstQuote_ = (i == 1);
-                chunk.Quote_.isLastQuote_ = (i == quotes.size());
+                chunk.Quote_ = std::move(quote);
+                chunk.Quote_.mentions_ = _mentions;
+                chunk.Quote_.isFirstQuote_ = isFirstQuote;
+                chunk.Quote_.isLastQuote_ = isLastQuote;
                 chunks.emplace_back(std::move(chunk));
                 continue;
             }
@@ -92,33 +96,34 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
             {
                 auto chunk = it.current();
                 chunk.Quote_ = quote;
-                chunk.Quote_.isFirstQuote_ = (i == 1);
-                chunk.Quote_.isLastQuote_ = (i == quotes.size());
+                chunk.Quote_.mentions_ = _mentions;
+                chunk.Quote_.isFirstQuote_ = isFirstQuote;
+                chunk.Quote_.isLastQuote_ = isLastQuote;
                 chunks.emplace_back(std::move(chunk));
                 it.next();
             }
         }
 
+        const bool hide_links = (_isNotAuth && !_isOutgoing);
 
-        if (sticker)
+        if (_sticker)
         {
-            TextChunk chunk(TextChunk::Type::Sticker, text, QString(), -1);
-            chunk.Sticker_ = sticker;
+            TextChunk chunk(TextChunk::Type::Sticker, _text, QString(), -1);
+            chunk.Sticker_ = _sticker;
             chunks.emplace_back(std::move(chunk));
         }
         else
         {
-            auto t = text.toStdString();
-            ChunkIterator it(text);
+            ChunkIterator it(_text);
             while (it.hasNext())
             {
-                auto chunk = it.current();
+                auto chunk = it.current(!hide_links);
 
                 if (chunk.Type_ == TextChunk::Type::GenericLink)
                 {
                     ++snippetsCount;
                     if (snippetsCount == 1)
-                        snippet.reset(new TextChunk(chunk));
+                        snippet = std::make_unique<TextChunk>(chunk);
 
                     // if snippet is single in message or if it last, don't append link
                     it.next();
@@ -141,8 +146,7 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
 
         for (auto iter = chunks.begin(); iter != chunks.end(); )
         {
-            auto next = iter;
-            ++next;
+            const auto next = std::next(iter);
 
             if (next == chunks.end())
             {
@@ -165,15 +169,12 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
         IItemBlocksVec items;
         items.reserve(chunks.size());
 
-        QuoteBlock* prevQuote = 0;
+        QuoteBlock* prevQuote = nullptr;
         std::vector<QuoteBlock*> quoteBlocks;
 
-        const bool hide_links = (isNotAuth && !isOutgoing);
-
         int count = 0;
-        for (auto iterChunk = chunks.begin(); iterChunk != chunks.end(); ++iterChunk)
+        for (const auto& chunk : chunks)
         {
-            const auto& chunk = *iterChunk;
             ++count;
 
             const auto& chunkText = chunk.text_;
@@ -204,10 +205,10 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
                 }
                 else
                 {
-                    block =  new ImagePreviewBlock(
-                        complexItem.get(), 
-                        chatAimid, 
-                        chunkText, 
+                    block = new ImagePreviewBlock(
+                        complexItem.get(),
+                        _chatAimid,
+                        chunkText,
                         chunk.ImageType_);
                 }
                 break;
@@ -227,23 +228,8 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
                     complexItem.get(), chunkText, core::file_sharing_content_type::video);
                 break;
 
-            case TextChunk::Type::FileSharingImageSnap:
-                block = new FileSharingBlock(
-                    complexItem.get(), chunkText, core::file_sharing_content_type::snap_image);
-                break;
-
-            case TextChunk::Type::FileSharingGifSnap:
-                block = new FileSharingBlock(
-                    complexItem.get(), chunkText, core::file_sharing_content_type::snap_gif);
-                break;
-
-            case TextChunk::Type::FileSharingVideoSnap:
-                block = new FileSharingBlock(
-                    complexItem.get(), chunkText, core::file_sharing_content_type::snap_video);
-                break;
-
             case TextChunk::Type::FileSharingPtt:
-                block = new PttBlock(complexItem.get(), chunkText, chunk.DurationSec_, id, prev);
+                block = new PttBlock(complexItem.get(), chunkText, chunk.DurationSec_, _id, _prev);
                 break;
 
             case TextChunk::Type::FileSharingGeneral:
@@ -279,7 +265,7 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
                         quoteBlocks.push_back(quoteBlock);
                         prevQuote = quoteBlock;
 
-                        if (!chunk.Quote_.isForward_)
+                        if (!chunk.Quote_.chatName_.isEmpty() || !chunk.Quote_.isForward_)
                             quoteBlock->createQuoteHover(complexItem.get());
                     }
                 }
@@ -299,7 +285,7 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
         {
             items.emplace_back(
                 new LinkPreviewBlock(
-                complexItem.get(), 
+                complexItem.get(),
                 snippet->text_,
                 removeSnippetOnFail));
         }
@@ -308,11 +294,11 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
         if (!quoteBlocks.empty())
         {
             QString sourceText;
-            for (auto i : items)
+            for (auto item : items)
             {
-                sourceText += i->getSourceText();
+                sourceText += item->getSourceText();
             }
-            complexItem->setSourceText(sourceText);
+            complexItem->setSourceText(std::move(sourceText));
         }
 
         int index = 0;
@@ -323,7 +309,7 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
 
         complexItem->setItems(std::move(items));
 
-        return complexItem.release();
+        return complexItem;
     }
 }
 

@@ -16,11 +16,12 @@ using namespace tools;
 #endif //__linux__
 
 threadpool::threadpool(const unsigned count, std::function<void()> _on_thread_exit)
-    :	stop_(false)
+    : stop_(false)
 {
     creator_thread_id_ = boost::this_thread::get_id();
 
     threads_.reserve(count);
+    threads_ids_.reserve(count);
 
     const auto worker = [this, _on_thread_exit]
     {
@@ -30,10 +31,11 @@ threadpool::threadpool(const unsigned count, std::function<void()> _on_thread_ex
                 break;
         }
 
-        _on_thread_exit();
+        if (_on_thread_exit)
+            _on_thread_exit();
     };
 
-    for (unsigned i = 0; i < count; i++)
+    for (unsigned i = 0; i < count; ++i)
     {
         threads_.emplace_back(worker);
         threads_ids_.emplace_back(threads_[i].get_id());
@@ -57,11 +59,17 @@ bool threadpool::run_task_impl()
             return false;
         }
 
-        nextTask = std::move(tasks_.front());
+        nextTask = tasks_.front();
         tasks_.pop_front();
     }
-
-    nextTask();
+    if (nextTask)
+    {
+        nextTask();
+    }
+    else
+    {
+        assert(!"threadpool: task is empty");
+    }
     return true;
 }
 
@@ -129,7 +137,14 @@ bool threadpool::push_back(const task _task)
         {
             core::dump::crash_handler handler("icq.desktop", utils::get_product_data_path().c_str(), false);
             handler.set_thread_exception_handlers();
-            _task();
+            if (_task)
+            {
+                _task();
+            }
+            else
+            {
+                assert(!"threadpool: _task is empty");
+            }
         });
 #else
         tasks_.emplace_back(_task);
@@ -162,7 +177,14 @@ bool threadpool::push_front(const task _task)
         {
             core::dump::crash_handler handler("icq.desktop", utils::get_product_data_path().c_str(), false);
             handler.set_thread_exception_handlers();
-            _task();
+            if (_task)
+            {
+                _task();
+            }
+            else
+            {
+                assert(!"threadpool: _task is empty");
+            }
         });
 #else
         tasks_.emplace_front(_task);
@@ -174,7 +196,7 @@ bool threadpool::push_front(const task _task)
     return true;
 }
 
-const std::vector<std::thread::id> threadpool::get_threads_ids() const
+const std::vector<std::thread::id>& threadpool::get_threads_ids() const
 {
     return threads_ids_;
 }

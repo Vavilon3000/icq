@@ -33,29 +33,6 @@
     </message>
 </context>
 <context>
-    <name>Ui::AccountsPage</name>
-    <message>
-        <source>Choose your account</source>
-        <translation>Wähle Dein Konto</translation>
-    </message>
-    <message>
-        <source>Now we support only one account per session. Please choose prefered one to continue.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Select ICQ account if you want it to be merged with your Agent account.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Do not merge</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Now select ICQ account if you want to merge it with previously selected Agent.</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>about_us</name>
     <message>
         <source>This product includes software developed by the OpenSSL project for use in the OpenSSL Toolkit</source>
@@ -122,26 +99,17 @@
     </message>
 </context>
 <context>
+    <name>avatar_menu</name>
+    <message>
+        <source>Mention</source>
+        <translation>Erwähnung</translation>
+    </message>
+</context>
+<context>
     <name>avatar_upload</name>
-    <message>
-        <source>Back</source>
-        <translation>Zurück</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Abbrechen</translation>
-    </message>
-    <message>
-        <source>Continue</source>
-        <translation>Fortfahren</translation>
-    </message>
     <message>
         <source>Preview</source>
         <translation>Vorschau</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <translation>Speichern</translation>
     </message>
     <message>
         <source>Images (*.jpg *.jpeg *.png *.bmp)</source>
@@ -150,14 +118,6 @@
     <message>
         <source>Avatar was not uploaded due to server error</source>
         <translation>Avatar wurde wegen eines Serverfehlers nicht hochgeladen</translation>
-    </message>
-    <message>
-        <source>Choose file</source>
-        <translation>Datei wählen</translation>
-    </message>
-    <message>
-        <source>Change</source>
-        <translation>Ändern</translation>
     </message>
     <message>
         <source>Image size should be 8 Mb or less</source>
@@ -186,6 +146,49 @@ bearbeiten</translation>
     <message>
         <source>Image should be at least 200x200 px</source>
         <translation>Das Bild sollte mindestens 200 x 200 Pixel betragen</translation>
+    </message>
+    <message>
+        <source>CHANGE</source>
+        <translation>ÄNDERN</translation>
+    </message>
+    <message>
+        <source>CHOOSE FILE</source>
+        <translation>DATEI WÄHLEN</translation>
+    </message>
+</context>
+<context>
+    <name>burger_menu</name>
+    <message>
+        <source>Create group chat</source>
+        <translation>Gruppenchat erstellen</translation>
+    </message>
+    <message>
+        <source>Contacts</source>
+        <translation>Kontakte</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Einstellungen</translation>
+    </message>
+    <message>
+        <source>Sounds</source>
+        <translation>Töne</translation>
+    </message>
+    <message>
+        <source>Sign out</source>
+        <translation>Abmelden</translation>
+    </message>
+    <message>
+        <source>About app</source>
+        <translation>Über die App</translation>
+    </message>
+    <message>
+        <source>Contact Us</source>
+        <translation>Kontaktiere uns</translation>
+    </message>
+    <message>
+        <source>Add contact</source>
+        <translation>Kontakt hinzufügen</translation>
     </message>
 </context>
 <context>
@@ -297,7 +300,7 @@ bearbeiten</translation>
     </message>
     <message>
         <source> has birthday!</source>
-        <translation>hat heute Geburtstag!</translation>
+        <translation> hat heute Geburtstag!</translation>
     </message>
     <message>
         <source>You have joined group</source>
@@ -351,26 +354,6 @@ bearbeiten</translation>
         <translation>Offizielles Konto</translation>
     </message>
     <message>
-        <source>Forward</source>
-        <translation>Vorwärts</translation>
-    </message>
-    <message>
-        <source>Copy</source>
-        <translation>Kopieren</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Abbrechen</translation>
-    </message>
-    <message>
-        <source>Set to all</source>
-        <translation>Für alle festlegen</translation>
-    </message>
-    <message>
-        <source>Set</source>
-        <translation>Festlegen</translation>
-    </message>
-    <message>
         <source> of </source>
         <translation> von </translation>
     </message>
@@ -395,16 +378,28 @@ bearbeiten</translation>
         <translation>schreiben gerade</translation>
     </message>
     <message>
-        <source>Snap expired</source>
-        <translation>Snap abgelaufen</translation>
-    </message>
-    <message>
         <source>Not authorized</source>
         <translation>Nicht autorisiert</translation>
     </message>
     <message>
-        <source>forwarded messages</source>
-        <translation>weitergeleitete Nachrichten</translation>
+        <source>CANCEL</source>
+        <translation>ABBRECHEN</translation>
+    </message>
+    <message>
+        <source>SET TO ALL</source>
+        <translation>FÜR ALLE FESTLEGEN</translation>
+    </message>
+    <message>
+        <source>SET</source>
+        <translation>FESTLEGEN</translation>
+    </message>
+    <message>
+        <source>FORWARD</source>
+        <translation>VORWÄRTS</translation>
+    </message>
+    <message>
+        <source>COPY</source>
+        <translation>KOPIEREN</translation>
     </message>
 </context>
 <context>
@@ -455,10 +450,6 @@ bearbeiten</translation>
     <message>
         <source>Connection settings</source>
         <translation>Verbindungseinstellungen</translation>
-    </message>
-    <message>
-        <source>Done</source>
-        <translation>Fertig</translation>
     </message>
 </context>
 <context>
@@ -524,20 +515,8 @@ bearbeiten</translation>
         <translation>Datei</translation>
     </message>
     <message>
-        <source>Unknown contacts</source>
-        <translation>Unbekannte Kontakte</translation>
-    </message>
-    <message>
         <source>Close All</source>
         <translation>Alle schließen</translation>
-    </message>
-    <message>
-        <source>CONTACTS</source>
-        <translation>KONTAKTE</translation>
-    </message>
-    <message>
-        <source>ALL MESSAGES</source>
-        <translation>ALLE NACHRICHTEN</translation>
     </message>
     <message>
         <source>MESSAGES</source>
@@ -546,6 +525,58 @@ bearbeiten</translation>
     <message>
         <source>SEARCH IN ALL CHATS</source>
         <translation>IN ALLEN CHATS SUCHEN</translation>
+    </message>
+    <message>
+        <source>New contacts</source>
+        <translation>Neue Kontakte</translation>
+    </message>
+    <message>
+        <source>Search in </source>
+        <translation>Suchen in </translation>
+    </message>
+    <message>
+        <source>mutual friend</source>
+        <comment>1</comment>
+        <translation>gemeinsamer Freund</translation>
+    </message>
+    <message>
+        <source>mutual friends</source>
+        <comment>2</comment>
+        <translation>gemeinsame Freunde</translation>
+    </message>
+    <message>
+        <source>mutual friends</source>
+        <comment>5</comment>
+        <translation>gemeinsame Freunde</translation>
+    </message>
+    <message>
+        <source>mutual friends</source>
+        <comment>21</comment>
+        <translation>gemeinsame Freunde</translation>
+    </message>
+    <message>
+        <source>All People</source>
+        <translation>Alle Leute</translation>
+    </message>
+    <message>
+        <source>All Chats</source>
+        <translation>Alle Chats</translation>
+    </message>
+    <message>
+        <source>More results</source>
+        <translation>Weitere Ergebnisse</translation>
+    </message>
+    <message>
+        <source>GIF</source>
+        <translation>GIF</translation>
+    </message>
+    <message>
+        <source>PEOPLE</source>
+        <translation>LEUTE</translation>
+    </message>
+    <message>
+        <source>Search for livechats and channels</source>
+        <translation>Suche nach Live-Chats und Kanälen</translation>
     </message>
 </context>
 <context>
@@ -569,10 +600,6 @@ bearbeiten</translation>
     <message>
         <source>Please enter a valid email address</source>
         <translation>Bitte gib eine gültige E-Mail-Adresse an</translation>
-    </message>
-    <message>
-        <source>Send</source>
-        <translation>Senden</translation>
     </message>
     <message>
         <source>Error occured, try again later</source>
@@ -614,6 +641,10 @@ bearbeiten</translation>
         <source>Your comments or suggestions...</source>
         <translation>Deine Kommentare oder Vorschläge...</translation>
     </message>
+    <message>
+        <source>SEND</source>
+        <translation>SENDEN</translation>
+    </message>
 </context>
 <context>
     <name>context_menu</name>
@@ -650,24 +681,12 @@ bearbeiten</translation>
         <translation>Schließen</translation>
     </message>
     <message>
-        <source>Mark all read</source>
-        <translation>Alle als gelesen markieren</translation>
-    </message>
-    <message>
         <source>Save as...</source>
         <translation>Speichern als ...</translation>
     </message>
     <message>
         <source>Copy</source>
         <translation>Kopieren</translation>
-    </message>
-    <message>
-        <source>Quote</source>
-        <translation>Zitieren</translation>
-    </message>
-    <message>
-        <source>Copy file</source>
-        <translation>Datei kopieren</translation>
     </message>
     <message>
         <source>Copy link</source>
@@ -700,6 +719,26 @@ bearbeiten</translation>
     <message>
         <source>Open in browser</source>
         <translation>Im Browser öffnen</translation>
+    </message>
+    <message>
+        <source>Reply</source>
+        <translation>Antworten</translation>
+    </message>
+    <message>
+        <source>Add to favorites</source>
+        <translation>Zu Favoriten hinzufügen</translation>
+    </message>
+    <message>
+        <source>Copy to clipboard</source>
+        <translation>In Ablage kopieren</translation>
+    </message>
+    <message>
+        <source>Copy text</source>
+        <translation>Text kopieren</translation>
+    </message>
+    <message>
+        <source>Read all</source>
+        <translation>Alle gelesen</translation>
     </message>
 </context>
 <context>
@@ -1640,10 +1679,6 @@ bearbeiten</translation>
         <translation>Öffentlicher Chat</translation>
     </message>
     <message>
-        <source>Chat will be visible to everyone</source>
-        <translation>Chat ist für alle sichtbar</translation>
-    </message>
-    <message>
         <source>Join with Approval</source>
         <translation>Beitritt mit Bestätigung</translation>
     </message>
@@ -1662,14 +1697,6 @@ bearbeiten</translation>
     <message>
         <source>Select members</source>
         <translation>Mitglieder auswählen</translation>
-    </message>
-    <message>
-        <source>Next</source>
-        <translation>Weiter</translation>
-    </message>
-    <message>
-        <source>Done</source>
-        <translation>Fertig</translation>
     </message>
     <message>
         <source>Add to chat</source>
@@ -1702,6 +1729,62 @@ bearbeiten</translation>
     <message>
         <source>Members must be of legal age to join</source>
         <translation>Nutzer müssen volljährig sein, um beizutreten</translation>
+    </message>
+    <message>
+        <source>The chat will appear in the app&apos;s showcase and any user can find it in the list</source>
+        <translation>Der Chat erscheint in der Liste der App und jeder Nutzer kann ihn dort finden</translation>
+    </message>
+    <message>
+        <source>Live chats</source>
+        <translation>Live Chats</translation>
+    </message>
+    <message>
+        <source>Chat information is unavailable now, please try again later</source>
+        <translation>Die Chatinformationen sind derzeit nicht verfügbar, bitte versuche es später</translation>
+    </message>
+    <message>
+        <source>Chat does not exist or it is hidden by privacy settings</source>
+        <translation>Der Chat existiert nicht oder wird wegen Privatsphäre einstellungen ausgeblendet</translation>
+    </message>
+    <message>
+        <source>member</source>
+        <comment>1</comment>
+        <translation>Teilnehmer</translation>
+    </message>
+    <message>
+        <source>members</source>
+        <comment>2</comment>
+        <translation>Teilnehmer</translation>
+    </message>
+    <message>
+        <source>members</source>
+        <comment>5</comment>
+        <translation>Teilnehmer</translation>
+    </message>
+    <message>
+        <source>members</source>
+        <comment>21</comment>
+        <translation>Teilnehmer</translation>
+    </message>
+    <message>
+        <source>friend</source>
+        <comment>1</comment>
+        <translation>Freund</translation>
+    </message>
+    <message>
+        <source>friends</source>
+        <comment>2</comment>
+        <translation>Freunde</translation>
+    </message>
+    <message>
+        <source>friends</source>
+        <comment>5</comment>
+        <translation>Freunde</translation>
+    </message>
+    <message>
+        <source>friends</source>
+        <comment>21</comment>
+        <translation>Freunde</translation>
     </message>
 </context>
 <context>
@@ -1771,67 +1854,12 @@ bearbeiten</translation>
         <translation>Senden %1 %2 %3 %4</translation>
     </message>
     <message>
-        <source>This chat is read-only</source>
-        <translation>Dieser Chat ist schreibgeschützt</translation>
-    </message>
-    <message>
         <source>Leave and delete</source>
         <translation>Verlassen und löschen</translation>
     </message>
     <message>
         <source>You are not a member of this chat. </source>
         <translation>Du bist kein Teilnehmer dieses Chats. </translation>
-    </message>
-</context>
-<context>
-    <name>livechats</name>
-    <message>
-        <source>friend</source>
-        <comment>1</comment>
-        <translation>Freund</translation>
-    </message>
-    <message>
-        <source>friends</source>
-        <comment>2</comment>
-        <translation>Freunde</translation>
-    </message>
-    <message>
-        <source>friends</source>
-        <comment>5</comment>
-        <translation>Freunde</translation>
-    </message>
-    <message>
-        <source>friends</source>
-        <comment>21</comment>
-        <translation>Freunde</translation>
-    </message>
-    <message>
-        <source>Chat information is unavailable now, please try again later</source>
-        <translation>Die Chatinformationen sind derzeit nicht verfügbar, bitte versuche es später</translation>
-    </message>
-    <message>
-        <source>Chat does not exist or it is hidden by privacy settings</source>
-        <translation>Der Chat existiert nicht oder wird wegen Privatsphäre einstellungen ausgeblendet</translation>
-    </message>
-    <message>
-        <source>Close</source>
-        <translation>Schließen</translation>
-    </message>
-    <message>
-        <source>Join</source>
-        <translation>Beitreten</translation>
-    </message>
-    <message>
-        <source>Open</source>
-        <translation>Öffnen</translation>
-    </message>
-    <message>
-        <source>Waiting for approval</source>
-        <translation>Warten auf Bestätigung</translation>
-    </message>
-    <message>
-        <source>Live chats</source>
-        <translation>Live Chats</translation>
     </message>
 </context>
 <context>
@@ -1857,20 +1885,12 @@ bearbeiten</translation>
         <translation>Angemeldet bleiben</translation>
     </message>
     <message>
-        <source>Continue</source>
-        <translation>Fortfahren</translation>
-    </message>
-    <message>
         <source>Type country or code</source>
         <translation>Land oder Vorwahl eingeben</translation>
     </message>
     <message>
         <source>your phone number</source>
         <translation>Deine Telefonnummer</translation>
-    </message>
-    <message>
-        <source>Start messaging</source>
-        <translation>Einloggen</translation>
     </message>
     <message>
         <source>Login via phone</source>
@@ -1930,19 +1950,23 @@ bearbeiten</translation>
     </message>
     <message>
         <source>Enter code from SMS</source>
-        <translation type="unfinished"></translation>
+        <translation>Code aus der SMS eingeben</translation>
     </message>
     <message>
         <source>Enter phone number</source>
-        <translation type="unfinished"></translation>
+        <translation>Telefonnummer eingeben</translation>
     </message>
     <message>
         <source>Enter UIN or Email</source>
-        <translation type="unfinished"></translation>
+        <translation>UIN oder E-Mail-Adresse eingeben</translation>
     </message>
     <message>
         <source>Enter your Email</source>
-        <translation type="unfinished"></translation>
+        <translation>E-Mail-Adresse eingeben</translation>
+    </message>
+    <message>
+        <source>NEXT</source>
+        <translation>WEITER</translation>
     </message>
 </context>
 <context>
@@ -2045,49 +2069,6 @@ bearbeiten</translation>
     </message>
 </context>
 <context>
-    <name>main_menu</name>
-    <message>
-        <source>Create group chat</source>
-        <translation>Gruppenchat erstellen</translation>
-    </message>
-    <message>
-        <source>Add contact</source>
-        <translation>Kontakt hinzufügen</translation>
-    </message>
-    <message>
-        <source>Contacts</source>
-        <translation>Kontakte</translation>
-    </message>
-    <message>
-        <source>Settings</source>
-        <translation>Einstellungen</translation>
-    </message>
-    <message>
-        <source>Sounds</source>
-        <translation>Töne</translation>
-    </message>
-    <message>
-        <source>Discover</source>
-        <translation>Entdecken</translation>
-    </message>
-    <message>
-        <source>Stories</source>
-        <translation>Geschichten</translation>
-    </message>
-    <message>
-        <source>Sign out</source>
-        <translation>Abmelden</translation>
-    </message>
-    <message>
-        <source>About app</source>
-        <translation>Über die App</translation>
-    </message>
-    <message>
-        <source>Contact Us</source>
-        <translation>Kontaktiere uns</translation>
-    </message>
-</context>
-<context>
     <name>main_page</name>
     <message>
         <source>My profile</source>
@@ -2123,7 +2104,57 @@ bearbeiten</translation>
     </message>
     <message>
         <source>Add contact</source>
-        <translation>Kontakt hinzufügen</translation>
+        <translation>KONTAKT HINZUFÜGEN</translation>
+    </message>
+    <message>
+        <source>Stickers</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>mentions</name>
+    <message>
+        <source>not in this chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>merge_accounts</name>
+    <message>
+        <source>Now Mail.Ru Agent supports only one account. You can merge it with ICQ one.</source>
+        <translation>Mail.Ru Agent unterstützt jetzt nur noch ein Konto. Du kannst es mit dem ICQ-Konto verbinden.</translation>
+    </message>
+    <message>
+        <source>Choose Mail.Ru Agent account</source>
+        <translation>Konto für Mail.Ru Agent auswählen</translation>
+    </message>
+    <message>
+        <source>Choose ICQ account</source>
+        <translation>Konto für ICQ auswählen</translation>
+    </message>
+    <message>
+        <source>Account settings</source>
+        <translation>Kontoeinstellungen</translation>
+    </message>
+    <message>
+        <source>Mail.Ru Agent</source>
+        <translation>Mail.Ru Agent</translation>
+    </message>
+    <message>
+        <source>ICQ</source>
+        <translation>ICQ</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <source>Next</source>
+        <translation>Weiter</translation>
+    </message>
+    <message>
+        <source>Skip</source>
+        <translation>Überspringen</translation>
     </message>
 </context>
 <context>
@@ -2131,6 +2162,14 @@ bearbeiten</translation>
     <message>
         <source>View all</source>
         <translation>Alle anzeigen</translation>
+    </message>
+    <message>
+        <source>You have been mentioned</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>You have been mentioned in </source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2144,32 +2183,12 @@ bearbeiten</translation>
         <translation>deine Kontakte zu synchronisieren</translation>
     </message>
     <message>
-        <source>or </source>
-        <translation>oder </translation>
-    </message>
-    <message>
-        <source>by phone number or UIN</source>
-        <translation>die Telefonnummer oder UIN</translation>
-    </message>
-    <message>
-        <source>Write a message</source>
-        <translation>Eine Nachricht schreiben</translation>
-    </message>
-    <message>
-        <source>find friends</source>
-        <translation>freunde finden</translation>
-    </message>
-    <message>
         <source>Looks like you have no contacts yet</source>
         <translation>Du hast anscheinend noch keine Kontakte</translation>
     </message>
     <message>
         <source>You have no opened chats yet</source>
         <translation>Du hast noch keine geöffneten Chats</translation>
-    </message>
-    <message>
-        <source>Continue</source>
-        <translation>Fortfahren</translation>
     </message>
     <message>
         <source>Your nickname cannot be longer than 20 symbols</source>
@@ -2192,23 +2211,19 @@ bearbeiten</translation>
         <translation>Installiere Mail.Ru Agent auf dem Handy, um</translation>
     </message>
     <message>
-        <source>by phone number or Email</source>
-        <translation>mit Telefonnummer oder E-Mail-Adresse</translation>
+        <source>CONTINUE</source>
+        <translation>FORTFAHREN</translation>
+    </message>
+    <message>
+        <source>Use the search to add contacts</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>popup_window</name>
     <message>
-        <source>Cancel</source>
-        <translation>Abbrechen</translation>
-    </message>
-    <message>
         <source>Are you sure you want to sign out?</source>
         <translation>Möchtest Du Dich wirklich abmelden?</translation>
-    </message>
-    <message>
-        <source>Yes</source>
-        <translation>Ja</translation>
     </message>
     <message>
         <source>Are you sure you want to move contact to ignore list?</source>
@@ -2225,10 +2240,6 @@ bearbeiten</translation>
     <message>
         <source>Are you sure this contact is spam?</source>
         <translation>Bist Du sicher, dass dieser Kontakt Spam ist?</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <translation>Speichern</translation>
     </message>
     <message>
         <source>Contact name</source>
@@ -2253,10 +2264,6 @@ bearbeiten</translation>
     <message>
         <source>Are you sure you want to delete user from ignore list?</source>
         <translation>Möchtest Du den Nutzer wirklich von der Ignorierliste entfernen?</translation>
-    </message>
-    <message>
-        <source>Delete</source>
-        <translation>Löschen</translation>
     </message>
     <message>
         <source>Are you sure you want to block user in this chat?</source>
@@ -2287,20 +2294,12 @@ bearbeiten</translation>
         <translation>Link teilen</translation>
     </message>
     <message>
-        <source>Copy link and close</source>
-        <translation>Link kopieren und schließen</translation>
-    </message>
-    <message>
         <source>Forward</source>
         <translation>Vorwärts</translation>
     </message>
     <message>
         <source>Ignored contacts</source>
         <translation>Ignorierte Kontakte</translation>
-    </message>
-    <message>
-        <source>Done</source>
-        <translation>Fertig</translation>
     </message>
     <message>
         <source>Are you sure you want to forward messages to &lt;USER&gt;?</source>
@@ -2338,6 +2337,78 @@ bearbeiten</translation>
         <source>Contacts</source>
         <translation>Kontakte</translation>
     </message>
+    <message>
+        <source>CANCEL</source>
+        <translation>ABBRECHEN</translation>
+    </message>
+    <message>
+        <source>YES</source>
+        <translation>JA</translation>
+    </message>
+    <message>
+        <source>SAVE</source>
+        <translation>Speichern</translation>
+    </message>
+    <message>
+        <source>DONE</source>
+        <translation>FERTIG</translation>
+    </message>
+    <message>
+        <source>DELETE</source>
+        <translation>LÖSCHEN</translation>
+    </message>
+    <message>
+        <source>BACK</source>
+        <translation>ZURÜCK</translation>
+    </message>
+    <message>
+        <source>CONTINUE</source>
+        <translation>FORTFAHREN</translation>
+    </message>
+    <message>
+        <source>NEXT</source>
+        <translation>WEITER</translation>
+    </message>
+    <message>
+        <source>COPY LINK</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>WAITING</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CLOSE</source>
+        <translation>SCHLIESSEN</translation>
+    </message>
+    <message>
+        <source>JOIN</source>
+        <translation>BEITRETEN</translation>
+    </message>
+    <message>
+        <source>OPEN</source>
+        <translation>ÖFFNEN</translation>
+    </message>
+    <message>
+        <source>ADD</source>
+        <translation>HINZUFÜGEN</translation>
+    </message>
+    <message>
+        <source>REMOVE</source>
+        <translation>ENTFERNEN</translation>
+    </message>
+    <message>
+        <source>SEND</source>
+        <translation>SENDEN</translation>
+    </message>
+    <message>
+        <source>Are you sure you want to remove this sticker pack?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove sticker pack</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>previewer</name>
@@ -2355,69 +2426,6 @@ bearbeiten</translation>
     </message>
 </context>
 <context>
-    <name>promo_page</name>
-    <message>
-        <source>Contacts</source>
-        <translation>Kontakte</translation>
-    </message>
-    <message>
-        <source>The contact list is now</source>
-        <translation>Die Kontaktliste befindet sich</translation>
-    </message>
-    <message>
-        <source>located here</source>
-        <translation>jetzt hier</translation>
-    </message>
-    <message>
-        <source>Next</source>
-        <translation>Weiter</translation>
-    </message>
-    <message>
-        <source>Skip</source>
-        <translation>Überspringen</translation>
-    </message>
-    <message>
-        <source>Synchronization</source>
-        <translation>Synchronisierung</translation>
-    </message>
-    <message>
-        <source>Stickers</source>
-        <translation>Stickers</translation>
-    </message>
-    <message>
-        <source>Wallpapers</source>
-        <translation>Hintergrundbilder</translation>
-    </message>
-    <message>
-        <source>Get Started</source>
-        <translation>Leg los</translation>
-    </message>
-    <message>
-        <source>Synchronize your chat history</source>
-        <translation>Synchronisiere deinen Chat-Verlauf</translation>
-    </message>
-    <message>
-        <source>and contact list across all devices</source>
-        <translation>und deine Kontaktliste auf allen Geräten</translation>
-    </message>
-    <message>
-        <source>Click here and choose</source>
-        <translation>Klicke hier und wähle aus über</translation>
-    </message>
-    <message>
-        <source>from over 500 bright stickers</source>
-        <translation>500 bunten Stickern</translation>
-    </message>
-    <message>
-        <source>Customize your chats</source>
-        <translation>Passe deine Chats individuell an</translation>
-    </message>
-    <message>
-        <source>Choose a wallpaper from our collection</source>
-        <translation>Wähle ein Hintergrundbild aus unserer Sammlung</translation>
-    </message>
-</context>
-<context>
     <name>ptt_widget</name>
     <message>
         <source>unclear message</source>
@@ -2425,22 +2433,25 @@ bearbeiten</translation>
     </message>
 </context>
 <context>
+    <name>search</name>
+    <message>
+        <source>Add contact</source>
+        <translation>Kontakt hinzufügen</translation>
+    </message>
+    <message>
+        <source>New groupchat</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>search_widget</name>
     <message>
-        <source>Search</source>
-        <translation>Suchen</translation>
-    </message>
-    <message>
-        <source>Phone or Name, Email, UIN</source>
-        <translation>Telefonnummer oder Name, E-Mail, UIN</translation>
-    </message>
-    <message>
         <source>M</source>
-        <translation>M</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>F</source>
-        <translation>W</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>year</source>
@@ -2464,7 +2475,23 @@ bearbeiten</translation>
     </message>
     <message>
         <source>Nothing found</source>
-        <translation>Nichts gefunden</translation>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Phone or Name, Email, UIN</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>SEARCH</source>
+        <translation>SUCHE</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Suche</translation>
+    </message>
+    <message>
+        <source>Phone, UIN, Name, Email</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2635,11 +2662,27 @@ bearbeiten</translation>
     </message>
     <message>
         <source>Preview images and links</source>
-        <translation type="unfinished"></translation>
+        <translation>Vorschau für Bilder und Links</translation>
     </message>
     <message>
-        <source>Show snaps</source>
-        <translation type="unfinished"></translation>
+        <source>Hide message timestamps</source>
+        <translation>Zeit der Nachrichten ausblenden</translation>
+    </message>
+    <message>
+        <source>Open chat on new messages</source>
+        <translation>Chat bei neuen Nachrichten öffnen</translation>
+    </message>
+    <message>
+        <source>By default</source>
+        <translation>Standardmäßig</translation>
+    </message>
+    <message>
+        <source>Contacts</source>
+        <translation>Kontakte</translation>
+    </message>
+    <message>
+        <source>Show popular contacts</source>
+        <translation>Beliebte Kontakte zeigen</translation>
     </message>
 </context>
 <context>
@@ -2659,10 +2702,6 @@ bearbeiten</translation>
     <message>
         <source>More</source>
         <translation>Mehr</translation>
-    </message>
-    <message>
-        <source>Add contact</source>
-        <translation>Kontakt hinzufügen</translation>
     </message>
     <message>
         <source>Report spam</source>
@@ -2697,10 +2736,6 @@ bearbeiten</translation>
         <translation>Löschen</translation>
     </message>
     <message>
-        <source>Save</source>
-        <translation>Speichern</translation>
-    </message>
-    <message>
         <source>Chat name</source>
         <translation>Chatname</translation>
     </message>
@@ -2725,10 +2760,6 @@ bearbeiten</translation>
         <translation>nachname</translation>
     </message>
     <message>
-        <source>Online</source>
-        <translation>Online</translation>
-    </message>
-    <message>
         <source>Clear history</source>
         <translation>Verlauf leeren</translation>
     </message>
@@ -2751,14 +2782,6 @@ bearbeiten</translation>
     <message>
         <source>City</source>
         <translation>stadt</translation>
-    </message>
-    <message>
-        <source>Do not disturb</source>
-        <translation>Bitte nicht stören</translation>
-    </message>
-    <message>
-        <source>Invisible</source>
-        <translation>Unsichtbar</translation>
     </message>
     <message>
         <source>for safety and spam protection</source>
@@ -2815,10 +2838,6 @@ Please edit phone number and try again.</source>
 Bitte bearbeite sie und versuche es erneut.</translation>
     </message>
     <message>
-        <source>Copy link to chat</source>
-        <translation>Link zum Chat kopieren</translation>
-    </message>
-    <message>
         <source>Approve All</source>
         <translation>Alle annehmen</translation>
     </message>
@@ -2829,10 +2848,6 @@ Bitte bearbeite sie und versuche es erneut.</translation>
     <message>
         <source>Waiting for approval</source>
         <translation>Warten auf Bestätigung</translation>
-    </message>
-    <message>
-        <source>link copied</source>
-        <translation>Link kopiert</translation>
     </message>
     <message>
         <source>more</source>
@@ -2871,10 +2886,6 @@ Bitte bearbeite sie und versuche es erneut.</translation>
         <translation>geburtstag</translation>
     </message>
     <message>
-        <source>Search for messages</source>
-        <translation>Nach Nachrichten suchen</translation>
-    </message>
-    <message>
         <source>Unfortunatelly, you have been deleted and cannot see the members of this chat or message them.</source>
         <translation>Leider wurden Sie aus der Liste entfernt und können somit weder die Chatteilnehmer sehen noch Nachrichten an diese senden.</translation>
     </message>
@@ -2894,47 +2905,47 @@ Bitte bearbeite sie und versuche es erneut.</translation>
         <source>Email/UIN</source>
         <translation>E-Mail/UIN</translation>
     </message>
+    <message>
+        <source>ADD CONTACT</source>
+        <translation>KONTAKT HINZUFÜGEN</translation>
+    </message>
+    <message>
+        <source>SAVE</source>
+        <translation>Speichern</translation>
+    </message>
+    <message>
+        <source>Share link</source>
+        <translation>Link teilen</translation>
+    </message>
+    <message>
+        <source>Share contact</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
-    <name>snaps_page</name>
+    <name>stickers</name>
     <message>
-        <source>Cancel</source>
-        <translation>Abbrechen</translation>
+        <source>Loading...</source>
+        <translation>Laden ...</translation>
     </message>
     <message>
-        <source>Yes</source>
-        <translation>Ja</translation>
+        <source>Share</source>
+        <translation>Teilen</translation>
     </message>
     <message>
-        <source>Are you sure you want to delete this snap?</source>
-        <translation>Möchtest du diesen Schnappschuss wirklich löschen?</translation>
-    </message>
-    <message>
-        <source>Delete snap</source>
-        <translation>Schnappschuss löschen</translation>
-    </message>
-    <message>
-        <source>Unfortunately, this file is not supported on your device.</source>
-        <translation>Leider wird diese Datei auf deinem Gerät nicht unterstützt.</translation>
-    </message>
-    <message>
-        <source>view</source>
-        <comment>1</comment>
+        <source>You have not added stickers yet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>views</source>
-        <comment>2</comment>
+        <source>Popular</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>views</source>
-        <comment>5</comment>
+        <source>My</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>views</source>
-        <comment>21</comment>
+        <source>Create stickerpack</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2950,19 +2961,78 @@ Bitte bearbeite sie und versuche es erneut.</translation>
     </message>
 </context>
 <context>
+    <name>tooltips</name>
+    <message>
+        <source>Video call</source>
+        <translation>Videoanruf</translation>
+    </message>
+    <message>
+        <source>Add member</source>
+        <translation>Mitglied hinzufügen</translation>
+    </message>
+    <message>
+        <source>Chat options</source>
+        <translation>Chat-Optionen</translation>
+    </message>
+    <message>
+        <source>Smileys and stickers</source>
+        <translation>Smileys und Sticker</translation>
+    </message>
+    <message>
+        <source>Send message</source>
+        <translation>Nachricht senden</translation>
+    </message>
+    <message>
+        <source>Send file</source>
+        <translation>Datei senden</translation>
+    </message>
+    <message>
+        <source>Add users to call</source>
+        <translation>Nutzer zum Anruf hinzufügen</translation>
+    </message>
+    <message>
+        <source>Open chat page</source>
+        <translation>Chatseite öffnen</translation>
+    </message>
+    <message>
+        <source>Stop call</source>
+        <translation>Anruf beenden</translation>
+    </message>
+    <message>
+        <source>Turn off camera</source>
+        <translation>Kamera ausschalten</translation>
+    </message>
+    <message>
+        <source>Turn on camera</source>
+        <translation>Kamera einschalten</translation>
+    </message>
+    <message>
+        <source>Turn off microphone</source>
+        <translation>Mikrofon ausschalten</translation>
+    </message>
+    <message>
+        <source>Turn on microphone</source>
+        <translation>Mikrofon einschalten</translation>
+    </message>
+    <message>
+        <source>Turn off screen sharing</source>
+        <translation>Screensharing ausschalten</translation>
+    </message>
+    <message>
+        <source>Turn on screen sharing</source>
+        <translation>Screensharing einschalten</translation>
+    </message>
+    <message>
+        <source>Call</source>
+        <translation>Anrufen</translation>
+    </message>
+    <message>
+        <source>Share</source>
+        <translation>Teilen</translation>
+    </message>
+</context>
+<context>
     <name>tray_menu</name>
-    <message>
-        <source>Online</source>
-        <translation>Online</translation>
-    </message>
-    <message>
-        <source>Do not disturb</source>
-        <translation>Bitte nicht stören</translation>
-    </message>
-    <message>
-        <source>Invisible</source>
-        <translation>Unsichtbar</translation>
-    </message>
     <message>
         <source>Quit</source>
         <translation>Beenden</translation>
@@ -3035,16 +3105,8 @@ Bitte bearbeite sie und versuche es erneut.</translation>
         <translation>So funktioniert es</translation>
     </message>
     <message>
-        <source>Ok</source>
-        <translation>OK</translation>
-    </message>
-    <message>
         <source>Ringing...</source>
         <translation>Rufe an...</translation>
-    </message>
-    <message>
-        <source>Return to call</source>
-        <translation>Zurück zum Anruf</translation>
     </message>
     <message>
         <source>Data saving enabled</source>
@@ -3053,10 +3115,6 @@ Bitte bearbeite sie und versuche es erneut.</translation>
     <message>
         <source> enabled data saving</source>
         <translation> hat Datensicherung aktiviert</translation>
-    </message>
-    <message>
-        <source>Add</source>
-        <translation>Hinzufügen</translation>
     </message>
     <message>
         <source>Add to call</source>
@@ -3071,8 +3129,12 @@ Bitte bearbeite sie und versuche es erneut.</translation>
         <translation>ANDERE</translation>
     </message>
     <message>
-        <source>Cancel</source>
-        <translation>Abbrechen</translation>
+        <source>Screen</source>
+        <translation>Bildschirm</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
     </message>
 </context>
 </TS>

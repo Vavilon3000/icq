@@ -18,39 +18,30 @@ const QString vertSoundBg = "QWidget { background : #ffffff; }";
 const QString horSoundBg = "QWidget { background : transparent; }";
 
 const QString sliderGreenH =
-"QSlider:handle:horizontal { background: solid #579e1c; width: 8dip; height: 8dip; margin-top: -11dip; margin-bottom: -11dip; border-radius: 4dip; }"
-"QSlider:handle:horizontal:hover { background: solid #67bc21; border-radius: 4dip;}";
-
-const QString sliderRedH =
-"QSlider:handle:horizontal { background: solid #992117; width: 8dip; height: 8dip; margin-top: -11dip; margin-bottom: -11dip; border-radius: 4dip; }"
-"QSlider:handle:horizontal:disabled { background: solid #992117; border-radius: 4dip; }";
+"QSlider:handle:horizontal { background: solid #57b359; width: 8dip; height: 8dip; margin-top: -7dip; margin-bottom: -7dip; border-radius: 4dip; }"
+"QSlider:handle:horizontal:hover { background: solid #43a047; border-radius: 4dip;}";
 
 const QString sliderGreenV =
-"QSlider:handle:vertical { background: solid #579e1c; border: 1dip solid #579e1c; width: 8dip; height: 8dip; margin-left: -11dip; margin-right: -11dip; border-radius: 4dip; }"
-"QSlider:handle:vertical:hover { background: solid #67bc21; border-radius: 4dip; }";
+"QSlider:handle:vertical { background: solid #57b359; border: 1dip solid #57b359; width: 8dip; height: 8dip; margin-left: -7dip; margin-right: -7dip; border-radius: 4dip; }"
+"QSlider:handle:vertical:hover { background: solid #43a047; border-radius: 4dip; }";
 
-const QString sliderRedV =
-"QSlider:handle:vertical { background: solid #992117; border: 1dip solid #579e1c; width: 8dip; height: 8dip; margin-left: -11dip; margin-right: -11dip; border-radius: 4dip; }"
-"QSlider:handle:vertical:disabled { background: solid #992117; border-radius: 4dip; }";
-
-
-Ui::ResizeEventFilter::ResizeEventFilter(std::vector<BaseVideoPanel*>& panels, 
-	ShadowWindow* shadow, 
-	QObject* _parent)
-    : QObject(_parent) 
+Ui::ResizeEventFilter::ResizeEventFilter(std::vector<BaseVideoPanel*>& panels,
+    ShadowWindow* shadow,
+    QObject* _parent)
+    : QObject(_parent)
     , panels_(panels)
-	, shadow_(shadow)
+    , shadow_(shadow)
 {
 }
 
 bool Ui::ResizeEventFilter::eventFilter(QObject* _obj, QEvent* _e)
 {
-	QWidget* parent = qobject_cast<QWidget*>(_obj);
+    QWidget* parent = qobject_cast<QWidget*>(_obj);
 
-    if (parent && 
-		(_e->type() == QEvent::Resize ||
-        _e->type() == QEvent::Move || 
-        _e->type() == QEvent::WindowActivate || 
+    if (parent &&
+        (_e->type() == QEvent::Resize ||
+        _e->type() == QEvent::Move ||
+        _e->type() == QEvent::WindowActivate ||
         _e->type() == QEvent::NonClientAreaMouseButtonPress ||
         _e->type() == QEvent::ZOrderChange ||
         _e->type() == QEvent::ShowToParent ||
@@ -59,33 +50,33 @@ bool Ui::ResizeEventFilter::eventFilter(QObject* _obj, QEvent* _e)
 
         const QRect rc = parent->geometry();
 
-		bool bActive = parent->isActiveWindow();
+        bool bActive = parent->isActiveWindow();
 
         for (unsigned ix = 0; ix < panels_.size(); ix++)
         {
-			BaseVideoPanel* panel = panels_[ix];
+            BaseVideoPanel* panel = panels_[ix];
             if (!panel)
             {
                 continue;
             }
 
-			bActive = bActive || panel->isActiveWindow();
+            bActive = bActive || panel->isActiveWindow();
 
-			panel->updatePosition(*parent);
+            panel->updatePosition(*parent);
         }
 
-		if (shadow_)
-		{
-			int shadowWidth = get_gui_settings()->get_shadow_width();
-			shadow_->move(rc.topLeft().x() - shadowWidth, rc.topLeft().y() - shadowWidth);
-			shadow_->resize(rc.width() + 2 * shadowWidth, rc.height() + 2 * shadowWidth);
+        if (shadow_)
+        {
+            int shadowWidth = get_gui_settings()->get_shadow_width();
+            shadow_->move(rc.topLeft().x() - shadowWidth, rc.topLeft().y() - shadowWidth);
+            shadow_->resize(rc.width() + 2 * shadowWidth, rc.height() + 2 * shadowWidth);
 
-			shadow_->setActive(bActive);
+            shadow_->setActive(bActive);
 
 #ifdef _WIN32
-			SetWindowPos((HWND)shadow_->winId(), (HWND)parent->winId(), 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOSIZE);
+            SetWindowPos((HWND)shadow_->winId(), (HWND)parent->winId(), 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOSIZE);
 #endif
-		}
+        }
     }
 
     return QObject::eventFilter(_obj, _e);
@@ -93,33 +84,33 @@ bool Ui::ResizeEventFilter::eventFilter(QObject* _obj, QEvent* _e)
 
 void Ui::ResizeEventFilter::addPanel(BaseVideoPanel* _panel)
 {
-	panels_.push_back(_panel);
+    panels_.push_back(_panel);
 }
 
 void  Ui::ResizeEventFilter::removePanel(BaseVideoPanel* _panel)
 {
-	panels_.erase(std::remove(panels_.begin(), panels_.end(), _panel), panels_.end());
+    panels_.erase(std::remove(panels_.begin(), panels_.end(), _panel), panels_.end());
 }
 
 
 
 Ui::ShadowWindowParent::ShadowWindowParent(QWidget* parent) : shadow_(nullptr)
 {
-	if (platform::is_windows())
-	{
-		int shadowWidth = get_gui_settings()->get_shadow_width();
+    if (platform::is_windows())
+    {
+        int shadowWidth = get_gui_settings()->get_shadow_width();
 
-		QBrush b(Qt::transparent);
-		QMatrix m;
-		m.translate(shadowWidth, shadowWidth);
-		b.setMatrix(m);
+        QBrush b(Qt::transparent);
+        QMatrix m;
+        m.translate(shadowWidth, shadowWidth);
+        b.setMatrix(m);
 
-		shadow_ = new ShadowWindow(b, shadowWidth);
+        shadow_ = new ShadowWindow(b, shadowWidth);
 
-		QPoint pos = parent->mapToGlobal(QPoint(parent->rect().x(), parent->rect().y()));
-		shadow_->move(pos.x() - shadowWidth, pos.y() - shadowWidth);
-		shadow_->resize(parent->rect().width() + 2 * shadowWidth, parent->rect().height() + 2 * shadowWidth);
-	}
+        QPoint pos = parent->mapToGlobal(QPoint(parent->rect().x(), parent->rect().y()));
+        shadow_->move(pos.x() - shadowWidth, pos.y() - shadowWidth);
+        shadow_->resize(parent->rect().width() + 2 * shadowWidth, parent->rect().height() + 2 * shadowWidth);
+    }
 }
 
 Ui::ShadowWindowParent::~ShadowWindowParent()
@@ -129,57 +120,61 @@ Ui::ShadowWindowParent::~ShadowWindowParent()
 
 void Ui::ShadowWindowParent::showShadow()
 {
-	if (shadow_)
-	{
-		shadow_->show();
-	}
+    if (shadow_)
+    {
+        shadow_->show();
+    }
 }
 
 void Ui::ShadowWindowParent::hideShadow()
 {
-	if (shadow_)
-	{
-		shadow_->hide();
-	}
+    if (shadow_)
+    {
+        shadow_->hide();
+    }
 }
 
 Ui::ShadowWindow* Ui::ShadowWindowParent::getShadowWidget()
 {
-	return shadow_;
+    return shadow_;
 }
 
 void Ui::ShadowWindowParent::setActive(bool _value)
 {
-	if (shadow_)
-	{
-		shadow_->setActive(_value);
-	}
+    if (shadow_)
+    {
+        shadow_->setActive(_value);
+    }
 }
 
 Ui::AspectRatioResizebleWnd::AspectRatioResizebleWnd()
     : QWidget(NULL)
     //, firstTimeUseAspectRatio_(true)
-    , useAspect_(true)
     , aspectRatio_(0.0f)
+    , useAspect_(true)
 {
-    selfResizeEffect_ = new UIEffects(*this);
+    selfResizeEffect_.reset(new UIEffects(*this));
     QObject::connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipFrameSizeChanged(const voip_manager::FrameSize&)), this, SLOT(onVoipFrameSizeChanged(const voip_manager::FrameSize&)), Qt::DirectConnection);
     //QObject::connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipCallCreated(const voip_manager::ContactEx&)), this, SLOT(onVoipCallCreated(const voip_manager::ContactEx&)), Qt::DirectConnection);
 }
 
 Ui::AspectRatioResizebleWnd::~AspectRatioResizebleWnd()
 {
-    
+
 }
 
 bool Ui::AspectRatioResizebleWnd::isInFullscreen() const
 {
+#ifdef __linux __
+    return isFullScreen() || isMaximized();
+#else
     return isFullScreen();
+#endif
 }
 
 void Ui::AspectRatioResizebleWnd::switchFullscreen()
 {
-    if (!isFullScreen())
+    if (!isInFullscreen())
     {
         showFullScreen();
     }
@@ -187,6 +182,9 @@ void Ui::AspectRatioResizebleWnd::switchFullscreen()
     {
         showNormal();
 
+#ifndef __linux__
+        // Looks like under linux rect() return fullscreen window size and we cannot
+        // resize window correct to normal size.
         if (aspectRatio_ > 0.001f && selfResizeEffect_)
         {
             const QRect rc = rect();
@@ -195,6 +193,7 @@ void Ui::AspectRatioResizebleWnd::switchFullscreen()
 
             selfResizeEffect_->geometryTo(endRc, 500);
         }
+#endif
     }
 }
 
@@ -206,7 +205,7 @@ void Ui::AspectRatioResizebleWnd::onVoipFrameSizeChanged(const voip_manager::Fra
         aspectRatio_ = _fs.aspect_ratio;
         fitMinimalSizeToAspect();
         applyFrameAspectRatio(wasAr);
-        
+
 #ifdef __APPLE__
         platform_macos::setAspectRatioForWindow(*this, aspectRatio_);
 #endif
@@ -215,7 +214,7 @@ void Ui::AspectRatioResizebleWnd::onVoipFrameSizeChanged(const voip_manager::Fra
 
 void Ui::AspectRatioResizebleWnd::applyFrameAspectRatio(float _wasAr)
 {
-    if (useAspect_ && aspectRatio_ > 0.001f && selfResizeEffect_ && !isFullScreen())
+    if (useAspect_ && aspectRatio_ > 0.001f && selfResizeEffect_ && !isInFullscreen())
     {
         QRect rc = rect();
 
@@ -225,7 +224,7 @@ void Ui::AspectRatioResizebleWnd::applyFrameAspectRatio(float _wasAr)
         // On Mac we have wrong coords with mapToGlobal. Maybe because we attach own view to widnow.
         const QPoint p(x(), y());
 #endif
-        
+
         QRect endRc;
         if (_wasAr > 0.001f && fabs((1.0f / aspectRatio_) - _wasAr) < 0.0001f)
         {
@@ -294,10 +293,10 @@ void Ui::AspectRatioResizebleWnd::applyFrameAspectRatio(float _wasAr)
                 if (endRc.width() > bestW)
                 {
                     const int bestH = bestW / aspectRatio_;
-                    endRc.setLeft((screenRect.x() + screenRect.width() - bestW) / 2);
+                    endRc.setLeft(screenRect.x() + (screenRect.width() - bestW) / 2);
                     endRc.setRight(endRc.left() + bestW);
 
-                    endRc.setTop((screenRect.y() + screenRect.height() - bestH) / 2);
+                    endRc.setTop(screenRect.y() + (screenRect.height() - bestH) / 2);
                     endRc.setBottom(endRc.top() + bestH);
                 }
             }
@@ -306,10 +305,10 @@ void Ui::AspectRatioResizebleWnd::applyFrameAspectRatio(float _wasAr)
                 if (endRc.height() > bestH)
                 {
                     const int bestW = bestH * aspectRatio_;
-                    endRc.setLeft((screenRect.x() + screenRect.width() - bestW) / 2);
+                    endRc.setLeft(screenRect.x() + (screenRect.width() - bestW) / 2);
                     endRc.setRight(endRc.left() + bestW);
 
-                    endRc.setTop((screenRect.y() + screenRect.height() - bestH) / 2);
+                    endRc.setTop(screenRect.y() + (screenRect.height() - bestH) / 2);
                     endRc.setBottom(endRc.top() + bestH);
                 }
             }
@@ -343,7 +342,7 @@ void Ui::AspectRatioResizebleWnd::unuseAspect()
 {
     useAspect_ = false;
     setMinimumSize(originMinSize_);
-       
+
 #ifdef __APPLE__
     platform_macos::unsetAspectRatioForWindow(*this);
 #endif
@@ -460,15 +459,19 @@ void Ui::AspectRatioResizebleWnd::saveMinSize(const QSize& size)
 
 void Ui::AspectRatioResizebleWnd::fitMinimalSizeToAspect()
 {
-    int height = originMinSize_.width() / aspectRatio_;
-    int width  = originMinSize_.height() * aspectRatio_;
+    if (useAspect_)
+    {
+        int height = originMinSize_.width() / aspectRatio_;
+        int width = originMinSize_.height() * aspectRatio_;
 
-    if (height < originMinSize_.height())
-    {
-        setMinimumSize(width, originMinSize_.height());
-    } else
-    {
-        setMinimumSize(originMinSize_.width(), height);
+        if (height < originMinSize_.height())
+        {
+            setMinimumSize(width, originMinSize_.height());
+        }
+        else
+        {
+            setMinimumSize(originMinSize_.width(), height);
+        }
     }
 }
 
@@ -481,20 +484,27 @@ void Ui::AspectRatioResizebleWnd::fitMinimalSizeToAspect()
 //}
 
 Ui::UIEffects::UIEffects(QWidget& _obj)
-    : fadeEffect_(new QGraphicsOpacityEffect(&_obj))
-    , fadedIn_(true)
+    :
+    fadedIn_(true)
+#ifdef _WIN32
+    , fadeEffect_(new QGraphicsOpacityEffect(&_obj))
+    , animation_(new QPropertyAnimation(fadeEffect_, QByteArrayLiteral("opacity"), &_obj))
+#else
+    , fadeEffect_(nullptr)
+    , animation_(nullptr)
+#endif
+    , resizeAnimation_(new QPropertyAnimation(&_obj, QByteArrayLiteral("geometry"), &_obj))
     , obj_(_obj)
-    , resizeAnimation_(new QPropertyAnimation(&_obj, "geometry"))
-    , animation_(new QPropertyAnimation(fadeEffect_, "opacity"))
 {
+#ifdef _WIN32
     _obj.setGraphicsEffect(fadeEffect_);
     animation_->setEasingCurve(QEasingCurve::InOutQuad);
+#endif
     resizeAnimation_->setEasingCurve(QEasingCurve::InOutQuad);
 }
 
 Ui::UIEffects::~UIEffects()
 {
-    delete animation_;
 }
 
 void Ui::UIEffects::geometryTo(const QRect& _rc, unsigned _interval)
@@ -513,8 +523,8 @@ void Ui::UIEffects::fadeOut(unsigned _interval)
 #ifdef __APPLE__
     platform_macos::fadeOut(&obj_);
 #else
-    if (1)
-    {//(animation_ && fadedIn_) {
+    if (animation_ && fadedIn_)
+    {
         animation_->stop();
         animation_->setDuration(_interval);
         animation_->setEndValue(0.01);
@@ -530,8 +540,8 @@ void Ui::UIEffects::fadeIn(unsigned _interval)
 #ifdef __APPLE__
     platform_macos::fadeIn(&obj_);
 #else
-    if (1)
-    {// //if (animation_ && !fadedIn_) {
+    if (animation_ && !fadedIn_)
+    {
         animation_->stop();
         animation_->setDuration(_interval);
         animation_->setEndValue(1.0);
@@ -548,36 +558,40 @@ bool Ui::UIEffects::isFadedIn()
 }
 
 Ui::BaseVideoPanel::BaseVideoPanel(QWidget* parent, Qt::WindowFlags f) :
-	QWidget(parent, f), grabMouse(false)
+    QWidget(parent, f), grabMouse(false)
 {
-	hide();
+    hide();
 }
 
 void Ui::BaseVideoPanel::fadeIn(unsigned int duration)
 {
-	if (!effect_)
-	{
-		effect_ = std::unique_ptr<UIEffects>(new(std::nothrow) UIEffects(*this));
-	}
-	
-	if (effect_)
-	{
-		effect_->fadeIn(duration);
-	}
+    if (!effect_)
+    {
+        effect_ = std::unique_ptr<UIEffects>(new(std::nothrow) UIEffects(*this));
+    }
+
+    if (effect_)
+    {
+#ifndef __linux__
+        effect_->fadeIn(duration);
+#endif
+    }
 }
 
 void Ui::BaseVideoPanel::fadeOut(unsigned int duration)
 {
-	if (!effect_)
-	{
-		effect_ = std::unique_ptr<UIEffects>(new(std::nothrow) UIEffects(*this));
-	}
-	
+    if (!effect_)
+    {
+        effect_ = std::unique_ptr<UIEffects>(new(std::nothrow) UIEffects(*this));
+    }
 
-	if (effect_)
-	{
-		effect_->fadeOut(duration);
-	}
+
+    if (effect_)
+    {
+#ifndef __linux__
+        effect_->fadeOut(duration);
+#endif
+    }
 }
 
 bool Ui::BaseVideoPanel::isGrabMouse()
@@ -607,6 +621,10 @@ void Ui::BaseTopVideoPanel::updatePosition(const QWidget& parent)
               parentRect.width(),
               height()));
 //    auto rc = platform_macos::getWindowRect(*parentWidget());
+#elif defined(__linux__)
+    auto rc = parentWidget()->geometry();
+    move(0, 0);
+    setFixedWidth(rc.width());
 #else
     auto rc = parentWidget()->geometry();
     move(rc.x(), rc.y());
@@ -624,13 +642,17 @@ void Ui::BaseBottomVideoPanel::updatePosition(const QWidget& parent)
     // We can convert Mac coords to Qt, but we need to add
     // special cases for multi monitor systems.
 #ifdef __APPLE__
-	//auto rc = platform_macos::getWindowRect(*parentWidget());
+    //auto rc = platform_macos::getWindowRect(*parentWidget());
     QRect parentRect = platform_macos::getWidgetRect(*parentWidget());
     platform_macos::setWindowPosition(*this,
                     QRect(parentRect.left(),
                           parentRect.top(),
                           parentRect.width(),
                           height()));
+#elif defined(__linux__)
+    auto rc = parentWidget()->geometry();
+    move(0, rc.height() - rect().height());
+    setFixedWidth(rc.width());
 #else
     auto rc = parentWidget()->geometry();
     move(rc.x(), rc.y() + rc.height() - rect().height());
@@ -660,12 +682,12 @@ Ui::QSliderEx::QSliderEx(
                          QWidget* _parent)
 : QSlider(_orientation, _parent)
 {
-    
+
 }
 
 Ui::QSliderEx::~QSliderEx()
 {
-    
+
 }
 
 void Ui::QSliderEx::mousePressEvent(QMouseEvent* _ev)
@@ -676,7 +698,7 @@ void Ui::QSliderEx::mousePressEvent(QMouseEvent* _ev)
             setValue(minimum() + ((maximum()-minimum()) * (height()-_ev->y())) / height() ) ;
         else
             setValue(minimum() + ((maximum()-minimum()) * _ev->x()) / width() ) ;
-        
+
         _ev->accept();
     }
     QSlider::mousePressEvent(_ev);
@@ -693,12 +715,12 @@ bool Ui::onUnderMouse(QWidget& _widg)
 Ui::QPushButtonEx::QPushButtonEx(QWidget* _parent)
 : QPushButton(_parent)
 {
-    
+
 }
 
 Ui::QPushButtonEx::~QPushButtonEx()
 {
-    
+
 }
 
 void Ui::QPushButtonEx::enterEvent(QEvent* _e)
@@ -715,23 +737,23 @@ Ui::VolumeControl::VolumeControl
  const QString& _backgroundStyle,
  const std::function<void(QPushButton&, bool)>& _onChangeStyle)
 : QWidget(_parent, (_horizontal ? Qt::Widget : Qt::Window | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint | Qt::WindowStaysOnTopHint))
-, parent_(_parent)
-, horizontal_(_horizontal)
-, onChangeStyle_(_onChangeStyle)
-, rootWidget_(NULL)
 , audioPlaybackDeviceMuted_(false)
-, background_(_backgroundStyle)
-, checkMousePos_(this)
-, actualVol_(0)
 , onMainWindow_(_onMainWindow)
+, background_(_backgroundStyle)
+, horizontal_(_horizontal)
+, actualVol_(0)
+, checkMousePos_(this)
+, parent_(_parent)
+, rootWidget_(nullptr)
+, onChangeStyle_(_onChangeStyle)
 {
     //setWindowFlags(Qt::SubWindow | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::NoDropShadowWindowHint);
     setAttribute(Qt::WA_NoSystemBackground, true);
     setAttribute(Qt::WA_TranslucentBackground, true);
-    setStyleSheet(Utils::LoadStyle(":/voip/volume_control.qss"));
-    
+    setStyleSheet(Utils::LoadStyle(":/qss/volume_control"));
+
     setContentsMargins(0, 0, 0, 0);
-    
+
     if (horizontal_)
     {
         setProperty("VolumeControlHor", true);
@@ -740,19 +762,19 @@ Ui::VolumeControl::VolumeControl
     {
         setProperty("VolumeControlVert", true);
     }
-    
+
     btn_ = new QPushButtonEx(this);
     btn_->setCursor(QCursor(Qt::PointingHandCursor));
     btn_->setAttribute(Qt::WA_NoMousePropagation);
-    
+
     slider_ = new QSliderEx(horizontal_ ? Qt::Horizontal : Qt::Vertical, this);
     slider_->setCursor(QCursor(Qt::PointingHandCursor));
-    
+
     rootWidget_ = new QWidget(this);
     auto widg = rootWidget_;
     widg->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
     widg->setContentsMargins(0, 0, 0, 0);
-    
+
     QBoxLayout* layout;
     if (horizontal_)
     {
@@ -764,11 +786,11 @@ Ui::VolumeControl::VolumeControl
         layout = Utils::emptyVLayout();
         layout->setAlignment(Qt::AlignBottom | Qt::AlignHCenter);
     }
-    
+
     if (horizontal_)
     {
         layout->addWidget(btn_);
-        layout->addSpacing(Utils::scale_value(10));
+        layout->addSpacing(Utils::scale_value(16));
         layout->addWidget(slider_);
     }
     else
@@ -779,16 +801,16 @@ Ui::VolumeControl::VolumeControl
         layout->addWidget(btn_);
         layout->addSpacing(Utils::scale_value(8));
     }
-    
+
     widg->setLayout(layout);
-    
+
     Utils::ApplyStyle(widg, background_);
-    
+
     if (onChangeStyle_ != NULL && btn_)
     {
         onChangeStyle_(*btn_, true);
     }
-    
+
     if (horizontal_)
     {
         slider_->setProperty("VolumeSliderHor", true);
@@ -799,31 +821,31 @@ Ui::VolumeControl::VolumeControl
         slider_->setProperty("VolumeSliderVert", true);
         slider_->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding));
     }
-    
+
     auto horLayout = Utils::emptyHLayout();
     horLayout->addWidget(widg);
     setLayout(horLayout);
-    
+
     if (horizontal_)
     {
         slider_->hide();
     }
-    
+
     connect(slider_, SIGNAL(valueChanged(int)), this, SLOT(onVolumeChanged(int)), Qt::QueuedConnection);
     connect(btn_, SIGNAL(clicked()), this, SLOT(onMuteOnOffClicked()), Qt::QueuedConnection);
     connect(&checkMousePos_, SIGNAL(timeout()), this, SLOT(onCheckMousePos()), Qt::QueuedConnection);
     checkMousePos_.setInterval(500);
-    
+
     QObject::connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipMuteChanged(const std::string&,bool)), this, SLOT(onVoipMuteChanged(const std::string&,bool)), Qt::DirectConnection);
     QObject::connect(&Ui::GetDispatcher()->getVoipController(), SIGNAL(onVoipVolumeChanged(const std::string&,int)), this, SLOT(onVoipVolumeChanged(const std::string&,int)), Qt::DirectConnection);
-    
+
     connect(btn_, &QPushButton::clicked, this, &VolumeControl::clicked);
-    
+
 #ifdef __APPLE__
     // This is hack: We have problem with layout under Mac.
     // We need to update style of button a little later.
     // TODO: find better solution.
-    QTimer::singleShot(1, [=]()
+    QTimer::singleShot(1, this, [=]()
     {
         if (onChangeStyle_ != NULL && btn_)
         {
@@ -835,7 +857,7 @@ Ui::VolumeControl::VolumeControl
 
 Ui::VolumeControl::~VolumeControl()
 {
-    
+
 }
 
 void Ui::VolumeControl::onCheckMousePos()
@@ -850,7 +872,7 @@ QPoint Ui::VolumeControl::getAnchorPoint() const
 {
     const auto rcb = btn_->rect();
     const auto rcc = rect();
-    
+
     if (horizontal_)
     {
         return QPoint(0, (rcc.height() - rcb.height()) / 2);
@@ -865,25 +887,11 @@ void Ui::VolumeControl::updateSlider()
 {
     if (horizontal_)
     {
-        if (audioPlaybackDeviceMuted_ || actualVol_ <= 0.0001f)
-        {
-            Utils::ApplyStyle(slider_, sliderRedH);
-        }
-        else
-        {
-            Utils::ApplyStyle(slider_, sliderGreenH);
-        }
+        Utils::ApplyStyle(slider_, sliderGreenH);
     }
     else
     {
-        if (audioPlaybackDeviceMuted_ || actualVol_ <= 0.0001f)
-        {
-            Utils::ApplyStyle(slider_, sliderRedV);
-        }
-        else
-        {
-            Utils::ApplyStyle(slider_, sliderGreenV);
-        }
+        Utils::ApplyStyle(slider_, sliderGreenV);
     }
 }
 
@@ -893,10 +901,10 @@ void Ui::VolumeControl::onVoipMuteChanged(const std::string& _deviceType, bool _
     {
         slider_->setEnabled(!_muted);
         //slider_->setVisible(!_muted);
-        
+
         audioPlaybackDeviceMuted_ = _muted;
         updateSlider();
-        
+
         if (onChangeStyle_ != NULL && btn_)
         {
             onChangeStyle_(*btn_, _muted || actualVol_ <= 0.0001f);
@@ -924,17 +932,18 @@ void Ui::VolumeControl::onVoipVolumeChanged(const std::string& _deviceType, int 
     if (_deviceType == "audio_playback")
     {
         actualVol_ = std::max(std::min(100, _vol), 0);
-        
+
         if (onChangeStyle_ != NULL && btn_)
         {
             onChangeStyle_(*btn_, audioPlaybackDeviceMuted_ || actualVol_ <= 0.0001f);
         }
         emit onMuteChanged(audioPlaybackDeviceMuted_ || actualVol_ <= 0.0001f);
-        
-        slider_->blockSignals(true);
-        slider_->setValue(actualVol_);
-        slider_->blockSignals(false);
-        
+
+        {
+            QSignalBlocker sb(slider_);
+            slider_->setValue(actualVol_);
+        }
+
         updateSlider();
     }
 }
@@ -1015,22 +1024,22 @@ Ui::VolumeGroup::VolumeGroup (QWidget* parent, bool onMainPage, const std::funct
 
     setLayout(Utils::emptyHLayout());
     layout()->setAlignment(Qt::AlignVCenter);
-    
+
     auto fakeWidget = new QWidget(this);
-    
+
     // It is hack, because we have very complicated layout.
     // Todo fix this layout.
-    fakeWidget->setFixedSize(Utils::scale_value(QSize(38, 38)));
+    fakeWidget->setFixedSize(Utils::scale_value(QSize(36, 36)));
     layout()->addWidget(fakeWidget);
 
     hVolumeControl->show();
     hVolumeControl->hideSlider();
-    
+
     connect(hVolumeControl, &VolumeControlHorizontal::onHoverButton,    this, &VolumeGroup::showSlider);
     connect(hVolumeControl, &VolumeControl::controlActivated, this, &VolumeGroup::controlActivated);
     connect(vVolumeControl, &VolumeControl::controlActivated, this, &VolumeGroup::controlActivated);
     connect(hVolumeControl, &VolumeControl::clicked, this, &VolumeGroup::clicked);
-    
+
 #ifdef __APPLE__
     connect(hVolumeControl, &VolumeControl::clicked, [this]()
             {
@@ -1043,7 +1052,7 @@ void Ui::VolumeGroup::showSlider()
 {
     bool isActive = true;
     isVideoWindowActive(isActive);
-    
+
     if (isActive)
     {
         forceShowSlider();
@@ -1053,7 +1062,7 @@ void Ui::VolumeGroup::showSlider()
 void Ui::VolumeGroup::forceShowSlider()
 {
     const auto rc = parentWidget()->rect();
-    
+
     if (rc.width() >= verticalSize)
     {
         hVolumeControl->showSlider();
@@ -1090,20 +1099,20 @@ void Ui::VolumeGroup::hideSlider()
 void Ui::VolumeGroup::updateSliderPosition()
 {
     const auto rc = parentWidget()->rect();
-    
+
     if (rc.width() < verticalSize)
     {
         int xOffset = 0;
 #ifdef __APPLE__
         xOffset = Utils::scale_value(1);
 #endif
-        
+
         auto p  = vVolumeControl->getAnchorPoint();
         auto p2 = hVolumeControl->soundButtonGlobalPosition();
-        
+
         p2.setX(p2.x() - p.x() + xOffset);
         p2.setY(p2.y() - p.y());
-        
+
         vVolumeControl->move(p2);
     }
 }
@@ -1195,10 +1204,23 @@ void Ui::FullVideoWindowPanel::updatePosition(const QWidget& parent)
             parentRect.top(),
             parentRect.width(),
             parentRect.height()));
+
+    // Made round corners for mac.
+    QWindow* window = parent.window() ? parent.window()->windowHandle(): nullptr;
+    if (window && window->visibility() != QWindow::FullScreen)
+    {
+        auto rc = rect();
+        QPainterPath path(QPointF(0, 0));
+        path.addRoundedRect(rc.x(), rc.y(), rc.width(), rc.height(), Utils::scale_value(5), Utils::scale_value(5));
+
+        QRegion region(path.toFillPolygon().toPolygon());
+
+        setMask(region);
+    }
 #else
     auto rc = parentWidget()->geometry();
     setFixedSize(rc.width(), rc.height());
-	move(rc.x(), rc.y());
+    move(rc.x(), rc.y());
 #endif
 }
 
@@ -1208,7 +1230,7 @@ void Ui::FullVideoWindowPanel::resizeEvent(QResizeEvent *event)
 }
 
 
-void showAddUserToVideoConverenceDialog(QObject* parent, QWidget* parentWindow, 
+void showAddUserToVideoConverenceDialog(QObject* parent, QWidget* parentWindow,
     std::function< void(Ui::SelectionContactsForConference*) > connectSignal,
     std::function< void() > disconnectSignal)
 {
@@ -1230,7 +1252,7 @@ void showAddUserToVideoConverenceDialog(QObject* parent, QWidget* parentWindow,
 
     connectSignal(&contactsWidget);
 
-    contactsWidget.setMaximumSelectedCount(4);
+    contactsWidget.setMaximumSelectedCount(Ui::GetDispatcher()->getVoipController().maxVideoConferenceMembers());
 
     if (contactsWidget.show() == QDialog::Accepted)
     {
@@ -1268,20 +1290,20 @@ void Ui::showAddUserToVideoConverenceDialogMainWindow(QObject* parent, QWidget* 
 
 
 Ui::PureClickedWidget::PureClickedWidget(QWidget* parent)
-	: QWidget(parent)
-	, Enabled_(true)
+    : QWidget(parent)
+    , Enabled_(true)
 {
 }
 
 void Ui::PureClickedWidget::setEnabled(bool value)
 {
-	Enabled_ = value;
-	update();
+    Enabled_ = value;
+    update();
 }
 
 void Ui::PureClickedWidget::mouseReleaseEvent(QMouseEvent *e)
 {
-	if (Enabled_)
-		emit clicked();
-	QWidget::mouseReleaseEvent(e);
+    if (Enabled_)
+        emit clicked();
+    QWidget::mouseReleaseEvent(e);
 }

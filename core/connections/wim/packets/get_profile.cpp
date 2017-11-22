@@ -10,9 +10,9 @@ using namespace core;
 using namespace wim;
 
 get_profile::get_profile(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _aimId)
-    : wim_packet(_params),
+    : wim_packet(std::move(_params)),
     aimId_(_aimId)
 {
 }
@@ -36,6 +36,13 @@ int32_t get_profile::init_request(std::shared_ptr<core::http_request_simple> _re
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
 
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
+
     return 0;
 }
 
@@ -50,20 +57,20 @@ int32_t get_profile::parse_response_data(const rapidjson::Value& _data)
     if (iter_users == _data.MemberEnd() || !iter_users->value.IsArray())
         return wpie_http_parse_response;
 
-    for (auto iter = iter_users->value.Begin(); iter != iter_users->value.End(); ++iter)
+    for (auto iter = iter_users->value.Begin(), end = iter_users->value.End(); iter != end; ++iter)
     {
         auto iter_aimid = iter->FindMember("aimId");
         if (iter_aimid == iter->MemberEnd() || !iter_aimid->value.IsString())
             return wpie_http_parse_response;
 
-        auto contact_profile = std::make_shared<profile::info>(iter_aimid->value.GetString());
+        auto contact_profile = std::make_shared<profile::info>(rapidjson_get_string(iter_aimid->value));
         if (!contact_profile->unserialize(*iter))
         {
             assert(false);
             return wpie_http_parse_response;
         }
 
-        search_result_.push_back(contact_profile);
+        search_result_.push_back(std::move(contact_profile));
     }
 
     return 0;

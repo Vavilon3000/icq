@@ -11,6 +11,7 @@
 #include "GenericBlock.h"
 #include "../ActionButtonWidget.h"
 #include "QuoteBlock.h"
+#include "../MessageStyle.h"
 
 UI_COMPLEX_MESSAGE_NS_BEGIN
 
@@ -27,16 +28,16 @@ GenericBlock::GenericBlock(
     : QWidget(parent)
     , QuoteAnimation_(parent)
     , Initialized_(false)
-    , Parent_(parent)
-    , SourceText_(sourceText)
-    , MenuFlags_(menuFlags)
-    , ResourcesUnloadingTimer_(nullptr)
     , IsResourcesUnloadingEnabled_(isResourcesUnloadingEnabled)
+    , MenuFlags_(menuFlags)
+    , Parent_(parent)
+    , ResourcesUnloadingTimer_(nullptr)
+    , SourceText_(sourceText)
     , IsBubbleRequired_(true)
     , ClickHandled_(false)
 {
     assert(Parent_);
-    connect(this, SIGNAL(setQuoteAnimation()), parent, SLOT(setQuoteAnimation()));
+    connect(this, &GenericBlock::setQuoteAnimation, parent, &ComplexMessageItem::setQuoteAnimation);
 }
 
 GenericBlock::GenericBlock()
@@ -149,30 +150,35 @@ IItemBlock::MenuFlags GenericBlock::getMenuFlags() const
     return MenuFlags_;
 }
 
-bool GenericBlock::onMenuItemTriggered(const QString &command)
+bool GenericBlock::onMenuItemTriggered(const QVariantMap &params)
 {
-    const auto isCopyLink = (command == "copy_link");
+    const auto command = params[qsl("command")].toString();
+    const auto isCopyLink = command == ql1s("copy_link");
     if (isCopyLink)
     {
-        onMenuCopyLink();
+        const auto link = params[qsl("arg")].toString();
+        if (!link.isEmpty())
+            QApplication::clipboard()->setText(link);
+        else
+            onMenuCopyLink();
         return true;
     }
 
-    const auto isCopyFile = (command == "copy_file");
+    const auto isCopyFile = command == ql1s("copy_file");
     if (isCopyFile)
     {
         onMenuCopyFile();
         return true;
     }
 
-    const auto isSaveAs = (command == "save_as");
+    const auto isSaveAs = command == ql1s("save_as");
     if (isSaveAs)
     {
         onMenuSaveFileAs();
         return true;
     }
 
-    const auto isOpenInBrowser = (command == "open_in_browser");
+    const auto isOpenInBrowser = command == ql1s("open_in_browser");
     if (isOpenInBrowser)
     {
         onMenuOpenInBrowser();
@@ -237,10 +243,8 @@ QSize GenericBlock::sizeHint() const
     return QSize(-1, 0);
 }
 
-void GenericBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_color)
+void GenericBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& _quoteColor)
 {
-    (void)p;
-
     if (Style::isBlocksGridEnabled())
     {
         p.setPen(Qt::red);
@@ -439,7 +443,7 @@ void GenericBlock::onResourceUnloadingTimeout()
 
 void GenericBlock::setQuoteSelection()
 {
-	QuoteAnimation_.startQuoteAnimation();
+    QuoteAnimation_.startQuoteAnimation();
 }
 
 void GenericBlock::connectToHover(Ui::ComplexMessage::QuoteBlockHover* hover)
@@ -459,6 +463,30 @@ void GenericBlock::hideBlock()
 bool GenericBlock::isHasLinkInMessage() const
 {
     return false;
+}
+
+QPoint GenericBlock::getShareButtonPos(const bool _isBubbleRequired, const QRect& _bubbleRect) const
+{
+    const auto blockLayout = getBlockLayout();
+    assert(blockLayout);
+
+    const auto blockGeometry = blockLayout->getBlockGeometry();
+
+    auto buttonX = 0;
+
+    if (_isBubbleRequired)
+    {
+        assert(_bubbleRect.width() > 0);
+        buttonX = _bubbleRect.right() + MessageStyle::getTimeMarginX();
+    }
+    else
+    {
+        buttonX = blockGeometry.right() + MessageStyle::getTimeMarginX();
+    }
+
+    const auto buttonY = blockGeometry.top();
+
+    return QPoint(buttonX, buttonY);
 }
 
 namespace

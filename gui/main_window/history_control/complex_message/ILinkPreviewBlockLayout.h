@@ -15,17 +15,6 @@ public:
 
     virtual QLayout* asQLayout() = 0;
 
-    virtual void cutTextByPreferredSize(
-        const QString &title,
-        const QString &annotation,
-        const QRect &widgetLtr,
-        Out QString &cutTitle,
-        Out QString &cutAnnotation) const = 0;
-
-    virtual QFont getAnnotationFont() const = 0;
-
-    virtual QRect getAnnotationRect() const = 0;
-
     virtual QSize getMaxPreviewSize() const = 0;
 
     virtual QRect getFaviconImageRect() const = 0;
@@ -39,8 +28,6 @@ public:
     virtual QFont getTitleFont() const = 0;
 
     virtual QRect getTitleRect() const = 0;
-
-    virtual bool isAnnotationVisible() const = 0;
 
 };
 

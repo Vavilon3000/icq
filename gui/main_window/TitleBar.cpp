@@ -21,12 +21,10 @@ namespace Ui
         , hovered_(false)
         , hoverable_(true)
         , unreads_(0)
-        , pathIcon_(QString())
-        , pathIconHovered_(QString())
-        , pathIconPressed_(QString())
         , drawBadgeBorder_(_drawBadgeBorder)
         , fontSize_(_badgeFontSize)
     {
+        setCursor(Qt::PointingHandCursor);
         setFixedSize(Utils::scale_value(Ui::TitleBar::icon_width),
                      Utils::scale_value(Ui::TitleBar::icon_height));
     }
@@ -35,43 +33,43 @@ namespace Ui
     {
         hoverable_ = _hoverVisible;
     }
-    
+
     QPixmap UnreadWidget::renderToPixmap(unsigned _unreadsCount, bool _hoveredState, bool _pressedState)
     {
         auto pxSize = size();
         if (Utils::is_mac_retina())
             pxSize *= 2;
-            
+
         QPixmap px(pxSize);
         Utils::check_pixel_ratio(px);
         px.fill(Qt::transparent);
-        
+
         auto iconName = pathIcon_;
         if (_pressedState)
             iconName = pathIconPressed_;
         else if (_hoveredState)
             iconName = pathIconHovered_;
-        
+
         QPainter p(&px);
         p.setRenderHint(QPainter::Antialiasing);
         auto icon = QPixmap(Utils::parse_image_name(iconName));
         Utils::check_pixel_ratio(icon);
         p.drawPixmap(0, 0, icon);
-        
+
         if (_unreadsCount > 0)
         {
-            const auto borderColor = QWidget::palette().color(QWidget::backgroundRole());
-            const auto bgColor = QColor("#579e1c");
-            const auto textColor = QColor("#ffffff");
+            const auto bgColor = CommonStyle::getColor(CommonStyle::Color::GREEN_FILL);
+            const auto textColor = QColor(ql1s("#ffffff"));
+            const auto borderColor = drawBadgeBorder_ ? QWidget::palette().color(QWidget::backgroundRole()) : QColor();
 
             auto font = Fonts::appFontScaled(fontSize_, Fonts::FontWeight::Medium);
             auto balloonSizeScaled = Utils::getUnreadsSize(&p, font, drawBadgeBorder_, _unreadsCount, Utils::scale_value(Ui::TitleBar::balloon_size));
             Utils::drawUnreads(
                                &p,
                                font,
-                               &bgColor,
-                               &textColor,
-                               drawBadgeBorder_? &borderColor: nullptr,
+                               bgColor,
+                               textColor,
+                               borderColor,
                                _unreadsCount,
                                Utils::scale_value(Ui::TitleBar::balloon_size),
                                Utils::scale_value(Ui::TitleBar::icon_width) - balloonSizeScaled.x(),
@@ -94,7 +92,7 @@ namespace Ui
         update();
         QWidget::mousePressEvent(e);
     }
-    
+
     void UnreadWidget::mouseReleaseEvent(QMouseEvent *e)
     {
         pressed_ = false;
@@ -122,25 +120,32 @@ namespace Ui
         unreads_ = _unreads;
         update();
     }
-    
+
     UnreadMsgWidget::UnreadMsgWidget(QWidget* parent)
         : UnreadWidget(parent, false, 14)
     {
-        pathIcon_ = ":/resources/main_window/capture/i_recents_100.png";
-        pathIconHovered_ = ":/resources/main_window/capture/i_recents_100_active.png";
-        pathIconPressed_ = ":/resources/main_window/capture/i_recents_100_active.png";
+        pathIcon_ = qsl(":/titlebar/capture_recents_100");
+        pathIconHovered_ = qsl(":/titlebar/capture_recents_100_active");
+        pathIconPressed_ = qsl(":/titlebar/capture_recents_100_active");
 
         connect(Ui::GetDispatcher(), &Ui::core_dispatcher::im_created, this, &UnreadMsgWidget::loggedIn, Qt::QueuedConnection);
-        connect(this, &UnreadMsgWidget::clicked, [](){ emit Utils::InterConnector::instance().activateNextUnread(); });
+        connect(this, &UnreadMsgWidget::clicked, this, &UnreadMsgWidget::openNextUnread);
     }
 
     void UnreadMsgWidget::loggedIn()
     {
         connect(Logic::getRecentsModel(), &Logic::RecentsModel::dlgStatesHandled, this, &UnreadMsgWidget::updateIcon, Qt::QueuedConnection);
-        connect(Logic::getRecentsModel(), &Logic::RecentsModel::updated, this, &UnreadMsgWidget::updateIcon, Qt::QueuedConnection);        
+        connect(Logic::getRecentsModel(), &Logic::RecentsModel::updated, this, &UnreadMsgWidget::updateIcon, Qt::QueuedConnection);
         connect(Logic::getUnknownsModel(), &Logic::UnknownsModel::dlgStatesHandled, this, &UnreadMsgWidget::updateIcon, Qt::QueuedConnection);
-        connect(Logic::getUnknownsModel(), &Logic::UnknownsModel::updated, this, &UnreadMsgWidget::updateIcon, Qt::QueuedConnection);        
+        connect(Logic::getUnknownsModel(), &Logic::UnknownsModel::updated, this, &UnreadMsgWidget::updateIcon, Qt::QueuedConnection);
         connect(Logic::getContactListModel(), &Logic::ContactListModel::contactChanged, this, &UnreadMsgWidget::updateIcon, Qt::QueuedConnection);
+    }
+
+    void UnreadMsgWidget::openNextUnread()
+    {
+        Ui::GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::titlebar_message);
+
+        emit Utils::InterConnector::instance().activateNextUnread();
     }
 
     void UnreadMsgWidget::updateIcon()
@@ -148,14 +153,14 @@ namespace Ui
         const auto count = Logic::getRecentsModel()->totalUnreads() + Logic::getUnknownsModel()->totalUnreads();
         setUnreads(count);
     }
-    
+
     UnreadMailWidget::UnreadMailWidget(QWidget* parent)
         : UnreadWidget(parent, false, 14)
     {
-        pathIcon_ = ":/resources/main_window/capture/i_magent_100.png";
-        pathIconHovered_ = ":/resources/main_window/capture/i_magent_100_active.png";
-        pathIconPressed_ = ":/resources/main_window/capture/i_magent_100_active.png";
-        
+        pathIcon_ = qsl(":/titlebar/capture_mail_100");
+        pathIconHovered_ = qsl(":/titlebar/capture_mail_100_active");
+        pathIconPressed_ = qsl(":/titlebar/capture_mail_100_active");
+
         connect(Ui::GetDispatcher(), &core_dispatcher::mailStatus, this, &UnreadMailWidget::mailStatus, Qt::QueuedConnection);
         connect(this, &UnreadMailWidget::clicked, this, &UnreadMailWidget::openMailBox);
     }
@@ -168,11 +173,13 @@ namespace Ui
 
     void UnreadMailWidget::openMailBox()
     {
+        Ui::GetDispatcher()->post_stats_to_core(core::stats::stats_event_names::titlebar_mail);
+
         Ui::gui_coll_helper collection(Ui::GetDispatcher()->create_collection(), true);
         collection.set_value_as_qstring("email", Email_.isEmpty() ? MyInfo()->aimId() : Email_);
-        Ui::GetDispatcher()->post_message_to_core("mrim/get_key", collection.get(), this, [this](core::icollection* _collection)
+        Ui::GetDispatcher()->post_message_to_core(qsl("mrim/get_key"), collection.get(), this, [this](core::icollection* _collection)
         {
-            Utils::openMailBox(Email_, Ui::gui_coll_helper(_collection, false).get_value_as_string("key"), QString());
+            Utils::openMailBox(Email_, QString::fromUtf8(Ui::gui_coll_helper(_collection, false).get_value_as_string("key")), QString());
         });
     }
 }

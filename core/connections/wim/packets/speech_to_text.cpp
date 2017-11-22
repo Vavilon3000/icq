@@ -9,10 +9,10 @@ using namespace wim;
 
 
 speech_to_text::speech_to_text(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _url,
     const std::string& _locale)
-    :	wim_packet(_params),
+    :	wim_packet(std::move(_params)),
     Url_(_url),
     Locale_(_locale),
     Comeback_(0)
@@ -51,7 +51,7 @@ int32_t speech_to_text::init_request(std::shared_ptr<core::http_request_simple> 
     params["sig_sha256"] = sha256;
 
     std::stringstream ss_url_signed;
-    ss_url_signed << ss_url.str() << "?" << format_get_params(params);
+    ss_url_signed << ss_url.str() << '?' << format_get_params(params);
 
     _request->set_url(ss_url_signed.str());
     _request->set_keep_alive();
@@ -124,7 +124,7 @@ int32_t speech_to_text::parse_response(std::shared_ptr<core::tools::binary_strea
     {
         auto iter_text = doc.FindMember("text");
         if (iter_text != doc.MemberEnd() && iter_text->value.IsString())
-            Text_ = iter_text->value.GetString();
+            Text_ = rapidjson_get_string(iter_text->value);
     }
 
     return 0;

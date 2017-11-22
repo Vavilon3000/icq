@@ -7,23 +7,22 @@ namespace Ui {
 class MacToolbar: public QObject
 {
     Q_OBJECT
-    
+
 Q_SIGNALS:
     void onUnreadMsgClicked();
     void onUnreadMailClicked();
-    
-private:
-    QString email_;
-    Ui::MainWindow* mainWindow_;
-    Ui::UnreadWidget* unreadMsgWdg_;
-    Ui::UnreadWidget* unreadMailWdg_;
-    unsigned unreadMsgCounter_;
-    unsigned unreadMailCounter_;
-    
+
+public Q_SLOTS:
+    void updateConnections();
+
+private Q_SLOTS:
+    void updateUnreadMailIcon(QString, unsigned, bool);
+    void updateUnreadMsgIcon();
+
 public:
     MacToolbar(Ui::MainWindow* _mainWindow);
     virtual ~MacToolbar();
-    
+
     void setup();
     void setTitleText(QString _text);
     void onToolbarItemClicked(void* _itemPtr);
@@ -34,11 +33,12 @@ public:
 private:
     void initWindowTitle();
     void forceUpdateIcon(Ui::UnreadWidget* _widget, unsigned _iconTag, unsigned _count);
-    
-private Q_SLOTS:
-    void openMailBox();
-    void updateUnreadMailIcon(QString, unsigned, bool);
-    void updateUnreadMsgIcon();
-    void loggedIn();
-    
+
+private:
+    QString email_;
+    Ui::MainWindow* mainWindow_;
+    Ui::UnreadWidget* unreadMsgWdg_;
+    Ui::UnreadWidget* unreadMailWdg_;
+    unsigned unreadMsgCounter_;
+    unsigned unreadMailCounter_;
 };

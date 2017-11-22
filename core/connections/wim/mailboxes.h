@@ -71,11 +71,11 @@ namespace core
 
             void setUnreads(unsigned _unreads);
             unsigned get_unreads() const;
-            std::string get_mailbox() const;
+            const std::string& get_mailbox() const;
 
             void unserialize(const rapidjson::Value& _node);
-            void serialize(core::coll_helper _collection);
-            void serialize(rapidjson::Value& _node, rapidjson_allocator& _a);
+            void serialize(core::coll_helper _collection) const;
+            void serialize(rapidjson::Value& _node, rapidjson_allocator& _a) const;
         };
 
         class mailbox_storage
@@ -90,7 +90,7 @@ namespace core
 
             static void unserialize(const rapidjson::Value& _node_event_data, mailbox_changes& _changes);
 
-            void serialize(core::coll_helper _collection);
+            void serialize(core::coll_helper _collection) const;
 
             bool is_changed() const;
 

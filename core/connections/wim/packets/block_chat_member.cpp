@@ -8,11 +8,11 @@ using namespace core;
 using namespace wim;
 
 block_chat_member::block_chat_member(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _aimid,
     const std::string& _contact,
     bool _block)
-    : robusto_packet(_params)
+    : robusto_packet(std::move(_params))
     , aimid_(_aimid)
     , contact_(_contact)
     , block_(_block)
@@ -42,21 +42,29 @@ int32_t block_chat_member::init_request(std::shared_ptr<core::http_request_simpl
 
     rapidjson::Value node_params(rapidjson::Type::kObjectType);
     node_params.AddMember("sn", aimid_, a);
-    
+
     rapidjson::Value node_member(rapidjson::Type::kObjectType);
     node_member.AddMember("sn", contact_, a);
 
     rapidjson::Value node_members(rapidjson::Type::kArrayType);
-    node_members.PushBack(node_member, a);
+    node_members.Reserve(1, a);
+    node_members.PushBack(std::move(node_member), a);
 
-    node_params.AddMember("members", node_members, a);
-    doc.AddMember("params", node_params, a);
+    node_params.AddMember("members", std::move(node_members), a);
+    doc.AddMember("params", std::move(node_params), a);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
 
-    _request->push_post_parameter(buffer.GetString(), "");
+    _request->push_post_parameter(buffer.GetString(), std::string());
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_json_marker("authToken");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

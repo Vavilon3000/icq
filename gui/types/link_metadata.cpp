@@ -19,10 +19,10 @@ LinkMetadata::LinkMetadata(
     const int64_t fileSize)
     : Title_(title)
     , Description_(description)
+    , DownloadUri_(downloadUri)
     , SiteName_(siteName)
     , ContentType_(contentType)
     , PreviewSize_(previewSize)
-    , DownloadUri_(downloadUri)
     , FileSize_(fileSize)
 {
     assert(PreviewSize_.width() >= 0);

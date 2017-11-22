@@ -6,19 +6,8 @@ QWidget#settings_view
 QWidget#scroll_area
 {
     border-style: none;
-	background-color: transparent;
+    background-color: transparent;
     padding: 0;
-}
-
-QLabel#settings_topic_label
-{
-    qproperty-alignment: AlignCenter;
-    font-size: 16dip;
-    font-family: "%FONT_FAMILY_MEDIUM%";
-    font-weight: %FONT_WEIGHT_MEDIUM%;
-    min-height: 48dip;
-    max-height: 48dip;
-    color: #999999;
 }
 
 QPushButton
@@ -36,15 +25,15 @@ QPushButton
 
 QPushButton:hover
 {
-    background-color: #ebebeb;
+    background-color: #f2f2f2;
 }
 
 QPushButton:checked
 {
-    background-color: #84b858;
+    background-color: #57b359;
 }
 
 QPushButton:hover:pressed
 {
-    background-color: #84b858;
+    background-color: #57b359;
 }

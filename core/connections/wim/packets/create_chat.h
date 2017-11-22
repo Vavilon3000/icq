@@ -12,7 +12,7 @@ namespace core
     namespace wim
     {
         class chat_params;
-        
+
         class create_chat : public robusto_packet
         {
         private:
@@ -24,12 +24,12 @@ namespace core
             std::unique_ptr<chat_params> chat_params_;
 
         public:
-            create_chat(const wim_packet_params& _params, const std::string& _aimId, const std::string& _chatName, const std::vector<std::string> &_chatMembers);
+            create_chat(wim_packet_params _params, const std::string& _aimId, const std::string& _chatName, const std::vector<std::string> &_chatMembers);
             virtual ~create_chat();
 
             chat_params *get_chat_params();
             void set_chat_params(chat_params *&_chat_params);
-            
+
             size_t members_count() const { return chat_members_.size(); }
         };
 

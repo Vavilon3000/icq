@@ -121,8 +121,8 @@ QRect QuoteBlockLayout::setTextControlGeometry(const QRect &contentLtr)
             QPoint(
                 avatarGeometry.x(),
                 contentLtr.topLeft().y() + Style::Quote::getFirstQuoteOffset()
-            ), block.ForwardLabel_->size());
-        block.ForwardLabel_->setGeometry(forwardLabelGeometry);
+            ), block.forwardLabel_->size());
+        block.forwardLabel_->setGeometry(forwardLabelGeometry);
 
         textCtrlGeometry.moveTop(
             forwardLabelGeometry.bottomLeft().y()

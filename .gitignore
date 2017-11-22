@@ -12,6 +12,8 @@ corelib/[Dd]ebug/*
 gui/[Dd]ebug/*
 coretest/[Dd]ebug/*
 bin/[Dd]ebug/*
+bin/[Dd]ebug32/*
+bin/[Dd]ebug64/*
 mplayer/[Dd]ebug/*
 installerpack/[Dd]ebug/*
 installerloader/[Dd]ebug/*
@@ -40,6 +42,7 @@ Generated Files/
 *.meta
 *.obj
 *.pch
+*.gch
 *.pdb
 *.pgc
 *.pgd
@@ -56,6 +59,7 @@ Generated Files/
 *.idb
 *.opt
 *.tlog
+*.log
 BuildLog.html
 BuildLog.htm
 *.appx*

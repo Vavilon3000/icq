@@ -63,14 +63,10 @@ namespace Ui
         return (int) Utils::scale_value(_isFullScreen ? 8 : 4);
     }
 
-    const uint32_t hideTimeout = 2000;
-    const uint32_t hideTimeoutShort = 100;
-
-
     //////////////////////////////////////////////////////////////////////////
     // VideoProgressSlider
     //////////////////////////////////////////////////////////////////////////
-    InstChangedSlider::InstChangedSlider(Qt::Orientation _orientation, QWidget* _parent = 0)
+    InstChangedSlider::InstChangedSlider(Qt::Orientation _orientation, QWidget* _parent = nullptr)
         : QSlider(_orientation, _parent)
     {
 
@@ -78,22 +74,22 @@ namespace Ui
 
     void InstChangedSlider::mousePressEvent(QMouseEvent* _event)
     {
-        int32_t sliderWidth = width();
+        int64_t sliderWidth = width();
 
         if (_event->button() == Qt::LeftButton)
         {
-            int32_t value = 0;
+            int64_t value = 0;
 
             if (orientation() == Qt::Vertical)
             {
-                value = minimum() + ((maximum() - minimum()) * (height() - _event->y())) / height();
+                value = (int64_t) minimum() + ((int64_t) (maximum() - (int64_t) minimum()) * ((int64_t) height() - (int64_t) _event->y())) / (int64_t) height();
             }
             else
             {
-                value = minimum() + ((maximum() - minimum()) * _event->x()) / sliderWidth;
+                value = (int64_t) minimum() + (((int64_t) maximum() - (int64_t) minimum()) * (int64_t) _event->x()) / (int64_t) sliderWidth;
             }
 
-            setValue(value);
+            setValue((int32_t) value);
 
             _event->accept();
 
@@ -116,22 +112,22 @@ namespace Ui
     // VideoPlayerControlPanel
     //////////////////////////////////////////////////////////////////////////
     VideoPlayerControlPanel::VideoPlayerControlPanel(
-        VideoPlayerControlPanel* _copyFrom, 
-        QWidget* _parent, 
-        FFMpegPlayer* _player, 
+        VideoPlayerControlPanel* _copyFrom,
+        QWidget* _parent,
+        FFMpegPlayer* _player,
         const QString& _mode)
 
         :   QWidget(_parent),
-            player_(_player),
             duration_(_copyFrom ? _copyFrom->duration_ : 0),
             position_(_copyFrom ? _copyFrom->position_ : 0),
+            player_(_player),
+            lastSoundButtonMode_(_copyFrom ? _copyFrom->lastSoundButtonMode_ : qsl("0")),
             positionSliderTimer_(new QTimer(this)),
-            fullscreen_(_mode == "full_screen"),
-            lastSoundButtonMode_(_copyFrom ? _copyFrom->lastSoundButtonMode_ : "0")
+            fullscreen_(_mode == ql1s("full_screen"))
     {
         setProperty("mode", _mode);
 
-        setStyleSheet(Utils::LoadStyle(":/main_window/mplayer/mstyles.qss"));
+        setStyleSheet(Utils::LoadStyle(qsl(":/qss/mstyles")));
 
         int32_t volume = get_gui_settings()->get_value<int32_t>(setting_mplayer_volume, 100);
 
@@ -139,7 +135,7 @@ namespace Ui
         rootLayout->setContentsMargins(0, 0, 0, 0);
 
         gradient_ = new QWidget(this);
-        gradient_->setObjectName("control_panel_gradient");
+        gradient_->setObjectName(qsl("control_panel_gradient"));
         gradient_->setProperty("mode", _mode);
         gradient_->show();
 
@@ -154,7 +150,7 @@ namespace Ui
             playLayout_->setAlignment(Qt::AlignBottom | Qt::AlignLeft);
 
             playButton_ = new QPushButton(this);
-            playButton_->setObjectName("VideoPlayerPlayButton");
+            playButton_->setObjectName(qsl("VideoPlayerPlayButton"));
             playButton_->setFixedHeight(getControlPanelButtonSize(isFullScreen()));
             playButton_->setFixedWidth(getControlPanelButtonSize(isFullScreen()));
             playButton_->setCursor(Qt::PointingHandCursor);
@@ -171,7 +167,7 @@ namespace Ui
             progressSliderLayout_->setAlignment(Qt::AlignBottom);
 
             progressSlider_ = new InstChangedSlider(Qt::Orientation::Horizontal, this);
-            progressSlider_->setObjectName("VideoProgressSlider");
+            progressSlider_->setObjectName(qsl("VideoProgressSlider"));
             progressSlider_->setProperty("mode", _mode);
             progressSlider_->setFixedHeight(getControlPanelButtonSize(isFullScreen()));
             progressSlider_->setCursor(Qt::PointingHandCursor);
@@ -182,23 +178,23 @@ namespace Ui
         {
             timeLayout_ = new QVBoxLayout();
             timeLayout_->setContentsMargins(
-                getTimeRightMargin(isFullScreen()), 
-                getControlPanelSoundHeight(isFullScreen()), 
-                getTimeRightMargin(isFullScreen()), 
+                getTimeRightMargin(isFullScreen()),
+                getControlPanelSoundHeight(isFullScreen()),
+                getTimeRightMargin(isFullScreen()),
                 getTimeBottomMargin(isFullScreen()));
 
             timeLayout_->setSpacing(0);
             timeLayout_->setAlignment(Qt::AlignBottom);
 
             timeRight_ = new QLabel(this);
-            timeRight_->setObjectName("VideoTimeProgress");
+            timeRight_->setObjectName(qsl("VideoTimeProgress"));
             timeRight_->setProperty("mode", _mode);
-            timeRight_->setText("0:00");
-            
+            timeRight_->setText(qsl("0:00"));
+
             timeLayout_->addWidget(timeRight_);
             baseLayout_->addLayout(timeLayout_);
         }
-        
+
         {
             soundWidget_ = new QWidget(this);
             soundWidget_->setFixedHeight(getSoundsWidgetHeight(isFullScreen()));
@@ -213,7 +209,7 @@ namespace Ui
             soundWidget_->installEventFilter(this);
             {
                 soundButton_ = new QPushButton(this);
-                soundButton_->setObjectName("VideoPlayerSoundButton");
+                soundButton_->setObjectName(qsl("VideoPlayerSoundButton"));
                 soundButton_->setFixedHeight(getControlPanelButtonSize(isFullScreen()));
                 soundButton_->setFixedWidth(getControlPanelButtonSize(isFullScreen()));
                 soundButton_->setCursor(Qt::PointingHandCursor);
@@ -231,7 +227,7 @@ namespace Ui
 
                     volumeSlider_ = new InstChangedSlider(Qt::Orientation::Vertical, this);
                     volumeSlider_->setOrientation(Qt::Orientation::Vertical);
-                    volumeSlider_->setObjectName("VideoVolumeSlider");
+                    volumeSlider_->setObjectName(qsl("VideoVolumeSlider"));
                     volumeSlider_->setProperty("mode", _mode);
                     volumeSlider_->setMinimum(0);
                     volumeSlider_->setMaximum(100);
@@ -243,7 +239,7 @@ namespace Ui
                     volumeSlider_->hide();
                     volumeLayout->addWidget(volumeSlider_);
                 }
-                
+
                 soundButtonVolumeSpacer_ = new QWidget();
                 soundButtonVolumeSpacer_->setFixedHeight(getSoundButtonVolumeSpacerHeight(isFullScreen()));
                 soundLayout->addWidget(soundButtonVolumeSpacer_);
@@ -259,14 +255,14 @@ namespace Ui
             fullScreenLayout_->setAlignment(Qt::AlignBottom);
 
             fullscreenButton_ = new QPushButton(this);
-            fullscreenButton_->setObjectName("VideoPlayerFullscreenButton");
+            fullscreenButton_->setObjectName(qsl("VideoPlayerFullscreenButton"));
             fullscreenButton_->setFixedHeight(getControlPanelButtonSize(false));
             fullscreenButton_->setFixedWidth(getControlPanelButtonSize(false));
             fullscreenButton_->setCursor(Qt::PointingHandCursor);
             fullscreenButton_->setVisible(!isFullScreen());
 
             normalscreenButton_ = new QPushButton(this);
-            normalscreenButton_->setObjectName("VideoPlayerNormalscreenButton");
+            normalscreenButton_->setObjectName(qsl("VideoPlayerNormalscreenButton"));
             normalscreenButton_->setFixedHeight(getControlPanelButtonSize(false));
             normalscreenButton_->setFixedWidth(getControlPanelButtonSize(false));
             normalscreenButton_->setCursor(Qt::PointingHandCursor);
@@ -299,7 +295,7 @@ namespace Ui
             });
         }
     }
-    
+
     VideoPlayerControlPanel::~VideoPlayerControlPanel()
     {
     }
@@ -362,24 +358,11 @@ namespace Ui
         qint64 duration_hours = _init_duration / one_hour;
         qint64 duration_minutes = (_init_duration - duration_hours * one_hour) / one_minute;
 
-        QString sout;
+        const QString hourString = duration_hours != 0 ? QString::asprintf("%02d:", (int)hours) : QString();
+        const QString minutesString = duration_minutes >= 10 ? QString::asprintf("%02d:", (int)minutes) : QString::asprintf("%01d:", (int)minutes);
+        const QString secondsString = QString::asprintf("%02d", (int) seconds);
 
-        QString hourString;
-        if (duration_hours != 0)
-            hourString.sprintf("%02d:", (int) hours);
-
-        QString minutesString;
-        if (duration_minutes >= 10)
-            minutesString.sprintf("%02d:", (int) minutes);
-        else
-            minutesString.sprintf("%01d:", (int) minutes);
-
-        QString secondsString;
-        secondsString.sprintf("%02d", (int) seconds);
-
-        sout = hourString + minutesString + secondsString;
-
-        return sout;
+        return hourString % minutesString % secondsString;
     }
 
     QString getZeroTime(const qint64& _init_duration)
@@ -390,24 +373,11 @@ namespace Ui
         qint64 duration_hours = _init_duration / one_hour;
         qint64 duration_minutes = (_init_duration - duration_hours * one_hour) / one_minute;
 
-        QString sout;
+        const QString hourString = duration_hours != 0 ? QString::asprintf("%02d:", 0) : QString();
+        const QString minutesString = duration_minutes >= 10 ? QString::asprintf("%02d:", 0) : QString::asprintf("%01d:", 0);
+        const QString secondsString = QString::asprintf("%02d", 0);
 
-        QString hourString;
-        if (duration_hours != 0)
-            hourString.sprintf("%02d:", (int) 0);
-
-        QString minutesString;
-        if (duration_minutes >= 10)
-            minutesString.sprintf("%02d:", (int) 0);
-        else
-            minutesString.sprintf("%01d:", (int) 0);
-
-        QString secondsString;
-        secondsString.sprintf("%02d", (int) 0);
-
-        sout = hourString + minutesString + secondsString;
-
-        return sout;
+        return hourString % minutesString % secondsString;
     }
 
     void VideoPlayerControlPanel::resizeEvent(QResizeEvent* _event)
@@ -551,9 +521,9 @@ namespace Ui
 
         connect(fullscreenButton_, &QPushButton::clicked, this, [this](bool _checked)
         {
-            QString mode = property("mode").toString();
+            const QString mode = property("mode").toString();
 
-            if (mode != "dialog")
+            if (mode != ql1s("dialog"))
             {
                 fullscreenButton_->setVisible(false);
                 normalscreenButton_->setVisible(true);
@@ -564,9 +534,9 @@ namespace Ui
 
         connect(normalscreenButton_, &QPushButton::clicked, this, [this](bool _checked)
         {
-            QString mode = property("mode").toString();
+            const QString mode = property("mode").toString();
 
-            if (mode != "dialog")
+            if (mode != ql1s("dialog"))
             {
                 normalscreenButton_->setVisible(false);
                 fullscreenButton_->setVisible(true);
@@ -617,15 +587,15 @@ namespace Ui
     {
         if (_volume == 0)
         {
-            return "0";
+            return qsl("0");
         }
         else if (_volume < 50)
         {
-            return "1";
+            return qsl("1");
         }
         else
         {
-            return "2";
+            return qsl("2");
         }
     }
 
@@ -677,7 +647,7 @@ namespace Ui
         }
     }
 
-    
+
 
 
     void VideoPlayerControlPanel::mouseMoveEvent(QMouseEvent * _event)
@@ -711,7 +681,7 @@ namespace Ui
 
         rootLayout_->addWidget(ffplayer_);
 
-        controlPanel_.reset(new VideoPlayerControlPanel(nullptr, this, ffplayer_, mode));
+        controlPanel_ = std::make_unique<Ui::VideoPlayerControlPanel>(nullptr, this, ffplayer_, mode);
         controlPanel_->installEventFilter(this);
 
         if (showControlPanel_)
@@ -874,7 +844,7 @@ namespace Ui
 
         timerHide_->stop();
         timerHide_->start(hideTimeout);
-        
+
         controlsShowed_ = true;
         showControlPanel(true);
     }
@@ -889,7 +859,7 @@ namespace Ui
     {
         isLoad_ = true;
         mediaPath_ = _mediaPath;
-        
+
         return ffplayer_->openMedia(_mediaPath);
     }
 

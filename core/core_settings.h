@@ -15,29 +15,29 @@ namespace core
         csv_device_id = 1,
         core_settings_proxy = 2,
         core_settings_locale = 3,
-		voip_mute_fix_flag   = 4,
+        voip_mute_fix_flag = 4,
 
         themes_settings_etag = 10,
 
         core_settings_locale_was_changed = 20,
-        core_need_show_promo = 21,
-        
+        core_need_show_promo = 21,//obsolete
+
         max
     };
 
-	class core_settings : public core::tools::settings
-	{
-		std::wstring file_name_;
+    class core_settings : public core::tools::settings
+    {
+        std::wstring file_name_;
         std::wstring file_name_exported_;
 
         bool load_exported();
 
-	public:
-		core_settings(const boost::filesystem::wpath& _path, const boost::filesystem::wpath& _file_name_exported);
-		virtual ~core_settings();
-        
-		bool save();
-		bool load();
+    public:
+        core_settings(const boost::filesystem::wpath& _path, const boost::filesystem::wpath& _file_name_exported);
+        virtual ~core_settings();
+
+        bool save();
+        bool load();
 
         bool end_init_default();
 
@@ -45,20 +45,17 @@ namespace core
 
         void set_locale_was_changed(bool _was_changed);
         bool get_locale_was_changed() const;
-        
+
         void set_locale(const std::string& _locale);
         std::string get_locale() const;
-        
-        proxy_settings get_user_proxy_settings();
-		
-        bool get_voip_mute_fix_flag() const;
-		void set_voip_mute_fix_flag(bool bValue);
 
-        void set_need_show_promo(bool _need_show_promo);
-        bool get_need_show_promo() const;
+        proxy_settings get_user_proxy_settings();
+
+        bool get_voip_mute_fix_flag() const;
+        void set_voip_mute_fix_flag(bool bValue);
 
         bool unserialize(const rapidjson::Value& _node);
-	};
+    };
 
 }
 

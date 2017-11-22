@@ -20,37 +20,15 @@ namespace
 {
     qint32 getStickerMaxHeight()
     {
-        const auto scalePercents = (int)Utils::scale_value(100);
-
-#ifdef __APPLE__
-        if (Utils::is_mac_retina())
-        {
-            return 65;
-        }
-#endif
-
-        switch (scalePercents)
-        {
-            case 100: return Utils::scale_value(150);
-            case 125: return Utils::scale_value(225 * 0.8);
-            case 150: return Utils::scale_value(225);
-            case 200: return Utils::scale_value(300);
-        }
-
-        assert(!"unexpected scale value");
-        return Utils::scale_value(150);
+        return Utils::scale_value(400);
     }
 
     core::sticker_size getStickerSize()
     {
-        const auto scalePercents = (int)Utils::scale_value(100);
-
-#ifdef __APPLE__
         if (Utils::is_mac_retina())
-        {
-            return core::sticker_size::medium;
-        }
-#endif
+            return core::sticker_size::large;
+
+        const auto scalePercents = (int)Utils::scale_value(100);
 
         switch (scalePercents)
         {
@@ -69,9 +47,10 @@ UI_COMPLEX_MESSAGE_NS_BEGIN
 
 StickerBlock::StickerBlock(ComplexMessageItem *parent,  const HistoryControl::StickerInfoSptr& _info)
     : GenericBlock(parent, QT_TRANSLATE_NOOP("contact_list", "Sticker"), MenuFlagNone, false)
+    , failed_(false)
+    , Info_(_info)
     , Layout_(nullptr)
     , IsSelected_(false)
-    , Info_(_info)
 {
     Layout_ = new StickerBlockLayout();
     setLayout(Layout_);
@@ -80,6 +59,9 @@ StickerBlock::StickerBlock(ComplexMessageItem *parent,  const HistoryControl::St
     LastSize_ = Placeholder_->GetSize();
 
     QuoteAnimation_.setSemiTransparent();
+    setMouseTracking(true);
+
+    setCursor(QCursor(Qt::CursorShape::PointingHandCursor));
 }
 
 StickerBlock::~StickerBlock()
@@ -157,7 +139,7 @@ QRect StickerBlock::setBlockGeometry(const QRect &ltr)
     return Geometry_;
 }
 
-void StickerBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& quate_color)
+void StickerBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& _quoteColor)
 {
     p.save();
 
@@ -180,16 +162,14 @@ void StickerBlock::drawBlock(QPainter &p, const QRect& _rect, const QColor& quat
                 LastSize_.width(), LastSize_.height()),
             Sticker_);
 
-		if (quate_color.isValid())
-		{
-			p.setBrush(QBrush(quate_color));
-			p.drawRoundRect(
-				QRect(
-				offset, 0,
-				LastSize_.width(), LastSize_.height()),
-				Utils::scale_value(8),
-				Utils::scale_value(8));
-		}
+        if (_quoteColor.isValid())
+        {
+            p.setBrush(QBrush(_quoteColor));
+            p.drawRoundRect(
+                QRect(offset, 0, LastSize_.width(), LastSize_.height()),
+                Utils::scale_value(8),
+                Utils::scale_value(8));
+        }
     }
 
     if (isSelected())
@@ -249,7 +229,8 @@ void StickerBlock::loadSticker()
         return;
     }
 
-    Sticker_ = sticker->getImage(getStickerSize());
+    bool scaled = false;
+    Sticker_ = sticker->getImage(getStickerSize(), false, scaled);
 
     if (Sticker_.isNull())
     {
@@ -257,6 +238,8 @@ void StickerBlock::loadSticker()
     }
 
     connectStickerSignal(false);
+
+    Utils::check_pixel_ratio(Sticker_);
 
     updateGeometry();
     update();
@@ -280,6 +263,8 @@ void StickerBlock::requestSticker()
 void StickerBlock::updateStickerSize()
 {
     auto stickerSize = Sticker_.size();
+    if (Utils::is_mac_retina())
+        stickerSize = QSize(stickerSize.width()/2, stickerSize.height()/2);
 
     const auto scaleDown = (stickerSize.height() > getStickerMaxHeight());
 
@@ -311,7 +296,7 @@ void StickerBlock::updateStickerSize()
     }
 }
 
-void StickerBlock::onSticker(qint32 _setId, qint32 _stickerId)
+void StickerBlock::onSticker(const qint32 _error, const qint32 _setId, const qint32 _stickerId)
 {
     assert(_setId > 0);
     assert(_stickerId > 0);
@@ -322,12 +307,25 @@ void StickerBlock::onSticker(qint32 _setId, qint32 _stickerId)
         return;
     }
 
-    if (!Sticker_.isNull())
+    if (_error == 0)
     {
+        if (!Sticker_.isNull())
+        {
+            return;
+        }
+
+        loadSticker();
+
         return;
     }
 
-    loadSticker();
+    failed_ = true;
+
+    setCursor(QCursor(Qt::CursorShape::ArrowCursor));
+
+    Placeholder_ = Themes::GetPixmap(Themes::PixmapResourceId::StickerHistoryFailed);
+
+    update();
 }
 
 void StickerBlock::onStickers()
@@ -336,6 +334,16 @@ void StickerBlock::onStickers()
     {
         requestSticker();
     }
+}
+
+void StickerBlock::mouseReleaseEvent(QMouseEvent* _event)
+{
+    if (_event->button() == Qt::LeftButton)
+    {
+        Stickers::showStickersPack(Info_->SetId_);
+    }
+
+    QWidget::mouseReleaseEvent(_event);
 }
 
 UI_COMPLEX_MESSAGE_NS_END

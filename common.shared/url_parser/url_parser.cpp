@@ -8,6 +8,8 @@
 
 #include "url_parser.h"
 
+#include <cctype>
+
 namespace
 {
     #include "domain_parser.in"
@@ -23,6 +25,9 @@ namespace
 
     const char* LEFT_DOUBLE_QUOTE = "«";
     const char* RIGHT_DOUBLE_QUOTE = "»";
+
+    const char* LEFT_QUOTE = "‘";
+    const char* RIGHT_QUOTE = "’";
 }
 
 const char* to_string(common::tools::url::type _value)
@@ -81,20 +86,20 @@ common::tools::url::url()
 }
 
 common::tools::url::url(const std::string& _url, type _type, protocol _protocol, extension _extension)
-    : original_(_url)
-    , url_(_url)
-    , type_(_type)
+    : type_(_type)
     , protocol_(_protocol)
     , extension_(_extension)
+    , url_(_url)
+    , original_(_url)
 {
 }
 
 common::tools::url::url(const std::string& _original, const std::string& _url, type _type, protocol _protocol, extension _extension)
-    : original_(_original)
-    , url_(_url)
-    , type_(_type)
+    : type_(_type)
     , protocol_(_protocol)
     , extension_(_extension)
+    , url_(_url)
+    , original_(_original)
 {
 }
 
@@ -138,10 +143,10 @@ bool common::tools::url::has_prtocol() const
 
 bool common::tools::url::operator==(const url& _right) const
 {
-    return url_ == _right.url_
-        && type_ == _right.type_
+    return type_ == _right.type_
         && protocol_== _right.protocol_
-        && extension_ == _right.extension_;
+        && extension_ == _right.extension_
+        && url_ == _right.url_;
 }
 
 bool common::tools::url::operator!=(const url& _right) const
@@ -272,6 +277,7 @@ void common::tools::url_parser::process()
         else if (c == 'i' || c == 'I') { compare(ICQ_COM, states::filesharing_id, states::host, ICQ_COM_SAFE_POS); id_length_ = 0; break; }
         else if (c == 'c' || c == 'C') { compare(CHAT_MY_COM, states::filesharing_id, states::host, CHAT_MY_COM_SAFE_POS); id_length_ = 0; break; }
         else if (c == LEFT_DOUBLE_QUOTE[0] && char_size_ == 2 && char_buf_[1] == LEFT_DOUBLE_QUOTE[1]) return;
+        else if (c == LEFT_QUOTE[0] && char_size_ == 3 && char_buf_[1] == LEFT_QUOTE[1] && char_buf_[2] == LEFT_QUOTE[2]) return;
         else if (is_letter_or_digit(c, is_utf8_)) { save_char_buf(domain_); state_ = states::host; break; }
         return;
     case states::protocol_t1:
@@ -376,25 +382,26 @@ void common::tools::url_parser::process()
         else if (is_space(c, is_utf8_)) { if (is_valid_top_level_domain(domain_)) URL_PARSER_URI_FOUND else URL_PARSER_RESET_PARSER; }
         else if (is_ending_char(c)) { if (is_valid_top_level_domain(domain_)) URL_PARSER_URI_FOUND else URL_PARSER_RESET_PARSER }
         else if (c == RIGHT_DOUBLE_QUOTE[0] && char_size_ == 2 && char_buf_[1] == RIGHT_DOUBLE_QUOTE[1]) { if (is_valid_top_level_domain(domain_)) URL_PARSER_URI_FOUND else URL_PARSER_RESET_PARSER }
+        else if (c == RIGHT_QUOTE[0] && char_size_ == 3 && char_buf_[1] == RIGHT_QUOTE[1] && char_buf_[2] == RIGHT_QUOTE[2]) { if (is_valid_top_level_domain(domain_)) URL_PARSER_URI_FOUND else URL_PARSER_RESET_PARSER }
         else if (!is_letter_or_digit(c, is_utf8_) && c != '-') URL_PARSER_RESET_PARSER
         else save_char_buf(domain_);
         break;
     case states::host_at:
         if (!is_allowable_char(c, is_utf8_)) URL_PARSER_RESET_PARSER
         else if (protocol_ != url::protocol::undefined) state_ = states::host;
-        else if (is_email_ || is_not_email_) URL_PARSER_RESET_PARSER 
+        else if (is_email_ || is_not_email_) URL_PARSER_RESET_PARSER
         else { state_ = states::host; is_email_ = true; }
         break;
     case states::host_dot:
         ++domain_segments_;
         if (is_ipv4_segment(domain_))
-            ++ipv4_segnents_; 
+            ++ipv4_segnents_;
         if (is_letter_or_digit(c, is_utf8_)) { domain_.clear(); save_char_buf(domain_); state_ = states::host_n; }
         else if (is_space(c, is_utf8_)) { --domain_segments_; URL_PARSER_URI_FOUND }
         else URL_PARSER_RESET_PARSER
         break;
     case states::host_colon:
-        if (is_digit(c, is_utf8_)) { if (is_valid_top_level_domain(domain_)) state_ = states::port; else URL_PARSER_RESET_PARSER }
+        if (is_digit(c, is_utf8_)) state_ = states::port;
         else if (is_allowable_char(c, is_utf8_)) state_ = states::password;
         else URL_PARSER_RESET_PARSER
         break;
@@ -405,8 +412,11 @@ void common::tools::url_parser::process()
         else URL_PARSER_RESET_PARSER
         break;
     case states::port:
-        if (c == '/') state_ = states::port_slash;
-        else if (!is_digit(c, is_utf8_)) URL_PARSER_RESET_PARSER
+        if (c == '/') { if (is_valid_top_level_domain(domain_)) state_ = states::port_slash; else URL_PARSER_RESET_PARSER }
+        else if (is_digit(c, is_utf8_)) break;
+        else if (c == '@') state_ = states::host;
+        else if (is_allowable_char(c, is_utf8_)) state_ = states::password;
+        else URL_PARSER_RESET_PARSER
         break;
     case states::port_dot:
         if (is_digit(c, is_utf8_)) state_ = states::port;
@@ -414,6 +424,7 @@ void common::tools::url_parser::process()
         break;
     case states::port_slash:
         if (is_letter_or_digit(c, is_utf8_)) state_ = states::path;
+        else if (is_space(c, is_utf8_)) URL_PARSER_URI_FOUND
         else URL_PARSER_RESET_PARSER
         break;
     case states::path:
@@ -421,9 +432,10 @@ void common::tools::url_parser::process()
         else if (c == '/') state_ = states::path_slash;
         else if (c == '?') state_ = states::query;
         else if (is_space(c, is_utf8_)) URL_PARSER_URI_FOUND
-        else if (is_ending_char(c)) { if (is_valid_top_level_domain(domain_)) URL_PARSER_URI_FOUND else URL_PARSER_RESET_PARSER }
         else if (c == RIGHT_DOUBLE_QUOTE[0] && char_size_ == 2 && char_buf_[1] == RIGHT_DOUBLE_QUOTE[1]) { if (is_valid_top_level_domain(domain_)) URL_PARSER_URI_FOUND else URL_PARSER_RESET_PARSER }
-        else if (!is_allowable_char(c, is_utf8_)) URL_PARSER_RESET_PARSER
+        else if (c == RIGHT_QUOTE[0] && char_size_ == 3 && char_buf_[1] == RIGHT_QUOTE[1] && char_buf_[2] == RIGHT_QUOTE[2]) { if (is_valid_top_level_domain(domain_)) URL_PARSER_URI_FOUND else URL_PARSER_RESET_PARSER }
+        else if (is_allowable_char(c, is_utf8_)) break;
+        else if (is_ending_char(c)) { if (is_valid_top_level_domain(domain_)) URL_PARSER_URI_FOUND else URL_PARSER_RESET_PARSER }
         break;
     case states::path_dot:
         if (c == 'j' || c == 'J') state_ = states::jpg_p;
@@ -536,6 +548,7 @@ void common::tools::url_parser::process()
         break;
     case states::mpeg4_e:
         if (c == 'e' || c == 'E') state_ = states::mpeg4_g;
+        else if (c == '4') { extension_ = url::extension::mpeg4; state_ = states::query_or_end; }
         else if (is_allowable_char(c, is_utf8_)) state_ = states::path;
         else URL_PARSER_RESET_PARSER
         break;
@@ -597,7 +610,7 @@ void common::tools::url_parser::process()
         else if (c == '_') state_ = states::path;
         else if (is_letter_or_digit(c, is_utf8_)) { extension_ = url::extension::undefined; state_ = states::query; }
         else URL_PARSER_RESET_PARSER
-        break; 
+        break;
     case states::query:
         if (is_space(c, is_utf8_)) URL_PARSER_URI_FOUND
         else if (!is_allowable_query_char(c, is_utf8_)) URL_PARSER_RESET_PARSER
@@ -787,6 +800,13 @@ bool common::tools::url_parser::save_url()
         ++tail_size_;
     }
 
+    if (buf_.back() == ')')
+    {
+        buf_.pop_back();
+        if (buf_.back() != '/')
+            buf_.push_back(')');
+    }
+
     if (is_email_ && protocol_ == url::protocol::undefined)
     {
         url_ = make_url(common::tools::url::type::email);
@@ -906,7 +926,7 @@ void common::tools::url_parser::save_to_buf(char c)
 
 bool common::tools::url_parser::is_space(char _c, bool _is_utf8) const
 {
-    return !_is_utf8 && isspace(_c);
+    return !_is_utf8 && std::isspace(static_cast<unsigned char>(_c));
 }
 
 bool common::tools::url_parser::is_digit(char _c) const
@@ -990,7 +1010,7 @@ bool common::tools::url_parser::is_valid_top_level_domain(const std::string& _na
     return is_valid_domain(_name);
 }
 
-bool common::tools::url_parser::is_ipv4_segment(const std::string _name) const
+bool common::tools::url_parser::is_ipv4_segment(const std::string& _name) const
 {
     if (_name.size() <= 3)
     {

@@ -20,17 +20,6 @@ public:
 
     virtual QLayout* asQLayout() override;
 
-    virtual void cutTextByPreferredSize(
-        const QString &title,
-        const QString &annotation,
-        const QRect &widgetLtr,
-        Out QString &cutTitle,
-        Out QString &cutAnnotation) const override;
-
-    virtual QFont getAnnotationFont() const override;
-
-    virtual QRect getAnnotationRect() const override;
-
     const IItemBlockLayout::IBoxModel& getBlockBoxModel() const override;
 
     virtual QSize getMaxPreviewSize() const override;
@@ -46,8 +35,6 @@ public:
     virtual QFont getTitleFont() const override;
 
     virtual QRect getTitleRect() const override;
-
-    virtual bool isAnnotationVisible() const override;
 
 protected:
     void setActionButtonGeometry(const QRect &previewRect, LinkPreviewBlock &block);

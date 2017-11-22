@@ -50,8 +50,8 @@ namespace core
             void serialize(binary_stream& _stream) const;
             bool unserialize(const binary_stream& _stream);
 
-            void push_child(std::shared_ptr<tlv> _tlv);
-            void push_child(const tlv& _tlv);
+            void push_child(const std::shared_ptr<tlv>& _tlv);
+            void push_child(tlv _tlv);
 
             std::shared_ptr<tlv> get_item(const uint32_t _type) const;
             std::shared_ptr<tlv> get_first();

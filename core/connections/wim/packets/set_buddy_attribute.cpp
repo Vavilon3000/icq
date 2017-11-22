@@ -8,12 +8,12 @@ using namespace core;
 using namespace wim;
 
 set_buddy_attribute::set_buddy_attribute(
-    const wim_packet_params& _params,
+    wim_packet_params _params,
     const std::string& _aimid,
     const std::string& _friendly)
-    :   wim_packet(_params),
-        aimid_(_aimid),
-        friendly_(_friendly)
+    :   wim_packet(std::move(_params)),
+        friendly_(_friendly),
+        aimid_(_aimid)
 {
 }
 
@@ -29,11 +29,18 @@ int32_t set_buddy_attribute::init_request(std::shared_ptr<core::http_request_sim
         "?f=json" <<
         "&aimsid=" << escape_symbols(get_params().aimsid_) <<
         "&buddy=" << escape_symbols(aimid_) <<
-        "&friendly=" << escape_symbols(friendly_) << 
+        "&friendly=" << escape_symbols(friendly_) <<
         "&r=" << core::tools::system::generate_guid();
 
     _request->set_url(ss_url.str());
     _request->set_keep_alive();
+
+    if (!params_.full_log_)
+    {
+        log_replace_functor f;
+        f.add_marker("aimsid");
+        _request->set_replace_log_function(f);
+    }
 
     return 0;
 }

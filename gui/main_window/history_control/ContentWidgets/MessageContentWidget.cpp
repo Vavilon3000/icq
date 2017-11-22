@@ -10,14 +10,15 @@ namespace HistoryControl
 
 	MessageContentWidget::MessageContentWidget(QWidget *parent, const bool isOutgoing, QString _aimId)
 		: QWidget(parent)
-        , QuoteAnimation_(parent)
-        , Initialized_(false)
-		, IsOutgoing_(isOutgoing)
-        , CurrentProcessId_(0)
-        , Selected_(false)
         , aimId_(_aimId)
+        , Selected_(false)
+        , CurrentProcessId_(0)
+        , Initialized_(false)
+        , IsOutgoing_(isOutgoing)
+        , QuoteAnimation_(parent)
 	{
 		QuoteAnimation_.setSemiTransparent();
+        setMouseTracking(true);
 	}
 
 	MessageContentWidget::~MessageContentWidget()

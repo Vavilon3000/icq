@@ -8,31 +8,31 @@
 #include "../../../controls/TextEmojiWidget.h"
 #include "../../../utils/utils.h"
 
-const int32_t widget_height	= 100;
-const int32_t widget_width	= 260;
+const int32_t widget_height = 100;
+const int32_t widget_width = 260;
 
 
 namespace Ui
 {
-	QString getContactInfo(std::shared_ptr<Logic::contact_profile> _profile, const std::map<QString, QString>& _countries)
-	{
-		QString info;
-		QTextStream result(&info);
+    QString getContactInfo(std::shared_ptr<Logic::contact_profile> _profile, const std::map<QString, QString>& _countries)
+    {
+        QString info;
+        QTextStream result(&info);
 
-		QString gender;
-		if (_profile->get_gender() == "male")
-			gender = QT_TRANSLATE_NOOP("search_widget", "M");
-		else if (_profile->get_gender() == "female")
-			gender = QT_TRANSLATE_NOOP("search_widget", "F");
+        QString gender;
+        if (_profile->get_gender() == ql1s("male"))
+            gender = QT_TRANSLATE_NOOP("search_widget", "M");
+        else if (_profile->get_gender() == ql1s("female"))
+            gender = QT_TRANSLATE_NOOP("search_widget", "F");
 
-		if (!gender.isEmpty())
-			result << gender;
+        if (!gender.isEmpty())
+            result << gender;
 
         if (_profile->get_birthdate() != 0)
         {
 //            QDateTime birthdate = QDateTime::fromMSecsSinceEpoch((qint64) _profile->get_birthdate() * 1000, Qt::LocalTime);
             QDateTime birthdate = QDateTime::fromMSecsSinceEpoch((qint64)_profile->get_birthdate(), Qt::LocalTime);
-            
+
             int age = Utils::calcAge(birthdate);
 
             if (age > 0)
@@ -51,151 +51,151 @@ namespace Ui
             }
         }
 
-		auto getAddress = [_profile, &_countries]()->QString
-		{
-			if (!_profile->get_home_address().get_country().isEmpty())
-			{
-				auto iter_country = _countries.find(_profile->get_home_address().get_country().toLower());
-				if (_countries.end() != iter_country)
-					return iter_country->second;
+        auto getAddress = [_profile, &_countries]()->QString
+        {
+            if (!_profile->get_home_address().get_country().isEmpty())
+            {
+                auto iter_country = _countries.find(_profile->get_home_address().get_country().toLower());
+                if (_countries.end() != iter_country)
+                    return iter_country->second;
 
-				return _profile->get_home_address().get_country();
-			}
+                return _profile->get_home_address().get_country();
+            }
 
-			if (!_profile->get_home_address().get_state().isEmpty())
-				return _profile->get_home_address().get_state();
+            if (!_profile->get_home_address().get_state().isEmpty())
+                return _profile->get_home_address().get_state();
 
-			if (!_profile->get_home_address().get_city().isEmpty())
-				return _profile->get_home_address().get_city();
+            if (!_profile->get_home_address().get_city().isEmpty())
+                return _profile->get_home_address().get_city();
 
-			return "";
-		};
-
-
-
-		QString loc = getAddress();
-		if (!loc.isEmpty())
-		{
-			if (!info.isEmpty())
-				result << ", ";
-
-			result << loc;
-		}
+            return QString();
+        };
 
 
-		return info;
-	}
 
-	ContactWidget::ContactWidget(QWidget* _parent, std::shared_ptr<Logic::contact_profile> _profile, const std::map<QString, QString>& _countries)
+        QString loc = getAddress();
+        if (!loc.isEmpty())
+        {
+            if (!info.isEmpty())
+                result << ", ";
+
+            result << loc;
+        }
+
+
+        return info;
+    }
+
+    ContactWidget::ContactWidget(QWidget* _parent, std::shared_ptr<Logic::contact_profile> _profile, const std::map<QString, QString>& _countries)
         :QWidget(_parent),
         profile_(_profile),
-        name_(new TextEmojiWidget(this, Fonts::appFontScaled(18), CommonStyle::getTextCommonColor())),
-        info_(new TextEmojiWidget(this, Fonts::appFontScaled(14), QColor("#767676"))),
+        name_(new TextEmojiWidget(this, Fonts::appFontScaled(18), CommonStyle::getColor(CommonStyle::Color::TEXT_PRIMARY))),
+        info_(new TextEmojiWidget(this, Fonts::appFontScaled(14), CommonStyle::getColor(CommonStyle::Color::TEXT_SECONDARY))),
         addButton_(new QPushButton(this)),
-        msgButton_(new QPushButton(this)),
-        callButton_(new QPushButton(this))
+        callButton_(new QPushButton(this)),
+        msgButton_(new QPushButton(this))
     {
         Utils::grabTouchWidget(this);
 
         setFixedSize(Utils::scale_value(widget_width), Utils::scale_value(widget_height));
 
-		QHBoxLayout* rootLayout = Utils::emptyHLayout();
+        QHBoxLayout* rootLayout = Utils::emptyHLayout();
         rootLayout->setAlignment(Qt::AlignLeft);
 
-		const QString displayName = _profile->get_contact_name();
+        const QString displayName = _profile->get_contact_name();
 
-		auto avatarWidget = new ContactAvatarWidget(
-			this,
-			_profile->get_aimid(),
-			displayName,
-			Utils::scale_value(widget_height),
+        auto avatarWidget = new ContactAvatarWidget(
+            this,
+            _profile->get_aimid(),
+            displayName,
+            Utils::scale_value(widget_height),
             false);
 
         avatarWidget->setCursor(QCursor(Qt::PointingHandCursor));
 
-		rootLayout->addWidget(avatarWidget);
+        rootLayout->addWidget(avatarWidget);
 
-		Utils::grabTouchWidget(avatarWidget);
+        Utils::grabTouchWidget(avatarWidget);
 
-		QVBoxLayout* infoLayout = Utils::emptyVLayout();
-		infoLayout->setContentsMargins(Utils::scale_value(12), 0, 0, 0);
-		infoLayout->setAlignment(Qt::AlignTop);
+        QVBoxLayout* infoLayout = Utils::emptyVLayout();
+        infoLayout->setContentsMargins(Utils::scale_value(12), 0, 0, 0);
+        infoLayout->setAlignment(Qt::AlignTop);
 
-		name_->setObjectName("contact_name");
+        name_->setObjectName(qsl("contact_name"));
         name_->setFading(true);
-		name_->setText(_profile->get_contact_name());
-		infoLayout->addWidget(name_);
-		Utils::grabTouchWidget(name_);
+        name_->setText(_profile->get_contact_name());
+        infoLayout->addWidget(name_);
+        Utils::grabTouchWidget(name_);
 
-		info_->setObjectName("contact_info");
-		info_->setText(getContactInfo(_profile, _countries));
-		infoLayout->addWidget(info_);
-		Utils::grabTouchWidget(info_);
+        info_->setObjectName(qsl("contact_info"));
+        info_->setText(getContactInfo(_profile, _countries));
+        infoLayout->addWidget(info_);
+        Utils::grabTouchWidget(info_);
 
-		QHBoxLayout* buttonsLayout = new QHBoxLayout();
-		buttonsLayout->setSpacing(Utils::scale_value(12));
-		buttonsLayout->setAlignment(Qt::AlignLeft);
+        QHBoxLayout* buttonsLayout = new QHBoxLayout();
+        buttonsLayout->setSpacing(Utils::scale_value(12));
+        buttonsLayout->setAlignment(Qt::AlignLeft);
 
-		Logic::ContactItem* contactItem = Logic::getContactListModel()->getContactItem(profile_->get_aimid());
+        Logic::ContactItem* contactItem = Logic::getContactListModel()->getContactItem(profile_->get_aimid());
 
-		addButton_->setObjectName("add_contact_button");
-		addButton_->setVisible(!contactItem);
-		addButton_->setCursor(QCursor(Qt::PointingHandCursor));
-		buttonsLayout->addWidget(addButton_);
-		Utils::grabTouchWidget(addButton_);
+        addButton_->setObjectName(qsl("add_contact_button"));
+        addButton_->setVisible(!contactItem);
+        addButton_->setCursor(QCursor(Qt::PointingHandCursor));
+        buttonsLayout->addWidget(addButton_);
+        Utils::grabTouchWidget(addButton_);
 
-		msgButton_->setVisible(!!contactItem);
-		msgButton_->setObjectName("msg_contact_button");
-		msgButton_->setCursor(QCursor(Qt::PointingHandCursor));
-		buttonsLayout->addWidget(msgButton_);
-		Utils::grabTouchWidget(msgButton_);
+        msgButton_->setVisible(!!contactItem);
+        msgButton_->setObjectName(qsl("msg_contact_button"));
+        msgButton_->setCursor(QCursor(Qt::PointingHandCursor));
+        buttonsLayout->addWidget(msgButton_);
+        Utils::grabTouchWidget(msgButton_);
 
-		callButton_->setVisible(!!contactItem);
-		callButton_->setObjectName("call_contact_button");
-		callButton_->setCursor(QCursor(Qt::PointingHandCursor));
-		buttonsLayout->addWidget(callButton_);
-		Utils::grabTouchWidget(callButton_);
+        callButton_->setVisible(!!contactItem);
+        callButton_->setObjectName("call_contact_button");
+        callButton_->setCursor(QCursor(Qt::PointingHandCursor));
+        buttonsLayout->addWidget(callButton_);
+        Utils::grabTouchWidget(callButton_);
 
-		infoLayout->addLayout(buttonsLayout);
+        infoLayout->addLayout(buttonsLayout);
 
-		rootLayout->addLayout(infoLayout);
+        rootLayout->addLayout(infoLayout);
 
-		setLayout(rootLayout);
+        setLayout(rootLayout);
 
-		connect(addButton_, &QPushButton::clicked, [this]()
-		{
-			emit addContact(profile_->get_aimid());
-		});
+        connect(addButton_, &QPushButton::clicked, [this]()
+        {
+            emit addContact(profile_->get_aimid());
+        });
 
-		connect(msgButton_, &QPushButton::clicked, [this]()
-		{
-			emit msgContact(profile_->get_aimid());
-		});
+        connect(msgButton_, &QPushButton::clicked, [this]()
+        {
+            emit msgContact(profile_->get_aimid());
+        });
 
-		connect(callButton_, &QPushButton::clicked, [this]()
-		{
-			emit callContact(profile_->get_aimid());
-		});
+        connect(callButton_, &QPushButton::clicked, [this]()
+        {
+            emit callContact(profile_->get_aimid());
+        });
 
         connect(avatarWidget, &ContactAvatarWidget::clickedInternal, [this]()
         {
             emit contactInfo(profile_->get_aimid());
         });
-	}
+    }
 
 
-	ContactWidget::~ContactWidget()
-	{
-	}
+    ContactWidget::~ContactWidget()
+    {
+    }
 
-	void ContactWidget::onAddResult(bool _res)
-	{
-		if (_res)
-		{
-			addButton_->setVisible(false);
-			msgButton_->setVisible(true);
-			callButton_->setVisible(true);
-		}
-	}
+    void ContactWidget::onAddResult(bool _res)
+    {
+        if (_res)
+        {
+            addButton_->setVisible(false);
+            msgButton_->setVisible(true);
+            callButton_->setVisible(true);
+        }
+    }
 }
 

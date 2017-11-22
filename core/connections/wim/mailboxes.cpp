@@ -27,7 +27,7 @@ namespace wim
         return unreadCount_;
     }
 
-    std::string mailbox::get_mailbox() const
+    const std::string& mailbox::get_mailbox() const
     {
         return email_;
     }
@@ -39,7 +39,7 @@ namespace wim
         if (iter_email == _node.MemberEnd() || !iter_email->value.IsString())
             return;
 
-        email_ = iter_email->value.GetString();
+        email_ = rapidjson_get_string(iter_email->value);
 
         auto iter_unread = _node.FindMember("unreadCount");
         if (iter_unread == _node.MemberEnd() || !iter_unread->value.IsUint())
@@ -48,13 +48,13 @@ namespace wim
         unreadCount_ = iter_unread->value.GetUint();
     }
 
-    void mailbox::serialize(core::coll_helper _collection)
+    void mailbox::serialize(core::coll_helper _collection) const
     {
         _collection.set_value_as_string("email", email_);
         _collection.set_value_as_uint("unreads", unreadCount_);
     }
 
-    void mailbox::serialize(rapidjson::Value& _node, rapidjson_allocator& _a)
+    void mailbox::serialize(rapidjson::Value& _node, rapidjson_allocator& _a) const
     {
         _node.AddMember("email", get_mailbox(), _a);
         _node.AddMember("unreadCount", get_unreads(), _a);
@@ -71,7 +71,7 @@ namespace wim
         is_changed_ = true;
         bool init = false;
 
-        for (auto change : _changes)
+        for (const auto& change : _changes)
         {
             mailbox m(change->email_);
             coll_helper coll_mailbox(g_core->create_collection(), true);
@@ -81,7 +81,7 @@ namespace wim
             case mailbox_change::status:
                 init = mailboxes_.find(change->email_) == mailboxes_.end();
                 m.setUnreads(((mailbox_status_change*)change.get())->unreads_);
-                mailboxes_[change->email_] = m;
+                mailboxes_[change->email_] = std::move(m);
 
                 serialize(coll_mailbox);
                 coll_mailbox.set_value_as_bool("init", init);
@@ -90,7 +90,7 @@ namespace wim
 
             case mailbox_change::new_mail:
                 m.setUnreads(((mailbox_new_mail_change*)change.get())->unreads_);
-                mailboxes_[change->email_] = m;
+                mailboxes_[change->email_] = std::move(m);
 
                 coll_mailbox.set_value_as_string("email", change->email_);
                 coll_mailbox.set_value_as_string("from", ((mailbox_new_mail_change*)change.get())->from_);
@@ -111,7 +111,7 @@ namespace wim
     }
 
     void mailbox_storage::unserialize(const rapidjson::Value& _node_event_data, mailbox_changes& _changes)
-    {        
+    {
         auto event_status = _node_event_data.FindMember("mailbox.status");
         if (event_status != _node_event_data.MemberEnd() && event_status->value.IsString())
         {
@@ -122,13 +122,13 @@ namespace wim
 
             auto iter_email = doc.FindMember("email");
             if (iter_email != doc.MemberEnd() && iter_email->value.IsString())
-                change->email_ = iter_email->value.GetString();
+                change->email_ = rapidjson_get_string(iter_email->value);
 
             auto iter_unreads = doc.FindMember("unreadCount");
             if (iter_unreads != doc.MemberEnd() && iter_unreads->value.IsUint())
                 change->unreads_ = iter_unreads->value.GetUint();
 
-            _changes.push_back(change);
+            _changes.push_back(std::move(change));
         }
 
         auto event_read = _node_event_data.FindMember("mailbox.messageReaded");
@@ -141,13 +141,13 @@ namespace wim
 
             auto iter_email = doc.FindMember("email");
             if (iter_email != doc.MemberEnd() && iter_email->value.IsString())
-                change->email_ = iter_email->value.GetString();
+                change->email_ = rapidjson_get_string(iter_email->value);
 
             auto iter_id = doc.FindMember("uidl");
             if (iter_id != doc.MemberEnd() && iter_id->value.IsString())
-                change->uidl_ = iter_id->value.GetString();
+                change->uidl_ = rapidjson_get_string(iter_id->value);
 
-            _changes.push_back(change);
+            _changes.push_back(std::move(change));
         }
 
         auto event_new = _node_event_data.FindMember("mailbox.newMessage");
@@ -160,7 +160,7 @@ namespace wim
 
             auto iter_email = doc.FindMember("email");
             if (iter_email != doc.MemberEnd() && iter_email->value.IsString())
-                change->email_ = iter_email->value.GetString();
+                change->email_ = rapidjson_get_string(iter_email->value);
 
             auto iter_unreads = doc.FindMember("unreadCount");
             if (iter_unreads != doc.MemberEnd() && iter_unreads->value.IsUint())
@@ -168,28 +168,28 @@ namespace wim
 
             auto iter_id = doc.FindMember("uidl");
             if (iter_id != doc.MemberEnd() && iter_id->value.IsString())
-                change->uidl_ = iter_id->value.GetString();
+                change->uidl_ = rapidjson_get_string(iter_id->value);
 
             auto iter_from = doc.FindMember("from");
             if (iter_from != doc.MemberEnd() && iter_from->value.IsString())
-                change->from_ = iter_from->value.GetString();
+                change->from_ = rapidjson_get_string(iter_from->value);
 
             auto iter_subject = doc.FindMember("subject");
             if (iter_subject != doc.MemberEnd() && iter_subject->value.IsString())
-                change->subject_ = iter_subject->value.GetString();
+                change->subject_ = rapidjson_get_string(iter_subject->value);
 
-            _changes.push_back(change);
+            _changes.push_back(std::move(change));
         }
     }
 
-    void mailbox_storage::serialize(core::coll_helper _collection)
+    void mailbox_storage::serialize(core::coll_helper _collection) const
     {
         ifptr<iarray> mailbox_array(_collection->create_array());
 
         if (!mailboxes_.empty())
         {
             mailbox_array->reserve(mailboxes_.size());
-            for (auto mailbox : mailboxes_)
+            for (const auto& mailbox : mailboxes_)
             {
                 coll_helper coll_mailbox(_collection->create_collection(), true);
                 mailbox.second.serialize(coll_mailbox);
@@ -215,15 +215,15 @@ namespace wim
         rapidjson::Document doc(rapidjson::Type::kObjectType);
         auto& allocator = doc.GetAllocator();
         rapidjson::Value node_mailboxes(rapidjson::Type::kArrayType);
-
-        for (auto mailbox : mailboxes_)
+        node_mailboxes.Reserve(mailboxes_.size(), allocator);
+        for (const auto& mailbox : mailboxes_)
         {
             rapidjson::Value node_mailbox(rapidjson::Type::kObjectType);
             mailbox.second.serialize(node_mailbox, allocator);
-            node_mailboxes.PushBack(node_mailbox, allocator);
+            node_mailboxes.PushBack(std::move(node_mailbox), allocator);
         }
 
-        doc.AddMember("mailboxes", node_mailboxes, allocator);
+        doc.AddMember("mailboxes", std::move(node_mailboxes), allocator);
 
         rapidjson::StringBuffer buffer;
         rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -258,15 +258,16 @@ namespace wim
         if (doc.Parse((const char*) bstream.read(bstream.available())).HasParseError())
             return -1;
 
-        auto iter_mailboxes = doc.FindMember("mailboxes");
+        const auto iter_mailboxes = doc.FindMember("mailboxes");
         if (iter_mailboxes == doc.MemberEnd() || !iter_mailboxes->value.IsArray())
             return -1;
 
-        for (auto iter = iter_mailboxes->value.Begin(); iter != iter_mailboxes->value.End(); iter++)
+        for (auto iter = iter_mailboxes->value.Begin(); iter != iter_mailboxes->value.End(); ++iter)
         {
             mailbox m;
             m.unserialize(*iter);
-            mailboxes_[m.get_mailbox()] = m;
+            auto mail = m.get_mailbox();
+            mailboxes_[std::move(mail)] = std::move(m);
         }
 
         return 0;

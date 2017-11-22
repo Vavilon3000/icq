@@ -1,2 +1,4 @@
-rm ../gui/qresource.cpp
-rm `find .. -name moc_*`
+#!/bin/sh
+find .. -name moc_* -type f -delete
+rm -rf ../build
+rm -f ../gui/qresource.cpp

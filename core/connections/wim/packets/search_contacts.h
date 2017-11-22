@@ -25,18 +25,16 @@ namespace core
                 std::string phonenumber_;
             }
             params_;
-            
+
             virtual int32_t init_request(std::shared_ptr<core::http_request_simple> _request) override;
             virtual int32_t parse_results(const rapidjson::Value& _node_results) override;
             virtual int32_t on_response_error_code() override;
-            
+
         public:
             search_contacts_response response_;
-            
-            search_contacts(const wim_packet_params& _packet_params, const std::string& keyword, const std::string& phonenumber, const std::string& tag);
+
+            search_contacts(wim_packet_params _packet_params, const std::string& keyword, const std::string& phonenumber, const std::string& tag);
             virtual ~search_contacts();
         };
-        
     }
-    
 }

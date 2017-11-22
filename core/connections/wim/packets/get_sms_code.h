@@ -32,16 +32,16 @@ namespace core
         public:
 
             validate_phone(
-                const wim_packet_params& params,
+                wim_packet_params params,
                 const std::string& phone,
                 const std::string& locale);
 
             virtual ~validate_phone();
 
             const int32_t get_code_length() const {return code_length_;}
-            const std::string get_phone() const {return phone_;}
+            const std::string& get_phone() const {return phone_;}
             const bool get_existing() const {return existing_;}
-            const std::string get_trans_id() const {return trans_id_;}
+            const std::string& get_trans_id() const {return trans_id_;}
         };
     }
 }

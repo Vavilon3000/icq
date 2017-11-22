@@ -9,7 +9,7 @@ using namespace core;
 using namespace wim;
 
 fetch_event_my_info::fetch_event_my_info()
-    :	info_(new my_info())
+    :	info_(std::make_shared<my_info>())
 {
 }
 

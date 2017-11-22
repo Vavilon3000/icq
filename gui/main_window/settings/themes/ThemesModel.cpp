@@ -16,19 +16,18 @@ namespace Ui
 {
     ThemesModel::ThemesModel(ThemesPage* _themesPage):
         QObject(_themesPage),
-        themesPage_(_themesPage),
-        targetContact_("")
+        themesPage_(_themesPage)
     {
-        connect(GetDispatcher(), SIGNAL(onThemesMeta()), this, SLOT(onThemesMeta()));
-        connect(GetDispatcher(), SIGNAL(onThemesMetaError()), this, SLOT(onThemesMetaError()));
-        connect(Ui::GetDispatcher(), SIGNAL(im_created()), this, SLOT(im_created()), Qt::QueuedConnection);
+        connect(GetDispatcher(), &Ui::core_dispatcher::onThemesMeta, this, &ThemesModel::onThemesMeta);
+        connect(GetDispatcher(), &Ui::core_dispatcher::onThemesMetaError, this, &ThemesModel::onThemesMetaError);
+        connect(Ui::GetDispatcher(), &Ui::core_dispatcher::im_created, this, &ThemesModel::im_created, Qt::QueuedConnection);
 
         if (Ui::GetDispatcher()->isImCreated())
         {
             im_created();
         }
     }
-    
+
     void ThemesModel::im_created()
     {
         gui_coll_helper collection(GetDispatcher()->create_collection(), true);
@@ -58,15 +57,15 @@ namespace Ui
             }
         }
         collection.set_value_as_int("themes_scale", themesScale);
-        GetDispatcher()->post_message_to_core("themes/meta/get", collection.get());
+        GetDispatcher()->post_message_to_core(qsl("themes/meta/get"), collection.get());
     }
-    
+
     void ThemesModel::onThemesMeta()
     {
         auto themesDict = themes::loadedThemes();
-        
+
         std::vector<themes::themePtr> themesVector;
-    
+        themesVector.reserve(themesDict.size());
         for (auto it = themesDict.begin(); it != themesDict.end(); ++it)
         {
             auto theme = it->second;
@@ -79,7 +78,7 @@ namespace Ui
         {
             return a->get_position() < b->get_position();
         });
-        
+
         for (auto it = themesVector.begin(); it != themesVector.end(); ++it)
         {
             auto theme = *it;
@@ -91,17 +90,14 @@ namespace Ui
     {
         static int triesCount = 0;
         if ((triesCount++) < 5)
-            QTimer::singleShot(100, [this]()
-        {
-            im_created();
-        });
+            QTimer::singleShot(100, this, [this]() { im_created(); });
     }
-    
+
     void ThemesModel::themeSelected(int _themeId)
     {
         get_qt_theme_settings()->themeSelected(_themeId, targetContact_);
     }
-    
+
     void ThemesModel::setTargetContact(QString _aimId)
     {
         targetContact_ = _aimId;

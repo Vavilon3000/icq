@@ -2,32 +2,32 @@
 
 namespace Emoji
 {
-	struct EmojiRecord
-	{
-		EmojiRecord(const QString& _category, const int _index, const unsigned _codepoint, const unsigned _extendedCodepoint, const QString& _name);
+    struct EmojiRecord
+    {
+        EmojiRecord(const QString& _category, const int _index, const unsigned _codepoint, const unsigned _extendedCodepoint, const QString& _name);
 
-		const QString Category_;
+        const QString Category_;
 
-		const int Index_;
+        const int Index_;
 
-		const QString Name_;
+        const QString Name_;
 
-		const unsigned Codepoint_;
+        const unsigned Codepoint_;
 
-		const unsigned ExtendedCodepoint_;		
-	};
+        const unsigned ExtendedCodepoint_;
+    };
 
-	typedef std::shared_ptr<EmojiRecord> EmojiRecordSptr;
+    typedef std::shared_ptr<EmojiRecord> EmojiRecordSptr;
 
-	typedef std::vector<EmojiRecordSptr> EmojiRecordSptrVec;
+    typedef std::vector<EmojiRecordSptr> EmojiRecordSptrVec;
 
-	void InitEmojiDb();
+    void InitEmojiDb();
 
-    
+
     static const EmojiRecordSptr EmptyEmoji;
-	const EmojiRecordSptr& GetEmojiInfoByCodepoint(const uint32_t _codepoint, const uint32_t _extendedCodepoint);
+    const EmojiRecordSptr& GetEmojiInfoByCodepoint(const uint32_t _codepoint, const uint32_t _extendedCodepoint);
 
-	const QStringList& GetEmojiCategories();
+    const QStringList& GetEmojiCategories();
 
-	const EmojiRecordSptrVec& GetEmojiInfoByCategory(const QString& _category);
+    const EmojiRecordSptrVec& GetEmojiInfoByCategory(const QString& _category);
 }

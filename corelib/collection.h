@@ -130,18 +130,28 @@ namespace core
         virtual void push_back(hheader*) override;
         virtual hheader* first() override;
         virtual hheader* next() override;
-        virtual int32_t count() override;
-        virtual bool empty() override;
+        virtual int32_t count() const override;
+        virtual bool empty() const override;
 
         hheaders_list();
         virtual ~hheaders_list();
     };
 
+
+    struct string_comparator
+    {
+        using is_transparent = std::true_type;
+
+        bool operator()(const std::string& lhs, const std::string& rhs) const { return lhs < rhs; }
+        bool operator()(const std::string& lhs, const char* rhs) const { return lhs < rhs; }
+        bool operator()(const char* lhs, const std::string& rhs) const { return lhs < rhs; }
+    };
+
     class collection : public core::icollection
     {
         std::atomic<int32_t> ref_count_;
-        std::map<std::string, core::ivalue*> values_;
-        std::map<std::string, core::ivalue*>::iterator cursor_;
+        std::map<std::string, core::ivalue*, string_comparator> values_;
+        decltype(values_)::iterator cursor_;
 
         mutable char* log_data_;
 
@@ -162,8 +172,8 @@ namespace core
 
         virtual ivalue* first() override;
         virtual ivalue* next() override;
-        virtual int32_t count() override;
-        virtual bool empty() override;
+        virtual int32_t count() const override;
+        virtual bool empty() const override;
         virtual bool is_value_exist(const char* name) const override;
         virtual const char* log() const override;
     public:
@@ -171,8 +181,6 @@ namespace core
         collection();
         virtual ~collection();
     };
-
-
 }
 
 
